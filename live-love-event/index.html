@@ -3,84 +3,73 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Live Love Event｜百合戀愛修羅場</title>
+    <title>💘 七夕戀愛事件進行中</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Orbitron:wght@500;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <div class="bg-grid" aria-hidden="true"></div>
-    <div class="bg-glow" aria-hidden="true"></div>
+    <div class="sky" aria-hidden="true">
+      <div class="stars"></div>
+      <div class="hearts"></div>
+    </div>
 
     <div class="app">
-      <header class="top-bar">
-        <div class="brand">
-          <span class="live-badge">
-            <span class="live-dot"></span>
-            LIVE
-          </span>
-          <div class="brand-copy">
-            <p class="kicker">ColaMoon · Collab Stream</p>
-            <h1>百合戀愛修羅場</h1>
-          </div>
-        </div>
-        <div class="stream-meta">
-          <span id="viewer-count">12,480 觀看中</span>
-          <span class="divider">·</span>
-          <span id="event-progress">事件 1 / 8</span>
+      <header class="event-banner">
+        <p class="live-pill"><span class="live-dot"></span> LIVE EVENT</p>
+        <h1>💘 七夕戀愛事件進行中</h1>
+        <p class="subtitle">「可樂海王後宮失火啦」</p>
+        <p id="live-event" class="live-event" aria-live="polite">
+          🔥 火星與月月正在互相傷害中
+        </p>
+        <div class="marquee" aria-label="觀眾互動紀錄">
+          <div id="marquee-track" class="marquee-track"></div>
         </div>
       </header>
 
-      <main class="stage">
-        <section class="stream-panel" aria-label="直播畫面">
-          <div class="scanlines" aria-hidden="true"></div>
-          <div class="stage-frame">
-            <div id="portrait-row" class="portrait-row"></div>
-            <p id="scene-tag" class="scene-tag">#開播問候</p>
-            <div class="dialogue-box">
-              <p id="speaker-name" class="speaker">全員</p>
-              <p id="dialogue-text" class="dialogue">
-                三個女孩同時看向鏡頭。今夜的聯動直播，由你決定修羅場的走向。
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <aside class="side-panel">
-          <section class="affection-card" aria-label="好感度">
-            <h2>好感度</h2>
-            <div id="affection-list" class="affection-list"></div>
-          </section>
-
-          <section class="chat-card" aria-label="彈幕">
-            <h2>彈幕</h2>
-            <ul id="chat-log" class="chat-log"></ul>
-          </section>
-        </aside>
-      </main>
-
-      <section class="choice-dock" aria-label="互動選項">
-        <div class="choice-header">
-          <h2>你的選擇</h2>
-          <div id="cooldown-meter" class="cooldown-meter is-ready" aria-live="polite">
-            <span id="cooldown-label">可以發言</span>
-            <span id="cooldown-bar" class="cooldown-bar"></span>
-          </div>
+      <section class="character-section" aria-label="角色狀態庫">
+        <div class="section-title">
+          <h2>✨ 角色狀態庫</h2>
+          <p>好感度會即時跳動，醋意值也是。</p>
         </div>
-        <div id="choice-list" class="choice-list"></div>
+        <div id="character-grid" class="character-grid"></div>
+      </section>
+
+      <section class="control-section" aria-label="命運干預">
+        <h2>🔮 命運干預</h2>
+        <p class="control-hint">選一個招式，再指定要攪局的對象。</p>
+        <div class="action-row" id="action-row">
+          <button class="action-btn" type="button" data-action="letter">
+            <span class="btn-face">💌 傳遞情書</span>
+            <span class="btn-cool" hidden></span>
+          </button>
+          <button class="action-btn" type="button" data-action="peek">
+            <span class="btn-face">👀 偷看秘密</span>
+            <span class="btn-cool" hidden></span>
+          </button>
+          <button class="action-btn" type="button" data-action="encounter">
+            <span class="btn-face">💘 製造偶遇</span>
+            <span class="btn-cool" hidden></span>
+          </button>
+          <button class="action-btn" type="button" data-action="sabotage">
+            <span class="btn-face">💥 破壞約會</span>
+            <span class="btn-cool" hidden></span>
+          </button>
+        </div>
       </section>
     </div>
 
-    <div id="ending-overlay" class="ending-overlay" hidden>
-      <div class="ending-card">
-        <p class="ending-kicker">EVENT CLEAR</p>
-        <h2 id="ending-title">結局</h2>
-        <p id="ending-text"></p>
-        <button id="restart-btn" type="button">再播一場</button>
+    <div id="target-modal" class="modal" hidden>
+      <div class="modal-backdrop" data-close="true"></div>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <p class="modal-kicker" id="modal-action-label">命運干預</p>
+        <h3 id="modal-title">選擇標角色</h3>
+        <div id="target-list" class="target-list"></div>
+        <button class="modal-cancel" type="button" data-close="true">取消</button>
       </div>
     </div>
 
