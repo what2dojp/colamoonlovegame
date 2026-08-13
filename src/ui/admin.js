@@ -82,9 +82,11 @@ function render(state) {
 
       <section class="box">
         <h2>角色數值</h2>
+        <p class="muted">Night Score 是今晚陪伴傾向，不是誰比較健康。親密度最高 ≠ 一定成為今晚陪伴者。核心是親密度 + unique primary；其餘官方心理數值仍可進 Night Score 與事件條件。</p>
         <table>
           <tr>
             <th>角色</th>
+            <th>Night</th>
             ${[...new Set(state.charactersView.flatMap((c) => c.stats))]
               .map((key) => `<th>${STAT_LABELS[key] || key}</th>`)
               .join("")}
@@ -94,6 +96,7 @@ function render(state) {
               const keys = [...new Set(state.charactersView.flatMap((x) => x.stats))];
               return `<tr>
                 <td>${c.icon}${c.shortName}</td>
+                <td>${c.nightScore}</td>
                 ${keys
                   .map((key) => {
                     const val = c.values[key];

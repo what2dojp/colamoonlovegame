@@ -9,7 +9,7 @@ export const CHARACTERS = [
     role: "黃金獵犬／病嬌／佔有",
     philosophy: "愛是想永遠擁有妳。",
     uniquePrimary: "obsession",
-    stats: ["affection", "jealousy", "obsession", "trust"],
+    stats: ["affection", "obsession", "jealousy", "trust", "dependence"],
     summary:
       "月月養的黃金獵犬。曾經非常乖巧，帶著娃娃「晶晶」。被一句「那就來住這裡啊」留下之後，把依賴活成了永遠。",
     lore: [
@@ -18,7 +18,7 @@ export const CHARACTERS = [
       "月月曾半開玩笑說：「妳那麼喜歡跟我見面，那就來住這裡啊。」日日真的住進地下室。",
       "她不認為自己變得危險。她認為「月月讓我留下」等於「月月也愛我」。",
     ],
-    initial: { affection: 56, jealousy: 22, obsession: 38, trust: 64 },
+    initial: { affection: 56, obsession: 38, jealousy: 22, trust: 64, dependence: 48 },
   },
   {
     id: "meteor",
@@ -29,8 +29,8 @@ export const CHARACTERS = [
     accent: "#7cf7ff",
     role: "青梅竹馬／舊愛／嘴硬",
     philosophy: "我們本來就注定會在一起。",
-    uniquePrimary: "destinyBelief",
-    stats: ["affection", "jealousy", "destinyBelief", "pride", "nostalgia"],
+    uniquePrimary: "destiny",
+    stats: ["affection", "destiny", "nostalgia", "jealousy", "pride"],
     summary:
       "小時候最喜歡的沙士，也是沒有正式告白、卻彼此默認的那個人。打鬧還在，約定也還在。",
     lore: [
@@ -39,7 +39,7 @@ export const CHARACTERS = [
       "長大後仍像朋友一樣互嗆。她不是正式分手的前任，卻有舊愛的重量。",
       "她相信：妳現在跟誰在一起都沒關係，最後還是會回到我身邊。",
     ],
-    initial: { affection: 62, jealousy: 24, destinyBelief: 74, pride: 58, nostalgia: 82 },
+    initial: { affection: 62, destiny: 74, nostalgia: 82, jealousy: 24, pride: 58 },
   },
   {
     id: "pepsi",
@@ -50,8 +50,8 @@ export const CHARACTERS = [
     accent: "#c59bff",
     role: "平行世界的自己／靈魂共鳴",
     philosophy: "靈魂會認出彼此。",
-    uniquePrimary: "soulResonance",
-    stats: ["affection", "jealousy", "soulResonance", "destinyBelief", "understanding"],
+    uniquePrimary: "resonance",
+    stats: ["affection", "resonance", "similarity", "destiny", "understanding"],
     summary:
       "另一個世界的月月。深棕色頭髮。她不搶，因為她相信真正命中注定的人不需要搶。",
     lore: [
@@ -60,7 +60,7 @@ export const CHARACTERS = [
       "她知道月月為什麼逃避、嘴硬、猶豫，兩人不需要過度解釋。",
       "她不是病嬌，也不是佔有型。相遇本身，對她來說已經是答案。",
     ],
-    initial: { affection: 52, jealousy: 8, soulResonance: 78, destinyBelief: 66, understanding: 84 },
+    initial: { affection: 52, resonance: 78, similarity: 82, destiny: 66, understanding: 84 },
   },
   {
     id: "jupiter",
@@ -72,7 +72,7 @@ export const CHARACTERS = [
     role: "長期暗戀／深情／克制",
     philosophy: "我想要妳，但我不會要求妳選我。",
     uniquePrimary: "devotion",
-    stats: ["affection", "jealousy", "devotion", "restraint", "hope"],
+    stats: ["affection", "devotion", "patience", "jealousy", "hope"],
     summary:
       "一直在追月月，只是追法很安靜。她不是朋友線。她想被選，但認為月月不欠她一個答案。",
     lore: [
@@ -81,7 +81,7 @@ export const CHARACTERS = [
       "成全不是因為不夠愛，恰恰相反：正因為非常愛，所以尊重選擇。",
       "「我當然難過。可是我喜歡妳，不代表妳欠我一個答案。」",
     ],
-    initial: { affection: 58, jealousy: 16, devotion: 84, restraint: 80, hope: 62 },
+    initial: { affection: 58, devotion: 84, patience: 80, jealousy: 16, hope: 62 },
   },
   {
     id: "mars",
@@ -93,7 +93,7 @@ export const CHARACTERS = [
     role: "死對頭／互相傷害／棋逢對手",
     philosophy: "我不知道為什麼，但我就是喜歡妳。",
     uniquePrimary: "chemistry",
-    stats: ["affection", "jealousy", "provocation", "chemistry", "pride"],
+    stats: ["affection", "chemistry", "provocation", "pride"],
     summary:
       "第一眼就討厭的類型。本該自動避開，卻總被事件撞在一起。互嗆、互坑、又偷偷關心。",
     lore: [
@@ -102,25 +102,50 @@ export const CHARACTERS = [
       "火星不相信命中注定，會嘲笑流星的約定、百事的靈魂、日日的永遠。",
       "她更接近：我就是喜歡上妳了，哪有那麼多理由。",
     ],
-    initial: { affection: 26, jealousy: 14, provocation: 72, chemistry: 44, pride: 82 },
+    initial: { affection: 26, chemistry: 44, provocation: 72, pride: 82 },
   },
 ];
 
 export const CHARACTER_BY_ID = Object.fromEntries(CHARACTERS.map((c) => [c.id, c]));
 
 export const STAT_LABELS = {
-  affection: "好感",
+  affection: "親密度",
+  obsession: "執著",
   jealousy: "嫉妒",
-  obsession: "執念",
   trust: "信任",
-  destinyBelief: "命定確信",
-  pride: "傲氣",
+  dependence: "依賴",
+  destiny: "命定",
   nostalgia: "懷舊",
-  soulResonance: "靈魂共鳴",
+  pride: "傲氣",
+  resonance: "靈魂共鳴",
+  similarity: "自我映照",
   understanding: "理解",
   devotion: "傾心",
-  restraint: "克制",
+  patience: "等待",
   hope: "希望",
-  provocation: "挑釁",
   chemistry: "化學反應",
+  provocation: "挑釁",
 };
+
+export const STAT_KEY_ALIASES = {
+  destinyBelief: "destiny",
+  soulResonance: "resonance",
+  restraint: "patience",
+};
+
+/** Unofficial leftover keys that still need a story effect when events/interventions write them. */
+export const UNOFFICIAL_STAT_REDIRECTS = {
+  pepsi: { jealousy: "understanding" },
+  mars: { jealousy: "provocation" },
+};
+
+export function resolveCharacterStatKey(characterId, key) {
+  const def = CHARACTER_BY_ID[characterId];
+  if (!def || !key) return null;
+  if (def.stats.includes(key)) return key;
+  const aliased = STAT_KEY_ALIASES[key];
+  if (aliased && def.stats.includes(aliased)) return aliased;
+  const redirected = UNOFFICIAL_STAT_REDIRECTS[characterId]?.[key];
+  if (redirected && def.stats.includes(redirected)) return redirected;
+  return null;
+}

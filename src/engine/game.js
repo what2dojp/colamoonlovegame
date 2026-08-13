@@ -13,13 +13,14 @@ import {
   interpolateEvent,
 } from "./event-engine.js";
 import { characterStatus, computeDerived } from "./derived.js";
-import { clearSave, cloneState, createInitialState, loadSave, writeSave } from "./save.js";
+import { clearSave, cloneState, createInitialState, loadSave, migrateSave, writeSave } from "./save.js";
 import {
   buildProgressCard,
   drawPoolEvent,
   ensureSession,
   listPoolCandidates,
   nightPartnerFlag,
+  nightScore,
   pickNightPartner,
   setEventRecord,
   settlementView,
@@ -219,7 +220,8 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
   }
 
   function setStat(characterId, key, value) {
-    if (!state.characters[characterId]) return;
+    const def = CHARACTER_BY_ID[characterId];
+    if (!def?.stats.includes(key)) return;
     const num = Number(value);
     if (Number.isNaN(num)) return;
     state.characters[characterId][key] = Math.max(
@@ -379,10 +381,14 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
       currentEvent: interpolateEvent(rawEvent, ctx),
       interventionsUnlocked: Boolean(state.flags[SEASON.unlockInterventionsFlag]),
       pool: listPoolCandidates(state),
+      nightScores: Object.fromEntries(
+        Object.values(CHARACTER_BY_ID).map((c) => [c.id, Number(nightScore(state, c.id).toFixed(2))])
+      ),
       charactersView: Object.values(CHARACTER_BY_ID).map((c) => ({
         ...c,
         values: state.characters[c.id],
         status: characterStatus(state, c.id),
+        nightScore: Number(nightScore(state, c.id).toFixed(2)),
       })),
       interventions: INTERVENTIONS.map((item) => ({
         ...item,
@@ -399,7 +405,7 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
     window.addEventListener("storage", (event) => {
       if (event.key === GAME_CONFIG.saveKey && event.newValue) {
         try {
-          state = JSON.parse(event.newValue);
+          state = migrateSave(JSON.parse(event.newValue)) || createInitialState();
           ensureSession(state);
           listeners.forEach((fn) => fn(getPublicState()));
         } catch {

@@ -1,4 +1,4 @@
-import { CHARACTER_BY_ID } from "../../data/characters.js";
+import { CHARACTER_BY_ID, resolveCharacterStatKey } from "../../data/characters.js";
 import { EVENT_BY_ID, EVENTS } from "../../data/seasons/qixi-2026/events.js";
 import { evalCondition, interpolate, getByPath, setByPath } from "./conditions.js";
 import { clampStat } from "./derived.js";
@@ -84,11 +84,16 @@ export function applyEffects(state, effects, extraLog = []) {
 
   for (const effect of effects || []) {
     if (effect.type === "stat") {
-      const path = resolvePath(effect.path, ctx);
-      const current = getByPath(state, path);
-      if (current == null) continue;
+      let path = resolvePath(effect.path, ctx);
+      const match = /^characters\.([^.]+)\.([^.]+)$/.exec(path);
+      if (match) {
+        const officialKey = resolveCharacterStatKey(match[1], match[2]);
+        if (!officialKey) continue;
+        path = `characters.${match[1]}.${officialKey}`;
+      }
+      const current = Number(getByPath(state, path) ?? 0);
       const delta = Number(effect.value) || 0;
-      const next = effect.op === "set" ? delta : Number(current) + delta;
+      const next = effect.op === "set" ? delta : current + delta;
       setByPath(state, path, clampStat(next));
     } else if (effect.type === "flag") {
       const key = interpolate(effect.key, ctx);

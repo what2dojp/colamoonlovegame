@@ -1,5 +1,5 @@
 import { GAME_CONFIG } from "../config/game.config.js";
-import { CHARACTERS } from "../../data/characters.js";
+import { CHARACTERS, CHARACTER_BY_ID, STAT_KEY_ALIASES } from "../../data/characters.js";
 import { RELATIONSHIP_PAIRS, pairKey } from "../../data/relationships.js";
 import { SEASONS } from "../../data/seasons/index.js";
 import { createSession, makeId } from "./session.js";
@@ -43,6 +43,21 @@ export function createInitialState(seasonId = GAME_CONFIG.currentSeason) {
   };
 }
 
+export function migrateCharacterStats(id, raw = {}) {
+  const def = CHARACTER_BY_ID[id];
+  if (!def) return { ...raw };
+  const renamed = { ...raw };
+  for (const [from, to] of Object.entries(STAT_KEY_ALIASES)) {
+    if (renamed[from] != null && renamed[to] == null) renamed[to] = renamed[from];
+    delete renamed[from];
+  }
+  const next = { ...def.initial };
+  for (const key of def.stats) {
+    if (renamed[key] != null) next[key] = renamed[key];
+  }
+  return next;
+}
+
 export function migrateSave(data) {
   if (!data || typeof data !== "object") return null;
   const base = createInitialState(data.currentSeason || GAME_CONFIG.currentSeason);
@@ -60,6 +75,25 @@ export function migrateSave(data) {
     archive: data.archive || {},
   };
   delete merged.ending;
+
+  const characters = {};
+  for (const character of CHARACTERS) {
+    characters[character.id] = migrateCharacterStats(character.id, data.characters?.[character.id] || {});
+  }
+  merged.characters = characters;
+
+  merged.relationships = { ...base.relationships, ...(data.relationships || {}) };
+  for (const pair of RELATIONSHIP_PAIRS) {
+    const key = pairKey(pair.a, pair.b);
+    if (!merged.relationships[key]) {
+      merged.relationships[key] = {
+        a: pair.a,
+        b: pair.b,
+        tension: pair.tension,
+        note: pair.note,
+      };
+    }
+  }
   return merged;
 }
 

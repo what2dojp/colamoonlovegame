@@ -11,7 +11,9 @@ export function average(values) {
 }
 
 export function computeDerived(state) {
-  const jealousies = CHARACTERS.map((c) => state.characters[c.id].jealousy);
+  const jealousies = CHARACTERS.map((c) => state.characters[c.id]?.jealousy).filter(
+    (value) => typeof value === "number"
+  );
   const tensions = Object.values(state.relationships).map((r) => r.tension);
   const affections = CHARACTERS.map((c) => state.characters[c.id].affection);
   const conflictCount = (state.history || []).filter((h) =>
@@ -42,17 +44,20 @@ export function characterStatus(state, id) {
   const stats = state.characters[id];
   const unique = stats[c.uniquePrimary];
 
+  if (id === "nini" && unique >= 55 && stats.trust < 50) return "危險病嬌";
   if (id === "nini" && unique >= 55) return "病嬌佔有";
+  if (id === "nini" && stats.dependence >= 70) return "不能沒有妳";
   if (id === "nini" && stats.trust >= 70) return "忠誠依賴";
-  if (id === "meteor" && stats.destinyBelief >= 78) return "命定確信";
+  if (id === "meteor" && stats.destiny >= 78) return "命定確信";
   if (id === "meteor" && stats.pride >= 60) return "嘴硬舊愛";
-  if (id === "pepsi" && stats.soulResonance >= 80) return "靈魂共鳴";
+  if (id === "pepsi" && stats.resonance >= 80) return "靈魂共鳴";
   if (id === "pepsi") return "不必搶她";
+  if (id === "jupiter" && stats.devotion >= 80 && stats.hope <= 40) return "溫柔心碎";
   if (id === "jupiter" && stats.hope < 55) return "成全但不走";
   if (id === "jupiter" && stats.devotion >= 85) return "安靜地追求";
   if (id === "mars" && stats.chemistry >= 55 && stats.provocation >= 70) return "互相傷害";
   if (id === "mars" && stats.affection < 35) return "第一眼就討厭";
-  if (stats.jealousy >= 55) return "醋意上升";
+  if (typeof stats.jealousy === "number" && stats.jealousy >= 55) return "醋意上升";
   if (stats.affection >= 70) return "心動明顯";
   return "關係進行中";
 }

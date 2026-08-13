@@ -47,6 +47,7 @@ export const EVENTS = [
           { type: "stat", path: "characters.nini.affection", op: "add", value: 4 },
           { type: "stat", path: "characters.nini.trust", op: "add", value: 5 },
           { type: "stat", path: "characters.nini.obsession", op: "add", value: 3 },
+          { type: "stat", path: "characters.nini.dependence", op: "add", value: 4 },
           { type: "queueEvent", eventId: "EVENT_003_knock_meteor" },
         ],
       },
@@ -55,6 +56,7 @@ export const EVENTS = [
         label: "再等一等，聽聽她會說什麼",
         effects: [
           { type: "stat", path: "characters.nini.obsession", op: "add", value: 6 },
+          { type: "stat", path: "characters.nini.dependence", op: "add", value: 5 },
           { type: "stat", path: "characters.nini.jealousy", op: "add", value: 2 },
           { type: "queueEvent", eventId: "EVENT_003_knock_meteor" },
         ],
@@ -86,7 +88,7 @@ export const EVENTS = [
         id: "serious",
         label: "讓月月把童年約定當真",
         effects: [
-          { type: "stat", path: "characters.meteor.destinyBelief", op: "add", value: 6 },
+          { type: "stat", path: "characters.meteor.destiny", op: "add", value: 6 },
           { type: "stat", path: "characters.meteor.affection", op: "add", value: 3 },
           { type: "stat", path: "characters.meteor.pride", op: "add", value: -4 },
           { type: "queueEvent", eventId: "EVENT_004_knock_pepsi" },
@@ -109,7 +111,7 @@ export const EVENTS = [
         id: "understood",
         label: "讓月月承認「被說中了」",
         effects: [
-          { type: "stat", path: "characters.pepsi.soulResonance", op: "add", value: 5 },
+          { type: "stat", path: "characters.pepsi.resonance", op: "add", value: 5 },
           { type: "stat", path: "characters.pepsi.understanding", op: "add", value: 4 },
           { type: "stat", path: "characters.pepsi.affection", op: "add", value: 4 },
           { type: "queueEvent", eventId: "EVENT_005_knock_jupiter" },
@@ -119,8 +121,8 @@ export const EVENTS = [
         id: "distance",
         label: "讓月月把這份理解推遠一點",
         effects: [
-          { type: "stat", path: "characters.pepsi.destinyBelief", op: "add", value: 3 },
-          { type: "stat", path: "characters.pepsi.jealousy", op: "add", value: 2 },
+          { type: "stat", path: "characters.pepsi.destiny", op: "add", value: 3 },
+          { type: "stat", path: "characters.pepsi.similarity", op: "add", value: 2 },
           { type: "queueEvent", eventId: "EVENT_005_knock_jupiter" },
         ],
       },
@@ -152,7 +154,7 @@ export const EVENTS = [
         label: "讓月月問：妳是不是喜歡我？",
         effects: [
           { type: "stat", path: "characters.jupiter.affection", op: "add", value: 4 },
-          { type: "stat", path: "characters.jupiter.restraint", op: "add", value: -6 },
+          { type: "stat", path: "characters.jupiter.patience", op: "add", value: -6 },
           { type: "stat", path: "characters.jupiter.hope", op: "add", value: 8 },
           { type: "flag", key: "jupiter_asked", value: true },
           { type: "queueEvent", eventId: "EVENT_006_knock_mars" },
@@ -189,7 +191,7 @@ export const EVENTS = [
           { type: "stat", path: "characters.mars.chemistry", op: "add", value: 5 },
           { type: "stat", path: "characters.mars.pride", op: "add", value: -5 },
           { type: "stat", path: "characters.mars.affection", op: "add", value: 5 },
-          { type: "stat", path: "characters.mars.jealousy", op: "add", value: 3 },
+          { type: "tension", pair: "moon-mars", op: "add", value: 4 },
           { type: "queueEvent", eventId: "EVENT_007_realization" },
         ],
       },
@@ -281,6 +283,7 @@ export const EVENTS = [
           { type: "stat", path: "characters.nini.obsession", op: "add", value: 8 },
           { type: "stat", path: "characters.nini.trust", op: "add", value: 6 },
           { type: "stat", path: "characters.nini.affection", op: "add", value: 5 },
+          { type: "stat", path: "characters.nini.dependence", op: "add", value: 5 },
           { type: "tension", pair: "nini-meteor", op: "add", value: 7 },
           { type: "flag", key: "nini_allowed_stay", value: true },
         ],
@@ -291,6 +294,7 @@ export const EVENTS = [
         effects: [
           { type: "stat", path: "characters.nini.trust", op: "add", value: -6 },
           { type: "stat", path: "characters.nini.obsession", op: "add", value: 10 },
+          { type: "stat", path: "characters.nini.dependence", op: "add", value: 8 },
           { type: "stat", path: "characters.nini.jealousy", op: "add", value: 8 },
         ],
       },
@@ -333,9 +337,10 @@ export const EVENTS = [
         id: "deflect",
         label: "讓月月去看別人，不跟她耗",
         effects: [
-          { type: "stat", path: "characters.mars.jealousy", op: "add", value: 12 },
+          { type: "stat", path: "characters.mars.provocation", op: "add", value: 8 },
           { type: "stat", path: "characters.mars.pride", op: "add", value: 4 },
           { type: "stat", path: "characters.mars.affection", op: "add", value: 2 },
+          { type: "tension", pair: "moon-mars", op: "add", value: 8 },
           { type: "tension", pair: "jupiter-mars", op: "add", value: 6 },
         ],
       },
@@ -367,7 +372,7 @@ export const EVENTS = [
         effects: [
           { type: "stat", path: "characters.jupiter.affection", op: "add", value: 7 },
           { type: "stat", path: "characters.jupiter.hope", op: "add", value: 8 },
-          { type: "stat", path: "characters.jupiter.restraint", op: "add", value: -4 },
+          { type: "stat", path: "characters.jupiter.patience", op: "add", value: -4 },
           { type: "flag", key: "jupiter_seen", value: true },
         ],
       },
@@ -493,6 +498,7 @@ export const EVENTS = [
     intervention: true,
     onEnter: [
       { type: "stat", path: "characters.{{target.id}}.jealousy", op: "add", value: 20 },
+      { type: "stat", path: "characters.{{target.id}}.{{target.uniquePrimary}}", op: "add", value: 4 },
       { type: "flag", key: "jealousy_triggered_{{target.id}}", value: true },
       { type: "weightMod", eventId: "EVENT_{{target.id}}_jealousy_01", value: 40 },
     ],
@@ -710,7 +716,7 @@ export const EVENTS = [
         id: "remember",
         label: "讓月月把童年約定講出來",
         effects: [
-          { type: "stat", path: "characters.meteor.destinyBelief", op: "add", value: 6 },
+          { type: "stat", path: "characters.meteor.destiny", op: "add", value: 6 },
           { type: "stat", path: "characters.meteor.affection", op: "add", value: 5 },
         ],
       },
@@ -726,14 +732,14 @@ export const EVENTS = [
   },
   {
     id: "EVENT_pepsi_jealousy_01",
-    title: "百事很少吃醋的一次",
+    title: "百事看見逃的方向",
     description:
-      "百事月月的嫉妒來得很輕，輕到幾乎像理解。「我知道妳會逃。我只是沒想到，今晚逃的方向這麼多人。」",
+      "百事月月沒有吃醋的表情。她只是輕輕說：「我知道妳會逃。我只是沒想到，今晚逃的方向這麼多人。」共鳴還在，只是被很多人同時拉扯。",
     characters: ["pepsi"],
     speaker: "百事月月",
     pool: true,
     weight: 8,
-    tags: ["pepsi", "jealousy", "dynamic"],
+    tags: ["pepsi", "resonance", "dynamic"],
     conditions: {
       all: [
         { flag: "dynamic_pool_unlocked" },
@@ -741,7 +747,7 @@ export const EVENTS = [
         {
           any: [
             { flag: "jealousy_triggered_pepsi" },
-            { path: "characters.pepsi.jealousy", op: "gte", value: 20 },
+            { path: "characters.pepsi.understanding", op: "gte", value: 80 },
           ],
         },
       ],
@@ -751,14 +757,17 @@ export const EVENTS = [
         id: "see",
         label: "讓月月承認被看穿",
         effects: [
-          { type: "stat", path: "characters.pepsi.soulResonance", op: "add", value: 6 },
+          { type: "stat", path: "characters.pepsi.resonance", op: "add", value: 6 },
           { type: "stat", path: "characters.pepsi.affection", op: "add", value: 4 },
         ],
       },
       {
         id: "hide",
         label: "讓月月繼續躲",
-        effects: [{ type: "stat", path: "characters.pepsi.jealousy", op: "add", value: 6 }],
+        effects: [
+          { type: "stat", path: "characters.pepsi.destiny", op: "add", value: 4 },
+          { type: "stat", path: "characters.pepsi.similarity", op: "add", value: 3 },
+        ],
       },
     ],
   },
@@ -797,7 +806,7 @@ export const EVENTS = [
         id: "later",
         label: "讓月月說：今晚先不要問",
         effects: [
-          { type: "stat", path: "characters.jupiter.restraint", op: "add", value: 4 },
+          { type: "stat", path: "characters.jupiter.patience", op: "add", value: 4 },
           { type: "eventStatus", status: "unresolved" },
         ],
       },
@@ -820,7 +829,7 @@ export const EVENTS = [
         {
           any: [
             { flag: "jealousy_triggered_mars" },
-            { path: "characters.mars.jealousy", op: "gte", value: 40 },
+            { path: "characters.mars.provocation", op: "gte", value: 70 },
           ],
         },
       ],
@@ -838,8 +847,9 @@ export const EVENTS = [
         id: "leave",
         label: "讓月月先走開",
         effects: [
-          { type: "stat", path: "characters.mars.jealousy", op: "add", value: 10 },
+          { type: "stat", path: "characters.mars.provocation", op: "add", value: 8 },
           { type: "stat", path: "characters.mars.pride", op: "add", value: 5 },
+          { type: "tension", pair: "moon-mars", op: "add", value: 8 },
         ],
       },
     ],
@@ -908,7 +918,7 @@ export const EVENTS = [
         id: "believe",
         label: "讓月月沒有否定那句約定",
         effects: [
-          { type: "stat", path: "characters.meteor.destinyBelief", op: "add", value: 7 },
+          { type: "stat", path: "characters.meteor.destiny", op: "add", value: 7 },
           { type: "stat", path: "characters.meteor.affection", op: "add", value: 5 },
         ],
       },
@@ -936,7 +946,7 @@ export const EVENTS = [
       all: [
         { flag: "dynamic_pool_unlocked" },
         { not: { completed: "EVENT_pepsi_soul_01" } },
-        { path: "characters.pepsi.soulResonance", op: "gte", value: 78 },
+        { path: "characters.pepsi.resonance", op: "gte", value: 78 },
       ],
     },
     choices: [
@@ -952,8 +962,193 @@ export const EVENTS = [
         id: "run",
         label: "讓月月說自己還沒準備好",
         effects: [
-          { type: "stat", path: "characters.pepsi.destinyBelief", op: "add", value: 4 },
+          { type: "stat", path: "characters.pepsi.destiny", op: "add", value: 4 },
           { type: "eventStatus", status: "unresolved" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "EVENT_nini_dependence_01",
+    title: "月月不在的時候",
+    description:
+      "日日把晶晶抱到胸口。「妳去和其他人說話的時候，地下室好安靜。」執著是想擁有；依賴是不能沒有。這兩件事正在同時發生。",
+    characters: ["nini"],
+    speaker: "雪碧日日",
+    pool: true,
+    weight: 8,
+    tags: ["nini", "dependence", "dynamic"],
+    conditions: {
+      all: [
+        { flag: "dynamic_pool_unlocked" },
+        { not: { completed: "EVENT_nini_dependence_01" } },
+        { path: "characters.nini.dependence", op: "gte", value: 80 },
+      ],
+    },
+    choices: [
+      {
+        id: "stay",
+        label: "讓月月說：我在這裡",
+        effects: [
+          { type: "stat", path: "characters.nini.trust", op: "add", value: 8 },
+          { type: "stat", path: "characters.nini.dependence", op: "add", value: 4 },
+        ],
+      },
+      {
+        id: "space",
+        label: "讓月月說：妳也要有自己",
+        effects: [
+          { type: "stat", path: "characters.nini.trust", op: "add", value: -8 },
+          { type: "stat", path: "characters.nini.obsession", op: "add", value: 6 },
+          { type: "eventStatus", status: "unresolved" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "EVENT_meteor_pride_01",
+    title: "明明在吃醋卻說沒有",
+    description:
+      "流星把沙士罐轉了一圈。「誰吃醋啊。妳愛跟誰玩就跟誰玩。」聲音很硬。耳朵卻紅了。",
+    characters: ["meteor"],
+    speaker: "沙士流星",
+    pool: true,
+    weight: 10,
+    tags: ["meteor", "pride", "dynamic"],
+    conditions: {
+      all: [
+        { flag: "dynamic_pool_unlocked" },
+        { not: { completed: "EVENT_meteor_pride_01" } },
+        { path: "characters.meteor.pride", op: "gte", value: 80 },
+      ],
+    },
+    choices: [
+      {
+        id: "poke",
+        label: "讓月月戳破：妳在吃醋",
+        effects: [
+          { type: "stat", path: "characters.meteor.pride", op: "add", value: -6 },
+          { type: "stat", path: "characters.meteor.affection", op: "add", value: 6 },
+          { type: "stat", path: "characters.meteor.jealousy", op: "add", value: 4 },
+        ],
+      },
+      {
+        id: "play",
+        label: "讓月月配合她嘴硬",
+        effects: [
+          { type: "stat", path: "characters.meteor.pride", op: "add", value: 5 },
+          { type: "stat", path: "characters.meteor.nostalgia", op: "add", value: 3 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "EVENT_pepsi_understanding_01",
+    title: "只有她知道",
+    description:
+      "百事月月沒有問「怎麼了」。她只說出月月還沒說出口的那句。「妳在躲的不是節日。」兩人不需要解釋。",
+    characters: ["pepsi"],
+    speaker: "百事月月",
+    pool: true,
+    weight: 12,
+    tags: ["pepsi", "understanding", "dynamic"],
+    conditions: {
+      all: [
+        { flag: "dynamic_pool_unlocked" },
+        { not: { completed: "EVENT_pepsi_understanding_01" } },
+        { path: "characters.pepsi.understanding", op: "gte", value: 80 },
+      ],
+    },
+    choices: [
+      {
+        id: "admit",
+        label: "讓月月承認被說中",
+        effects: [
+          { type: "stat", path: "characters.pepsi.resonance", op: "add", value: 6 },
+          { type: "stat", path: "characters.pepsi.affection", op: "add", value: 5 },
+        ],
+      },
+      {
+        id: "silence",
+        label: "讓月月什麼都不解釋",
+        effects: [
+          { type: "stat", path: "characters.pepsi.understanding", op: "add", value: 3 },
+          { type: "stat", path: "characters.pepsi.similarity", op: "add", value: 4 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "EVENT_jupiter_hope_low_01",
+    title: "木星開始動搖",
+    description:
+      "木星把飲料放回原位。「我一直愛妳。這件事沒有變。」她吸了一口氣，「可是我開始想，我是不是應該放手，才算真的喜歡妳。」守護還在，希望卻在往下掉。",
+    characters: ["jupiter"],
+    speaker: "西打木星",
+    pool: true,
+    weight: 8,
+    tags: ["jupiter", "hope", "dynamic"],
+    conditions: {
+      all: [
+        { flag: "dynamic_pool_unlocked" },
+        { not: { completed: "EVENT_jupiter_hope_low_01" } },
+        { path: "characters.jupiter.hope", op: "lte", value: 30 },
+        { path: "characters.jupiter.devotion", op: "gte", value: 70 },
+      ],
+    },
+    choices: [
+      {
+        id: "dont_go",
+        label: "讓月月說：不要走",
+        effects: [
+          { type: "stat", path: "characters.jupiter.hope", op: "add", value: 12 },
+          { type: "stat", path: "characters.jupiter.affection", op: "add", value: 6 },
+        ],
+      },
+      {
+        id: "thank",
+        label: "讓月月只說謝謝妳一直在",
+        effects: [
+          { type: "stat", path: "characters.jupiter.devotion", op: "add", value: 4 },
+          { type: "stat", path: "characters.jupiter.hope", op: "add", value: -8 },
+          { type: "eventStatus", status: "unresolved" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "EVENT_mars_kings_01",
+    title: "王見王",
+    description:
+      "火星把下巴抬起來。「同類確認過眼神就該走。偏偏我們沒走。」互嗆已經不是玩笑，化學反應把距離燒得很短。",
+    characters: ["mars"],
+    speaker: "芬達火星",
+    pool: true,
+    weight: 8,
+    tags: ["mars", "provocation", "dynamic"],
+    conditions: {
+      all: [
+        { flag: "dynamic_pool_unlocked" },
+        { not: { completed: "EVENT_mars_kings_01" } },
+        { path: "characters.mars.provocation", op: "gte", value: 80 },
+      ],
+    },
+    choices: [
+      {
+        id: "clash",
+        label: "讓月月接招，棋逢對手",
+        effects: [
+          { type: "stat", path: "characters.mars.chemistry", op: "add", value: 8 },
+          { type: "stat", path: "characters.mars.affection", op: "add", value: 5 },
+          { type: "tension", pair: "moon-mars", op: "add", value: 8 },
+        ],
+      },
+      {
+        id: "deny",
+        label: "讓月月說：我沒有要跟妳耗",
+        effects: [
+          { type: "stat", path: "characters.mars.pride", op: "add", value: 6 },
+          { type: "stat", path: "characters.mars.provocation", op: "add", value: 4 },
         ],
       },
     ],

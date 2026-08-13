@@ -1,5 +1,7 @@
 import { CHARACTERS, CHARACTER_BY_ID, STAT_LABELS } from "../../data/characters.js";
+import { pairKey } from "../../data/relationships.js";
 import { EVENT_BY_ID, EVENTS } from "../../data/seasons/qixi-2026/events.js";
+import { GAME_CONFIG } from "../config/game.config.js";
 import { SEASONS } from "../../data/seasons/index.js";
 import { evalCondition } from "./conditions.js";
 import { computeDerived } from "./derived.js";
@@ -113,6 +115,21 @@ export function trackCharacterTouch(state, characterId, kind, eventId) {
   }
 }
 
+export function nightScore(state, id) {
+  const weights = GAME_CONFIG.nightScoreWeights[id] || { affection: 1 };
+  const stats = state.characters[id] || {};
+  let score = 0;
+  for (const [key, weight] of Object.entries(weights)) {
+    if (key === "moonTension") {
+      const rel = state.relationships?.[pairKey("moon", id)];
+      score += (Number(rel?.tension) || 0) * weight;
+      continue;
+    }
+    score += (Number(stats[key]) || 0) * weight;
+  }
+  return score;
+}
+
 export function pickNightPartner(state) {
   const session = ensureSession(state);
   const last = session.lastMajorInteraction?.characterId;
@@ -120,8 +137,8 @@ export function pickNightPartner(state) {
   return [...CHARACTERS]
     .map((c) => c.id)
     .sort((a, b) => {
-      const aff = state.characters[b].affection - state.characters[a].affection;
-      if (aff !== 0) return aff;
+      const score = nightScore(state, b) - nightScore(state, a);
+      if (Math.abs(score) > 0.0001) return score;
       if (last === a && last !== b) return -1;
       if (last === b && last !== a) return 1;
       const events =
@@ -190,6 +207,7 @@ export function buildProgressCard(state) {
       uniqueLabel: STAT_LABELS[c.uniquePrimary],
       uniqueValue: state.characters[c.id][c.uniquePrimary],
       jealousy: state.characters[c.id].jealousy,
+      nightScore: Number(nightScore(state, c.id).toFixed(2)),
     })),
     importantEvents: important,
     unresolved,

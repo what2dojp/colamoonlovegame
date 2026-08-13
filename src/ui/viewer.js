@@ -18,7 +18,7 @@ function renderProgressCard(card) {
   const rows = card.characters
     .map(
       (c) =>
-        `<li>${c.name}　親密度 ${c.affection}　${c.uniqueLabel} ${c.uniqueValue}　嫉妒 ${c.jealousy}</li>`
+        `<li>${c.name}　親密度 ${c.affection}　${c.uniqueLabel} ${c.uniqueValue}${c.jealousy == null ? "" : `　嫉妒 ${c.jealousy}`}　Night ${c.nightScore ?? ""}</li>`
     )
     .join("");
   return `
@@ -91,7 +91,7 @@ function render(state) {
             <div>
               <h3>${c.name}</h3>
               <p class="phil">${c.philosophy}</p>
-              <p class="status">${c.status} · ❤️ ${c.values.affection} · ${STAT_LABELS[c.uniquePrimary]} ${c.values[c.uniquePrimary]}</p>
+              <p class="status">${c.status} · ❤️ ${c.values.affection} · ${STAT_LABELS[c.uniquePrimary]} ${c.values[c.uniquePrimary]} · Night ${c.nightScore}</p>
               <div class="bar"><i style="width:${c.values.affection}%"></i></div>
             </div>
           </article>`

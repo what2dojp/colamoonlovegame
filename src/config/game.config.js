@@ -1,5 +1,5 @@
 export const GAME_CONFIG = {
-  version: 2,
+  version: 3,
   currentSeason: "qixi-2026",
   saveKey: "colamoonlove.save.v1",
   statMin: 0,
@@ -26,5 +26,12 @@ export const GAME_CONFIG = {
     fireHistoryWeight: 0.2,
     shuraCalm: 35,
     shuraWarm: 65,
+  },
+  nightScoreWeights: {
+    nini: { affection: 0.35, obsession: 0.3, jealousy: 0.15, trust: 0.1, dependence: 0.1 },
+    meteor: { affection: 0.35, destiny: 0.25, nostalgia: 0.2, jealousy: 0.1, pride: 0.1 },
+    pepsi: { affection: 0.35, resonance: 0.3, similarity: 0.15, destiny: 0.1, understanding: 0.1 },
+    jupiter: { affection: 0.35, devotion: 0.25, patience: 0.2, jealousy: 0.1, hope: 0.1 },
+    mars: { affection: 0.35, chemistry: 0.3, provocation: 0.15, pride: 0.1, moonTension: 0.1 },
   },
 };

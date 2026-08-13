@@ -1,3 +1,5 @@
+export const MOON_ID = "moon";
+
 export const RELATIONSHIP_PAIRS = [
   { id: "nini-meteor", a: "nini", b: "meteor", tension: 28, note: "永遠擁有 vs 命中注定" },
   { id: "nini-mars", a: "nini", b: "mars", tension: 18, note: "佔有 vs 互相傷害" },
@@ -9,6 +11,11 @@ export const RELATIONSHIP_PAIRS = [
   { id: "pepsi-jupiter", a: "pepsi", b: "jupiter", tension: 8, note: "不需搶 vs 一直想被選" },
   { id: "pepsi-mars", a: "pepsi", b: "mars", tension: 20, note: "命定靈魂 vs 不信理由" },
   { id: "jupiter-mars", a: "jupiter", b: "mars", tension: 22, note: "克制深情 vs 挑釁吸引" },
+  { id: "moon-nini", a: "moon", b: "nini", tension: 22, note: "月月與日日的關係張力" },
+  { id: "moon-meteor", a: "moon", b: "meteor", tension: 24, note: "月月與流星的關係張力" },
+  { id: "moon-pepsi", a: "moon", b: "pepsi", tension: 16, note: "月月與百事的關係張力" },
+  { id: "moon-jupiter", a: "moon", b: "jupiter", tension: 14, note: "月月與木星的關係張力" },
+  { id: "moon-mars", a: "moon", b: "mars", tension: 42, note: "月月與火星的關係張力" },
 ];
 
 export function pairKey(a, b) {
