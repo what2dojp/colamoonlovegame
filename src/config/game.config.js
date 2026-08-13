@@ -1,0 +1,30 @@
+export const GAME_CONFIG = {
+  version: 1,
+  currentSeason: "qixi-2026",
+  saveKey: "colamoonlove.save.v1",
+  statMin: 0,
+  statMax: 100,
+  startingFate: 400,
+  interventionCosts: {
+    letter: 50,
+    peek: 100,
+    encounter: 150,
+    jealousy: 200,
+    sabotage: 300,
+    forceEvent: 500,
+    rewriteFate: 1000,
+  },
+  donationToFate: [
+    { minAmount: 0, fate: 10 },
+    { minAmount: 50, fate: 30 },
+    { minAmount: 100, fate: 80 },
+    { minAmount: 500, fate: 300 },
+  ],
+  derived: {
+    fireJealousyWeight: 0.35,
+    fireTensionWeight: 0.45,
+    fireHistoryWeight: 0.2,
+    shuraCalm: 35,
+    shuraWarm: 65,
+  },
+};
