@@ -19,6 +19,13 @@ function playIntro(game) {
   game.choose("observe");
 }
 
+function playForced(game, eventId, choiceId) {
+  const started = game.startEvent(eventId, { force: true });
+  assert(started.ok, `should start ${eventId}`);
+  const chosen = game.choose(choiceId);
+  assert(chosen.ok, `should choose ${choiceId} on ${eventId}`);
+}
+
 const game = createGame({ persist: false, rng: () => 0 });
 assert(game.getState().currentEvent.id === "EVENT_001_prologue", "should open on prologue");
 assert(game.getState().fate === GAME_CONFIG.startingFate, "no in-game fate balance required");
@@ -37,6 +44,24 @@ assert(afterIntro.pool.length > 0, "pool has candidates after intro");
 assert(
   afterIntro.pool.every((item) => !String(item.id).startsWith("EVENT_00")),
   "intro events are not in the random pool"
+);
+
+const SHURA_IDS = [
+  "EVENT_shura_nini_meteor_01",
+  "EVENT_shura_nini_meteor_02",
+  "EVENT_shura_pepsi_meteor_01",
+  "EVENT_shura_pepsi_meteor_02",
+  "EVENT_shura_nini_pepsi_01",
+  "EVENT_shura_nini_pepsi_02",
+  "EVENT_shura_jupiter_mars_01",
+  "EVENT_shura_jupiter_mars_02",
+];
+for (const id of SHURA_IDS) {
+  assert(EVENT_BY_ID[id], `${id} exists`);
+}
+assert(
+  afterIntro.pool.every((item) => !SHURA_IDS.includes(item.id)),
+  "no shura events in pool right after intro"
 );
 
 assert(afterIntro.characters.nini.dependence != null, "nini has dependence");
@@ -330,6 +355,176 @@ persistB.resetSession();
 assert(persistB.getState().currentEvent.id === "EVENT_001_prologue", "reset session restarts tonight");
 assert(persistB.getState().archive["qixi-2026"].nightPartner === "jupiter", "reset keeps archive");
 assert(persistB.getState().flags.qixi_2026_night_partner === "jupiter", "reset keeps night partner flag");
+
+assert(EVENT_BY_ID.EVENT_shura_nini_meteor_01.weight >= 16 && EVENT_BY_ID.EVENT_shura_nini_meteor_01.weight <= 22, "nini-meteor 01 is CONFLICT weight");
+assert(EVENT_BY_ID.EVENT_shura_nini_meteor_02.weight >= 22 && EVENT_BY_ID.EVENT_shura_nini_meteor_02.weight <= 28, "nini-meteor 02 is CRISIS weight");
+assert(EVENT_BY_ID.EVENT_shura_pepsi_meteor_01.weight >= 16 && EVENT_BY_ID.EVENT_shura_pepsi_meteor_01.weight <= 22, "pepsi-meteor 01 is CONFLICT weight");
+assert(EVENT_BY_ID.EVENT_shura_pepsi_meteor_02.weight >= 22 && EVENT_BY_ID.EVENT_shura_pepsi_meteor_02.weight <= 28, "pepsi-meteor 02 is CRISIS weight");
+assert(EVENT_BY_ID.EVENT_shura_nini_pepsi_01.weight >= 16 && EVENT_BY_ID.EVENT_shura_nini_pepsi_01.weight <= 22, "nini-pepsi 01 is CONFLICT weight");
+assert(EVENT_BY_ID.EVENT_shura_nini_pepsi_02.weight >= 22 && EVENT_BY_ID.EVENT_shura_nini_pepsi_02.weight <= 28, "nini-pepsi 02 is CRISIS weight");
+assert(EVENT_BY_ID.EVENT_shura_jupiter_mars_01.weight >= 16 && EVENT_BY_ID.EVENT_shura_jupiter_mars_01.weight <= 22, "jupiter-mars 01 is CONFLICT weight");
+assert(EVENT_BY_ID.EVENT_shura_jupiter_mars_02.weight >= 22 && EVENT_BY_ID.EVENT_shura_jupiter_mars_02.weight <= 28, "jupiter-mars 02 is CRISIS weight");
+assert(EVENT_BY_ID.EVENT_office_simmer.weight < EVENT_BY_ID.EVENT_shura_nini_meteor_01.weight, "simmer cannot cover shura");
+assert(EVENT_BY_ID.EVENT_office_simmer.weight < EVENT_BY_ID.EVENT_shura_jupiter_mars_02.weight, "simmer cannot cover shura crisis");
+
+const nostalgiaOnly = createGame({ persist: false, rng: () => 0 });
+playIntro(nostalgiaOnly);
+playForced(nostalgiaOnly, "EVENT_meteor_nostalgia_01", "believe");
+assert(
+  !nostalgiaOnly.getState().pool.some((item) => item.id === "EVENT_shura_nini_meteor_01"),
+  "nostalgia alone does not open nini-meteor shura"
+);
+assert(
+  !nostalgiaOnly.getState().pool.some((item) => item.id === "EVENT_shura_pepsi_meteor_01"),
+  "nostalgia alone does not open pepsi-meteor shura"
+);
+
+const obsessionOnly = createGame({ persist: false, rng: () => 0 });
+playIntro(obsessionOnly);
+playForced(obsessionOnly, "EVENT_nini_obsession_01", "stay");
+assert(obsessionOnly.getState().flags.nini_allowed_stay, "obsession stay writes nini_allowed_stay");
+assert(
+  !obsessionOnly.getState().pool.some((item) => item.id === "EVENT_shura_nini_meteor_01"),
+  "nini stay without nostalgia does not open nini-meteor shura"
+);
+
+const niniMeteorPrereq = createGame({ persist: false, rng: () => 0 });
+playIntro(niniMeteorPrereq);
+playForced(niniMeteorPrereq, "EVENT_nini_obsession_01", "stay");
+playForced(niniMeteorPrereq, "EVENT_meteor_nostalgia_01", "believe");
+assert(
+  niniMeteorPrereq.getState().pool.some((item) => item.id === "EVENT_shura_nini_meteor_01"),
+  "obsession plus nostalgia opens nini-meteor shura"
+);
+
+const letterMisread = createGame({ persist: false, rng: () => 0 });
+playIntro(letterMisread);
+letterMisread.intervene("letter", "nini", { force: true });
+letterMisread.choose("misread");
+assert(letterMisread.getState().flags.letter_misread_by_meteor, "letter_misread_by_meteor is read by nini-meteor shura");
+assert(letterMisread.getState().currentEvent.id === "EVENT_shura_nini_meteor_01", "letter misread forces nini-meteor shura");
+assert(letterMisread.getState().flags.nini_meteor_both_lines_hardened, "unattended shura hardens both lines on enter");
+letterMisread.choose("pull_moon");
+assert(
+  letterMisread.getState().currentSession.unresolvedEventIds.includes("EVENT_shura_nini_meteor_01"),
+  "pulling moon leaves nini-meteor 01 unresolved"
+);
+assert(letterMisread.getState().currentEvent.id === "EVENT_shura_nini_meteor_02", "unresolved nini-meteor 01 forceEvents 02");
+assert(letterMisread.getState().flags.moon_refuses_nini_meteor_claim, "third choice writes refuse-definition flag");
+
+const helpNini = createGame({ persist: false, rng: () => 0 });
+playIntro(helpNini);
+helpNini.intervene("letter", "nini", { force: true });
+helpNini.choose("misread");
+helpNini.choose("help_nini");
+assert(helpNini.getState().currentEvent.id === "EVENT_nini_lockbox_01", "helping nini forceEvents lockbox");
+assert(
+  !helpNini.getState().currentSession.unresolvedEventIds.includes("EVENT_shura_nini_meteor_01"),
+  "helping nini resolves 01"
+);
+assert(helpNini.getState().currentSession.weightMods.EVENT_nini_lockbox_01 > 0, "helping nini raises lockbox weight");
+
+const skipShura = createGame({ persist: false, rng: () => 0 });
+playIntro(skipShura);
+skipShura.startEvent("EVENT_shura_nini_meteor_01", { force: true });
+skipShura.skipEvent();
+assert(
+  skipShura.getState().currentSession.unresolvedEventIds.includes("EVENT_shura_nini_meteor_01"),
+  "skip uses 不干預 and leaves 01 unresolved"
+);
+assert(skipShura.getState().currentEvent.id === "EVENT_shura_nini_meteor_02", "skip 不干預 continues into 02");
+
+const chemistryOnly = createGame({ persist: false, rng: () => 0 });
+playIntro(chemistryOnly);
+playForced(chemistryOnly, "EVENT_mars_chemistry_01", "engage");
+assert(
+  !chemistryOnly.getState().pool.some((item) => item.id === "EVENT_shura_jupiter_mars_01"),
+  "mars chemistry alone does not open jupiter-mars shura"
+);
+
+const doorIntrusion = createGame({ persist: false, rng: () => 0 });
+playIntro(doorIntrusion);
+doorIntrusion.intervene("encounter", "jupiter", { force: true });
+doorIntrusion.choose("stay");
+assert(doorIntrusion.getState().currentEvent.id === "EVENT_jupiter_quiet_date", "encounter lands on quiet date");
+doorIntrusion.choose("interrupt");
+assert(doorIntrusion.getState().flags.date_broken_jupiter, "quiet date interrupt writes date_broken_jupiter");
+assert(
+  doorIntrusion.getState().pool.some((item) => item.id === "EVENT_shura_jupiter_mars_01"),
+  "broken jupiter date opens doorway shura"
+);
+
+const jupiterDoor = createGame({ persist: false, rng: () => 0 });
+playIntro(jupiterDoor);
+jupiterDoor.startEvent("EVENT_shura_jupiter_mars_01", { force: true });
+jupiterDoor.choose("help_jupiter");
+assert(jupiterDoor.getState().currentEvent.id === "EVENT_jupiter_packing_01", "helping jupiter forceEvents packing");
+assert(jupiterDoor.getState().flags.jupiter_packing_started, "packing onEnter marks packing started");
+jupiterDoor.choose("watch");
+assert(
+  jupiterDoor.getState().pool.some((item) => item.id === "EVENT_shura_jupiter_mars_02"),
+  "packing started keeps blessing-vs-harm shura available"
+);
+
+const pepsiLetter = createGame({ persist: false, rng: () => 0 });
+playIntro(pepsiLetter);
+pepsiLetter.intervene("letter", "pepsi", { force: true });
+pepsiLetter.choose("misread");
+assert(pepsiLetter.getState().flags.letter_misread_by_meteor, "pepsi letter misread is read by pepsi-meteor shura");
+assert(pepsiLetter.getState().currentEvent.id === "EVENT_shura_pepsi_meteor_01", "pepsi letter misread forces pepsi-meteor shura");
+pepsiLetter.choose("interrupt");
+assert(
+  pepsiLetter.getState().currentSession.unresolvedEventIds.includes("EVENT_shura_pepsi_meteor_01"),
+  "interrupting the comparison leaves pepsi-meteor 01 unresolved"
+);
+
+const admitPepsi = createGame({ persist: false, rng: () => 0 });
+playIntro(admitPepsi);
+admitPepsi.startEvent("EVENT_shura_pepsi_meteor_02", { force: true });
+admitPepsi.choose("admit_pepsi");
+assert(admitPepsi.getState().flags.destiny_denied_meteor, "denying meteor is not just affection");
+assert(admitPepsi.getState().currentEvent.id === "EVENT_meteor_never_broke_up_01", "denied meteor enters never-broke-up crisis");
+
+const niniPepsiDoNothing = createGame({ persist: false, rng: () => 0 });
+playIntro(niniPepsiDoNothing);
+niniPepsiDoNothing.startEvent("EVENT_shura_nini_pepsi_01", { force: true });
+assert(niniPepsiDoNothing.getState().flags.pepsi_did_not_counter, "unattended nini-pepsi makes pepsi not counter");
+niniPepsiDoNothing.choose("do_nothing");
+assert(
+  niniPepsiDoNothing.getState().currentSession.unresolvedEventIds.includes("EVENT_shura_nini_pepsi_01"),
+  "doing nothing leaves nini-pepsi unresolved"
+);
+assert(niniPepsiDoNothing.getState().currentEvent.id === "EVENT_shura_nini_pepsi_02", "unresolved nini-pepsi 01 forceEvents 02");
+niniPepsiDoNothing.choose("pepsi_back");
+assert(niniPepsiDoNothing.getState().flags.pepsi_backed_off, "pepsi backing off cracks her line");
+assert(niniPepsiDoNothing.getState().currentEvent.id === "EVENT_pepsi_identity_01", "pepsi line crack forceEvents identity");
+
+const stopJupiterLeave = createGame({ persist: false, rng: () => 0 });
+playIntro(stopJupiterLeave);
+stopJupiterLeave.startEvent("EVENT_shura_jupiter_mars_02", { force: true });
+stopJupiterLeave.choose("stop_leave");
+assert(stopJupiterLeave.getState().flags.crisis_blocked_jupiter, "stopping jupiter leave blocks her leaving crisis");
+assert(stopJupiterLeave.getState().flags.jupiter_stayed, "jupiter staying is a plot flag");
+
+const publicJealousShura = createGame({ persist: false, rng: () => 0 });
+playIntro(publicJealousShura);
+publicJealousShura.intervene("jealousy", "nini", { force: true });
+publicJealousShura.choose("burn");
+assert(publicJealousShura.getState().flags.public_jealous_nini, "public_jealous_nini is written");
+assert(
+  publicJealousShura.getState().pool.some((item) => item.id === "EVENT_shura_nini_meteor_02"),
+  "public_jealous_nini is read by nini-meteor 02"
+);
+
+const rewriteShura = createGame({ persist: false, rng: () => 0 });
+playIntro(rewriteShura);
+rewriteShura.intervene("rewrite", "pepsi", { force: true });
+rewriteShura.choose("push");
+assert(rewriteShura.getState().flags.fate_rewritten_pepsi, "rewrite writes fate_rewritten_pepsi");
+assert(
+  rewriteShura.getState().pool.some((item) => item.id === "EVENT_shura_pepsi_meteor_02"),
+  "rewrite on pepsi is read by pepsi-meteor 02"
+);
 
 console.log("mvp smoke ok", {
   event: game.getState().currentEvent.id,

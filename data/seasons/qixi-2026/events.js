@@ -1,4 +1,5 @@
 import { PHASE1_EVENTS } from "./events-phase1.js";
+import { PHASE2_EVENTS } from "./events-phase2.js";
 
 const CLEAR_SOLOS = [
   { type: "flag", key: "solo_active_nini", value: false },
@@ -964,9 +965,11 @@ export const EVENTS = [
         label: "讓門被其他人敲開",
         effects: [
           { type: "flag", key: "solo_active_jupiter", value: false },
+          { type: "flag", key: "date_broken_jupiter", value: true },
           { type: "stat", path: "characters.jupiter.jealousy", op: "add", value: 7 },
           { type: "tension", pair: "jupiter-mars", op: "add", value: 6 },
           { type: "weightMod", eventId: "EVENT_jupiter_packing_01", value: 16 },
+          { type: "weightMod", eventId: "EVENT_shura_jupiter_mars_01", value: 14 },
         ],
       },
     ],
@@ -1292,6 +1295,7 @@ export const EVENTS = [
     ],
   },
   ...PHASE1_EVENTS,
+  ...PHASE2_EVENTS,
 ];
 
 export const EVENT_BY_ID = Object.fromEntries(EVENTS.map((e) => [e.id, e]));

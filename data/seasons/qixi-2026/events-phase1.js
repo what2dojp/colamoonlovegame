@@ -4,6 +4,7 @@ function skeleton({
   description,
   characters,
   speaker,
+  type,
   weight = 22,
   tags = [],
   conditions,
@@ -18,6 +19,7 @@ function skeleton({
     description,
     characters,
     speaker,
+    type,
     pool,
     weight,
     repeatable,
@@ -109,6 +111,7 @@ export const PHASE1_EVENTS = [
         clearSolo("nini"),
         { type: "stat", path: "characters.nini.obsession", op: "add", value: 6 },
         { type: "stat", path: "characters.nini.dependence", op: "add", value: 6 },
+        { type: "flag", key: "nini_allowed_stay", value: true },
         { type: "weightMod", eventId: "EVENT_nini_dependence_01", value: 12 },
       ],
       [
@@ -536,6 +539,10 @@ export const PHASE1_EVENTS = [
     speaker: "西打木星",
     weight: 24,
     tags: ["jupiter", "crisis"],
+    onEnter: [
+      { type: "flag", key: "jupiter_seen", value: true },
+      { type: "flag", key: "jupiter_packing_started", value: true },
+    ],
     conditions: {
       all: [
         { flag: "dynamic_pool_unlocked" },
@@ -616,184 +623,6 @@ export const PHASE1_EVENTS = [
           { type: "stat", path: "characters.mars.pride", op: "add", value: 6 },
           { type: "stat", path: "characters.mars.provocation", op: "add", value: 6 },
           { type: "eventStatus", status: "unresolved" },
-        ],
-      },
-    ],
-  }),
-  skeleton({
-    id: "EVENT_shura_nini_meteor_01",
-    title: "鑰匙還是瓶蓋",
-    description:
-      "日日握著地下室的鑰匙。流星把沙士瓶蓋拍在桌上。「一直陪在身邊」和「從小就是命定」同時要月月點頭。",
-    characters: ["nini", "meteor"],
-    speaker: "現場",
-    weight: 22,
-    tags: ["conflict", "shura"],
-    conditions: {
-      all: [
-        { flag: "dynamic_pool_unlocked" },
-        { not: { completed: "EVENT_shura_nini_meteor_01" } },
-        {
-          any: [
-            { flag: "letter_misread_by_nini" },
-            { flag: "letter_misread_by_meteor" },
-            { flag: "public_jealous_nini" },
-            { flag: "public_jealous_meteor" },
-            { flag: "nini_allowed_stay" },
-            { completed: "EVENT_meteor_nostalgia_01" },
-          ],
-        },
-      ],
-    },
-    choices: [
-      {
-        id: "nini",
-        label: "讓現場先聽見日日",
-        effects: [
-          { type: "stat", path: "characters.nini.obsession", op: "add", value: 8 },
-          { type: "tension", pair: "nini-meteor", op: "add", value: 10 },
-          { type: "weightMod", eventId: "EVENT_nini_lockbox_01", value: 12 },
-        ],
-      },
-      {
-        id: "meteor",
-        label: "讓現場先聽見流星",
-        effects: [
-          { type: "stat", path: "characters.meteor.destiny", op: "add", value: 8 },
-          { type: "tension", pair: "nini-meteor", op: "add", value: 10 },
-          { type: "weightMod", eventId: "EVENT_meteor_never_broke_up_01", value: 12 },
-        ],
-      },
-    ],
-  }),
-  skeleton({
-    id: "EVENT_shura_pepsi_meteor_01",
-    title: "誰比較早，誰比較像",
-    description: "流星用時間壓百事。百事不吃醋，只說：「早，不是同一件事。」兩種命定撞在同一晚。",
-    characters: ["pepsi", "meteor"],
-    speaker: "現場",
-    weight: 22,
-    tags: ["conflict", "shura"],
-    conditions: {
-      all: [
-        { flag: "dynamic_pool_unlocked" },
-        { not: { completed: "EVENT_shura_pepsi_meteor_01" } },
-        {
-          any: [
-            { flag: "letter_misread_by_meteor" },
-            { flag: "public_jealous_pepsi" },
-            { flag: "public_jealous_meteor" },
-            { completed: "EVENT_pepsi_soul_01" },
-            { completed: "EVENT_meteor_nostalgia_01" },
-          ],
-        },
-      ],
-    },
-    choices: [
-      {
-        id: "time",
-        label: "讓時間命定先成立",
-        effects: [
-          { type: "stat", path: "characters.meteor.destiny", op: "add", value: 8 },
-          { type: "tension", pair: "meteor-pepsi", op: "add", value: 10 },
-        ],
-      },
-      {
-        id: "soul",
-        label: "讓靈魂命定先成立",
-        effects: [
-          { type: "stat", path: "characters.pepsi.resonance", op: "add", value: 8 },
-          { type: "tension", pair: "meteor-pepsi", op: "add", value: 10 },
-          { type: "weightMod", eventId: "EVENT_pepsi_identity_01", value: 10 },
-        ],
-      },
-    ],
-  }),
-  skeleton({
-    id: "EVENT_shura_nini_pepsi_01",
-    title: "她連心裡都不留給我",
-    description: "百事替月月說出沒出口的話。日日聽成搶走內心。佔有撞上理解。",
-    characters: ["nini", "pepsi"],
-    speaker: "現場",
-    weight: 22,
-    tags: ["conflict", "shura"],
-    conditions: {
-      all: [
-        { flag: "dynamic_pool_unlocked" },
-        { not: { completed: "EVENT_shura_nini_pepsi_01" } },
-        {
-          any: [
-            { flag: "secret_nini" },
-            { flag: "secret_pepsi" },
-            { completed: "EVENT_pepsi_understanding_01" },
-            { completed: "EVENT_nini_obsession_01" },
-          ],
-        },
-      ],
-    },
-    choices: [
-      {
-        id: "possess",
-        label: "讓日日把話搶回來",
-        effects: [
-          { type: "stat", path: "characters.nini.obsession", op: "add", value: 8 },
-          { type: "stat", path: "characters.nini.trust", op: "add", value: -6 },
-          { type: "tension", pair: "nini-pepsi", op: "add", value: 10 },
-        ],
-      },
-      {
-        id: "understand",
-        label: "讓百事繼續當翻譯",
-        effects: [
-          { type: "stat", path: "characters.pepsi.understanding", op: "add", value: 6 },
-          { type: "tension", pair: "nini-pepsi", op: "add", value: 8 },
-          { type: "weightMod", eventId: "EVENT_nini_lockbox_01", value: 10 },
-        ],
-      },
-    ],
-  }),
-  skeleton({
-    id: "EVENT_shura_jupiter_mars_01",
-    title: "門口",
-    description: "木星想把門帶上。火星把門鎖拉開。「成全」和「不想放手」卡在同一個門口。",
-    characters: ["jupiter", "mars"],
-    speaker: "現場",
-    weight: 22,
-    tags: ["conflict", "shura"],
-    conditions: {
-      all: [
-        { flag: "dynamic_pool_unlocked" },
-        { not: { completed: "EVENT_shura_jupiter_mars_01" } },
-        {
-          any: [
-            { flag: "jupiter_seen" },
-            { flag: "jupiter_quiet_date" },
-            { flag: "date_broken_jupiter" },
-            { flag: "mars_duel_started" },
-            { completed: "EVENT_mars_chemistry_01" },
-          ],
-        },
-      ],
-    },
-    choices: [
-      {
-        id: "close",
-        label: "讓木星把門帶上",
-        effects: [
-          { type: "stat", path: "characters.jupiter.hope", op: "add", value: -8 },
-          { type: "stat", path: "characters.jupiter.patience", op: "add", value: 4 },
-          { type: "tension", pair: "jupiter-mars", op: "add", value: 10 },
-          { type: "weightMod", eventId: "EVENT_jupiter_packing_01", value: 16 },
-        ],
-      },
-      {
-        id: "open",
-        label: "讓火星把門拉開",
-        effects: [
-          { type: "stat", path: "characters.mars.provocation", op: "add", value: 6 },
-          { type: "stat", path: "characters.mars.chemistry", op: "add", value: 6 },
-          { type: "tension", pair: "jupiter-mars", op: "add", value: 10 },
-          { type: "weightMod", eventId: "EVENT_mars_too_close_01", value: 12 },
         ],
       },
     ],
