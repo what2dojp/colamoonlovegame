@@ -13,7 +13,8 @@ function render(state) {
         <h1>教主控制台 · ${state.season.title}</h1>
         <p class="muted">
           階段：${state.settlement.phase}　狀態：${state.settlement.label}　
-          目前：${state.currentEvent?.id || "-"}　命運：${state.fate}　火災 ${state.derived.fireIndex}
+          目前：${state.currentEvent?.id || "-"}　火災 ${state.derived.fireIndex}
+          ${state.soloActive ? `　獨處中：${state.soloActive}` : ""}
           ${state.flags.qixi_2026_night_partner ? `　今晚陪伴 flag：${state.flags.qixi_2026_night_partner}` : ""}
         </p>
       </header>
@@ -40,27 +41,22 @@ function render(state) {
 
       <div class="row">
         <section class="box">
-          <h2>命運值 / 模擬斗內</h2>
-          <p class="muted">斗內 = 命運干預權，不是直接加好感。</p>
+          <h2>主播干預（金流在遊戲外）</h2>
+          <p class="muted">價格只是操作權限。主播確認收到對應金額後按下。遊戲內不扣款、沒有餘額。</p>
           <div class="actions">
-            <input id="fate-delta" class="num" type="number" value="50">
-            <button data-act="fate-add">增加命運值</button>
-            <button data-act="fate-sub">減少命運值</button>
-          </div>
-          <div class="actions">
-            <input id="don-amount" class="num" type="number" value="100">
-            <input id="don-msg" placeholder="訊息" value="七夕加油">
-            <button data-act="donate">模擬斗內</button>
-          </div>
-          <div class="actions">
-            <select id="iv-select">
-              ${state.interventions.map((i) => `<option value="${i.id}">${i.name} (${i.cost})</option>`).join("")}
-            </select>
             <select id="iv-target">
               ${state.charactersView.map((c) => `<option value="${c.id}">${c.name}</option>`).join("")}
             </select>
-            <button data-act="test-iv">測試干預</button>
           </div>
+          <div class="actions iv-host">
+            ${state.interventions
+              .map(
+                (i) =>
+                  `<button data-iv="${i.id}" ${state.settlement.status === "active" ? "" : "disabled"}>${i.cost}｜${i.name}</button>`
+              )
+              .join("")}
+          </div>
+          <p class="muted">300 干涉命運：可挑起嫉妒；破壞獨處僅在有人正在獨處時有效。</p>
         </section>
         <section class="box">
           <h2>目前 Dynamic Event Pool</h2>
@@ -160,47 +156,37 @@ function escapeHtml(text) {
 
 app.addEventListener("click", (event) => {
   const act = event.target.dataset.act;
-  if (!act) return;
-  if (act === "next") {
-    const result = game.nextEvent();
-    if (result && result.ok === false) alert(result.error);
-  }
-  if (act === "skip") game.skipEvent();
-  if (act === "pause") game.pauseSession();
-  if (act === "resume") game.resumeSession();
-  if (act === "reset-session" && confirm("重置本次 Session？會保留 archive 與跨季 night partner flag。")) {
-    game.resetSession();
-  }
-  if (act === "end") {
-    if (
-      confirm(
-        "結束本次事件？\n將進入「今晚，月月決定和誰過夜？」\n這是今晚結算，不是故事結局。"
-      )
-    ) {
-      const result = game.endSession();
+  if (act) {
+    if (act === "next") {
+      const result = game.nextEvent();
       if (result && result.ok === false) alert(result.error);
     }
+    if (act === "skip") game.skipEvent();
+    if (act === "pause") game.pauseSession();
+    if (act === "resume") game.resumeSession();
+    if (act === "reset-session" && confirm("重置本次 Session？會保留 archive 與跨季 night partner flag。")) {
+      game.resetSession();
+    }
+    if (act === "end") {
+      if (
+        confirm(
+          "結束本次事件？\n將進入「今晚，月月決定和誰過夜？」\n這是今晚結算，不是故事結局。"
+        )
+      ) {
+        const result = game.endSession();
+        if (result && result.ok === false) alert(result.error);
+      }
+    }
+    if (act === "trigger") {
+      const id = document.getElementById("event-select").value;
+      game.startEvent(id, { force: true });
+    }
   }
-  if (act === "trigger") {
-    const id = document.getElementById("event-select").value;
-    game.startEvent(id, { force: true });
-  }
-  if (act === "fate-add") game.addFate(Number(document.getElementById("fate-delta").value || 0));
-  if (act === "fate-sub") game.addFate(-Number(document.getElementById("fate-delta").value || 0));
-  if (act === "donate") {
-    game.simulateDonation({
-      amount: Number(document.getElementById("don-amount").value || 0),
-      message: document.getElementById("don-msg").value,
-      from: "mock",
-    });
-  }
-  if (act === "test-iv") {
-    const result = game.intervene(
-      document.getElementById("iv-select").value,
-      document.getElementById("iv-target").value,
-      { force: true }
-    );
-    if (!result.ok) alert(result.error);
+  const iv = event.target.dataset.iv;
+  if (iv) {
+    const target = document.getElementById("iv-target")?.value;
+    const result = game.intervene(iv, target, { force: true });
+    if (result && result.ok === false) alert(result.error);
   }
 });
 

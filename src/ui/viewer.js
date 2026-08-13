@@ -108,14 +108,14 @@ function render(state) {
             (item) => `
           <button class="iv-btn" data-iv="${item.id}" ${state.interventionsUnlocked && state.settlement.status === "active" ? "" : "disabled"}>
             ${item.name}
-            <small>${item.cost} 命運</small>
+            <small>主播權限 ${item.cost}</small>
           </button>`
           )
           .join("")}
       </div>
       ${
         state.interventionsUnlocked && state.settlement.status === "active"
-          ? `<p class="lock">干預會改變接下來可能發生的事件，不是只加減好感。</p>`
+          ? `<p class="lock">價格在遊戲外收取。主播確認後按下，遊戲內不扣款。干預會改變下一張事件，不是加好感。</p>`
           : state.settlement.status === "settled"
             ? `<p class="lock">今晚暫時休戰。關係會帶到下一次活動。</p>`
             : `<p class="lock">先看完開場、認識五個人。干預會在那之後解鎖。</p>`
@@ -142,7 +142,7 @@ function renderTargetModal(state) {
   modalShell(`
     <p class="kicker">${action?.name || ""}</p>
     <h3>選擇標角色</h3>
-    <p class="sub">${action?.blurb || ""}（消耗 ${action?.cost} 命運）</p>
+    <p class="sub">${action?.blurb || ""}（主播權限 ${action?.cost}，不扣款）</p>
     <div class="target-grid">
       ${state.charactersView
         .map(

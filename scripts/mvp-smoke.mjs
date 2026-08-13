@@ -21,7 +21,7 @@ function playIntro(game) {
 
 const game = createGame({ persist: false, rng: () => 0 });
 assert(game.getState().currentEvent.id === "EVENT_001_prologue", "should open on prologue");
-assert(game.getState().fate === GAME_CONFIG.startingFate, "starting fate");
+assert(game.getState().fate === GAME_CONFIG.startingFate, "no in-game fate balance required");
 assert(game.getState().charactersView.length === 5, "five characters");
 assert(game.intervene("letter", "nini").ok === false, "interventions locked at start");
 assert(game.getState().settlement.label === "今晚尚未結算", "no story ending at start");
@@ -61,9 +61,28 @@ for (const id of [
   "EVENT_pepsi_understanding_01",
   "EVENT_jupiter_hope_low_01",
   "EVENT_mars_kings_01",
+  "EVENT_nini_solo_01",
+  "EVENT_nini_lockbox_01",
+  "EVENT_meteor_never_broke_up_01",
+  "EVENT_pepsi_identity_01",
+  "EVENT_jupiter_packing_01",
+  "EVENT_mars_too_close_01",
 ]) {
   assert(EVENT_BY_ID[id], `${id} exists`);
 }
+assert(EVENT_BY_ID.EVENT_office_simmer.weight === 5, "simmer weight dropped from 30 to 5");
+assert(!EVENT_BY_ID.EVENT_office_simmer.repeatable, "simmer is not infinitely repeatable");
+assert(EVENT_BY_ID.EVENT_office_simmer_2.weight === 5, "second simmer exists at weight 5");
+assert(EVENT_BY_ID.EVENT_nini_lockbox_01.weight >= 22, "crisis heavier than simmer");
+assert(afterIntro.interventions.length === 5, "five host intervention buttons");
+assert(
+  afterIntro.interventions.map((item) => item.cost).join(",") === "100,200,300,500,1000",
+  "host permission prices 100/200/300/500/1000"
+);
+assert(
+  afterIntro.pool.find((item) => item.id === "EVENT_office_simmer")?.weight === 5,
+  "simmer is in pool at weight 5"
+);
 for (const [id, weights] of Object.entries(GAME_CONFIG.nightScoreWeights)) {
   const sum = Object.values(weights).reduce((a, b) => a + b, 0);
   assert(Math.abs(sum - 1) < 1e-9, `${id} night weights must sum to 1`);
@@ -72,17 +91,80 @@ for (const [id, weights] of Object.entries(GAME_CONFIG.nightScoreWeights)) {
 const beforeFate = afterIntro.fate;
 const iv = game.intervene("encounter", "jupiter");
 assert(iv.ok, "encounter should run");
-assert(game.getState().fate === beforeFate - 150, "encounter costs 150");
+assert(game.getState().fate === beforeFate, "encounter does not deduct fate");
 assert(game.getState().currentEvent.id === "IV_encounter", "encounter event started");
 assert(game.getState().currentEvent.description.includes("西打木星"), "event interpolates target");
 assert(
   game.getState().currentSession.weightMods.EVENT_jupiter_quiet_date > 0,
-  "encounter raises quiet date weight"
+  "jupiter encounter raises jupiter solo weight"
+);
+assert(
+  !game.getState().currentSession.weightMods.EVENT_nini_solo_01,
+  "jupiter encounter does not boost nini solo"
 );
 
 game.choose("stay");
 assert(game.getState().flags.encounter_jupiter, "encounter flag");
-assert(game.getState().characters.jupiter.affection >= 58 + 5 + 8, "jupiter affection from intro+encounter");
+assert(game.getState().flags.solo_active_jupiter, "jupiter solo_active after encounter");
+assert(game.getState().currentEvent.id === "EVENT_jupiter_quiet_date", "encounter forces jupiter solo");
+
+const noSolo = createGame({ persist: false, rng: () => 0 });
+playIntro(noSolo);
+const sabotageDenied = noSolo.intervene("sabotage", "nini", { force: true });
+assert(sabotageDenied.ok === false, "sabotage refused without solo_active");
+
+const niniEnc = createGame({ persist: false, rng: () => 0 });
+playIntro(niniEnc);
+niniEnc.intervene("encounter", "nini", { force: true });
+assert(
+  niniEnc.getState().currentSession.weightMods.EVENT_nini_solo_01 > 0,
+  "nini encounter raises nini solo, not jupiter date"
+);
+assert(
+  !niniEnc.getState().currentSession.weightMods.EVENT_jupiter_quiet_date,
+  "nini encounter does not raise jupiter quiet date"
+);
+niniEnc.choose("stay");
+assert(niniEnc.getState().currentEvent.id === "EVENT_nini_solo_01", "nini encounter forces nini solo");
+assert(niniEnc.getState().flags.solo_active_nini, "solo_active_nini set");
+const smashed = niniEnc.intervene("sabotage", "mars", { force: true });
+assert(smashed.ok, "sabotage allowed during nini solo");
+assert(niniEnc.getState().pendingTargetId === "nini" || niniEnc.getState().currentEvent.id === "IV_sabotage", "sabotage retargets to active solo");
+niniEnc.choose("break");
+assert(niniEnc.getState().flags.date_broken_nini, "date_broken_nini written");
+assert(niniEnc.getState().currentEvent.id === "EVENT_nini_lockbox_01", "nini sabotage forces lockbox crisis");
+
+const letterGame = createGame({ persist: false, rng: () => 0 });
+playIntro(letterGame);
+letterGame.intervene("letter", "nini", { force: true });
+letterGame.choose("private");
+assert(letterGame.getState().flags.letter_to_nini, "letter_to_nini written");
+assert(letterGame.getState().currentEvent.id === "EVENT_letter_nini", "letter forces follow-up event");
+
+const forceGame = createGame({ persist: false, rng: () => 0 });
+playIntro(forceGame);
+forceGame.intervene("force", "nini", { force: true });
+forceGame.choose("center");
+assert(forceGame.getState().currentEvent.id === "EVENT_nini_lockbox_01", "force from hub sends target into crisis, not spotlight");
+
+const pepsiBurn = createGame({ persist: false, rng: () => 0 });
+playIntro(pepsiBurn);
+pepsiBurn.intervene("jealousy", "pepsi", { force: true });
+pepsiBurn.choose("burn");
+assert(pepsiBurn.getState().currentEvent.id === "EVENT_pepsi_identity_01", "pepsi jealousy burns into identity crisis");
+assert(pepsiBurn.getState().flags.public_jealous_pepsi, "public_jealous_pepsi written for later shura");
+
+const peekGame = createGame({ persist: false, rng: () => 0 });
+playIntro(peekGame);
+peekGame.intervene("peek", "nini", { force: true });
+peekGame.choose("secret");
+assert(peekGame.getState().currentEvent.id === "IV_peek", "peek menu opens secret");
+peekGame.choose("keep");
+assert(peekGame.getState().flags.secret_nini, "secret_nini written");
+assert(
+  peekGame.getState().currentSession.weightMods.EVENT_nini_lockbox_01 > 0,
+  "secret_nini raises lockbox weight"
+);
 
 const next = game.nextEvent();
 assert(next.ok, "nextEvent draws from pool");
@@ -92,8 +174,7 @@ const poolId = game.getState().currentEvent.id;
 assert(poolId.startsWith("EVENT_") || poolId.startsWith("IV_"), "drew an event");
 
 game.simulateDonation({ amount: 100, message: "test", from: "mock" });
-assert(game.getState().fate > 0, "donation adds fate");
-game.addFate(25);
+assert(game.getState().fate >= 0, "donation helper still exists but is not required for interventions");
 game.setStat("pepsi", "resonance", 12);
 assert(game.getState().characters.pepsi.resonance === 12, "admin setStat official key");
 game.setStat("pepsi", "jealousy", 12);

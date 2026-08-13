@@ -47,10 +47,7 @@ pre {
   padding: 8px;
   font-size: 11px;
 }
-button.danger {
-  background: #6a2038;
-  border-color: #ff7aa2;
-}
+.iv-host button { min-width: 140px; }
 .card-box {
   border-color: #ffd36a;
 }

@@ -1,3 +1,13 @@
+import { PHASE1_EVENTS } from "./events-phase1.js";
+
+const CLEAR_SOLOS = [
+  { type: "flag", key: "solo_active_nini", value: false },
+  { type: "flag", key: "solo_active_meteor", value: false },
+  { type: "flag", key: "solo_active_pepsi", value: false },
+  { type: "flag", key: "solo_active_jupiter", value: false },
+  { type: "flag", key: "solo_active_mars", value: false },
+];
+
 export const EVENTS = [
   {
     id: "EVENT_001_prologue",
@@ -241,8 +251,9 @@ export const EVENTS = [
     characters: ["nini", "meteor", "pepsi", "jupiter", "mars"],
     speaker: "現場",
     priority: 10,
-    tags: ["hub"],
+    tags: ["hub", "observation"],
     hub: true,
+    onEnter: [...CLEAR_SOLOS],
     choices: [
       {
         id: "watch",
@@ -265,8 +276,8 @@ export const EVENTS = [
     speaker: "雪碧日日",
     priority: 70,
     pool: true,
-    weight: 20,
-    tags: ["nini", "obsession", "dynamic"],
+    weight: 18,
+    tags: ["nini", "obsession", "character"],
     conditions: {
       all: [
         { flag: "interventionsUnlocked" },
@@ -286,6 +297,8 @@ export const EVENTS = [
           { type: "stat", path: "characters.nini.dependence", op: "add", value: 5 },
           { type: "tension", pair: "nini-meteor", op: "add", value: 7 },
           { type: "flag", key: "nini_allowed_stay", value: true },
+          { type: "weightMod", eventId: "EVENT_nini_lockbox_01", value: 16 },
+          { type: "weightMod", eventId: "EVENT_nini_dependence_01", value: 12 },
         ],
       },
       {
@@ -310,7 +323,7 @@ export const EVENTS = [
     priority: 72,
     pool: true,
     weight: 20,
-    tags: ["mars", "conflict", "dynamic"],
+    tags: ["mars", "conflict"],
     conditions: {
       all: [
         { flag: "interventionsUnlocked" },
@@ -331,6 +344,7 @@ export const EVENTS = [
           { type: "tension", pair: "meteor-mars", op: "add", value: 10 },
           { type: "stat", path: "characters.meteor.pride", op: "add", value: 5 },
           { type: "flag", key: "mars_duel_started", value: true },
+          { type: "weightMod", eventId: "EVENT_mars_too_close_01", value: 16 },
         ],
       },
       {
@@ -355,8 +369,8 @@ export const EVENTS = [
     speaker: "西打木星",
     priority: 68,
     pool: true,
-    weight: 20,
-    tags: ["jupiter", "devotion", "dynamic"],
+    weight: 18,
+    tags: ["jupiter", "devotion", "character"],
     conditions: {
       all: [
         { flag: "interventionsUnlocked" },
@@ -384,6 +398,7 @@ export const EVENTS = [
           { type: "stat", path: "characters.jupiter.hope", op: "add", value: -6 },
           { type: "stat", path: "characters.jupiter.jealousy", op: "add", value: 5 },
           { type: "flag", key: "jupiter_unanswered", value: true },
+          { type: "weightMod", eventId: "EVENT_jupiter_packing_01", value: 24 },
           { type: "eventStatus", status: "unresolved" },
           { type: "log", text: "木星已把喜歡說出口。月月還沒有回答。這件事還沒結束。" },
         ],
@@ -391,10 +406,32 @@ export const EVENTS = [
     ],
   },
   {
+    id: "IV_peek_menu",
+    title: "干預：偷看命運",
+    description:
+      "主播已確認現場金流。偷看命運可以決定：誰收到那封信，或誰的秘密被看見。這不是加好感。",
+    characters: [],
+    speaker: "七夕神使",
+    tags: ["intervention", "peek"],
+    intervention: true,
+    choices: [
+      {
+        id: "letter",
+        label: "傳遞情書：決定誰收到／誰看到／誰誤會",
+        effects: [{ type: "queueEvent", eventId: "IV_letter" }],
+      },
+      {
+        id: "secret",
+        label: "偷看秘密：讓秘密影響後續危機",
+        effects: [{ type: "queueEvent", eventId: "IV_peek" }],
+      },
+    ],
+  },
+  {
     id: "IV_letter",
     title: "干預：傳遞情書",
     description:
-      "沒有署名的信出現在 {{target.name}} 會看見的地方。紙很薄，喜歡卻寫得很清楚。月月還沒發現神使動過手。",
+      "一封沒有署名的信。重點不是喜歡寫了多少，而是誰收到、月月有沒有看見、會不會被另一個人撿到。",
     characters: [],
     speaker: "七夕神使",
     tags: ["intervention", "letter"],
@@ -402,21 +439,31 @@ export const EVENTS = [
     choices: [
       {
         id: "private",
-        label: "只讓她自己讀到",
+        label: "只送到 {{target.name}} 手上",
         effects: [
-          { type: "stat", path: "characters.{{target.id}}.affection", op: "add", value: 6 },
-          { type: "stat", path: "characters.{{target.id}}.{{target.uniquePrimary}}", op: "add", value: 4 },
-          { type: "log", text: "{{target.name}} 把信收進口袋，沒有給任何人看。" },
+          { type: "flag", key: "letter_to_{{target.id}}", value: true },
+          { type: "forceEvent", eventId: "{{target.letterEventId}}" },
+          { type: "log", text: "{{target.name}} 會讀到這封信。接下來的事件因此改變。" },
         ],
       },
       {
         id: "seen",
-        label: "讓信封也擦過月月眼前",
+        label: "送到她手上，也讓月月看見信封",
         effects: [
-          { type: "stat", path: "characters.{{target.id}}.affection", op: "add", value: 4 },
-          { type: "stat", path: "characters.{{target.id}}.jealousy", op: "add", value: 5 },
-          { type: "tension", pair: "{{target.id}}-mars", op: "add", value: 4 },
-          { type: "log", text: "月月看見了信封一角。現場的空氣緊了一拍。" },
+          { type: "flag", key: "letter_to_{{target.id}}", value: true },
+          { type: "flag", key: "letter_seen_by_moon", value: true },
+          { type: "forceEvent", eventId: "{{target.letterEventId}}" },
+          { type: "log", text: "月月看見了信封。{{target.name}} 開始等一個回應。" },
+        ],
+      },
+      {
+        id: "misread",
+        label: "讓情敵撿到這封信",
+        effects: [
+          { type: "flag", key: "letter_to_{{target.id}}", value: true },
+          { type: "flag", key: "letter_misread_by_{{target.rivalId}}", value: true },
+          { type: "forceEvent", eventId: "{{target.shuraEventId}}" },
+          { type: "log", text: "信被撿走。現場會變成修羅場，不是加好感。" },
         ],
       },
     ],
@@ -425,65 +472,89 @@ export const EVENTS = [
     id: "IV_peek",
     title: "干預：偷看秘密",
     description:
-      "神使掀開 {{target.name}} 沒打算公開的那一頁。觀眾看見了她對月月的真心，以及她不敢讓其他人聽見的句子。",
+      "{{target.name}} 沒打算公開的那一頁被掀開。秘密若不進入下一張事件，就不算偷看命運。",
     characters: [],
     speaker: "七夕神使",
     tags: ["intervention", "peek"],
     intervention: true,
+    onEnter: [
+      { type: "flag", key: "secret_{{target.id}}", value: true },
+      { type: "weightMod", eventId: "{{target.crisisEventId}}", value: 20 },
+      { type: "weightMod", eventId: "{{target.crisisEventId2}}", value: 12 },
+    ],
     choices: [
       {
         id: "keep",
-        label: "把秘密只留給觀眾",
+        label: "秘密只留給現場外的人，但提高對應危機",
         effects: [
-          { type: "stat", path: "characters.{{target.id}}.affection", op: "add", value: 3 },
           { type: "revealSecret", characterId: "{{target.id}}" },
+          { type: "weightMod", eventId: "{{target.crisisEventId}}", value: 8 },
+          { type: "log", text: "{{target.name}} 的秘密已被讀取，對應危機權重上升。" },
         ],
       },
       {
         id: "leak",
-        label: "讓一句話不小心漏到現場",
+        label: "讓秘密漏到現場，直接進入危機",
         effects: [
-          { type: "stat", path: "characters.{{target.id}}.jealousy", op: "add", value: 6 },
-          { type: "stat", path: "characters.{{target.id}}.pride", op: "add", value: -3 },
           { type: "revealSecret", characterId: "{{target.id}}" },
-          { type: "log", text: "有人聽見了不該聽見的半句。修羅場警報亮了一下。" },
+          { type: "flag", key: "public_jealous_{{target.id}}", value: true },
+          { type: "forceEvent", eventId: "{{target.crisisEventId}}" },
+          { type: "log", text: "秘密被現場聽見。下一張將進入對應危機。" },
         ],
       },
     ],
   },
   {
     id: "IV_encounter",
-    title: "干預：製造偶遇",
+    title: "干預：碰觸命運",
     description:
-      "走廊的燈忽然只亮一盞。月月推門出去倒水，與 {{target.name}} 單獨撞上。沒有其他人。這不是巧合，這是神使排的場。",
+      "走廊的燈忽然只亮一盞。月月與 {{target.name}} 單獨撞上。這次只會導向她自己的獨處，不會把所有人送去木星。",
     characters: [],
     speaker: "現場",
     tags: ["intervention", "encounter"],
     intervention: true,
-    onEnter: [
-      { type: "weightMod", eventId: "EVENT_jupiter_quiet_date", value: 15 },
-      { type: "weightMod", eventId: "EVENT_{{target.id}}_jealousy_01", value: 8 },
-    ],
+    onEnter: [{ type: "weightMod", eventId: "{{target.soloEventId}}", value: 20 }],
     choices: [
       {
         id: "stay",
-        label: "讓這段兩人時間完整發生",
+        label: "讓這段獨處完整發生",
         effects: [
-          { type: "stat", path: "characters.{{target.id}}.affection", op: "add", value: 8 },
-          { type: "stat", path: "characters.{{target.id}}.{{target.uniquePrimary}}", op: "add", value: 5 },
           { type: "flag", key: "encounter_{{target.id}}", value: true },
-          { type: "log", text: "月月與 {{target.name}} 單獨相遇。其他人暫時被關在門外。" },
+          { type: "forceEvent", eventId: "{{target.soloEventId}}" },
+          { type: "log", text: "下一張是 {{target.name}} 與月月的獨處。" },
         ],
       },
       {
         id: "interrupt",
-        label: "在最甜的時候讓第三者出現",
+        label: "在最甜的時候讓情敵出現",
         effects: [
-          { type: "stat", path: "characters.{{target.id}}.affection", op: "add", value: 4 },
-          { type: "stat", path: "characters.{{target.id}}.jealousy", op: "add", value: 8 },
-          { type: "tension", pair: "{{target.id}}-nini", op: "add", value: 6 },
           { type: "flag", key: "encounter_{{target.id}}", value: true },
+          { type: "tension", pair: "{{target.id}}-{{target.rivalId}}", op: "add", value: 8 },
+          { type: "forceEvent", eventId: "{{target.shuraEventId}}" },
+          { type: "log", text: "獨處被拆成修羅場。" },
         ],
+      },
+    ],
+  },
+  {
+    id: "IV_intervene_menu",
+    title: "干預：干涉命運",
+    description:
+      "干涉命運會改變正在發生的事。沒有獨處時，請挑起嫉妒／危機；有人正在獨處時，才能破壞那一段。",
+    characters: [],
+    speaker: "七夕神使",
+    tags: ["intervention", "intervene"],
+    intervention: true,
+    choices: [
+      {
+        id: "jealousy",
+        label: "挑起嫉妒／危機（下一張真的換成她的事件）",
+        effects: [{ type: "queueEvent", eventId: "IV_jealousy" }],
+      },
+      {
+        id: "sabotage",
+        label: "破壞正在發生的獨處（沒有獨處則無法執行）",
+        effects: [{ type: "queueEvent", eventId: "IV_sabotage" }],
       },
     ],
   },
@@ -491,7 +562,7 @@ export const EVENTS = [
     id: "IV_jealousy",
     title: "干預：挑起嫉妒",
     description:
-      "神使讓 {{target.name}} 清楚看見：月月對另一個人的距離，比對她更近。嫉妒不是背景，它會變成下一句台詞。",
+      "神使讓 {{target.name}} 清楚看見：月月對另一個人的距離更近。下一張事件會因此真正換成她的醋意或危機。",
     characters: [],
     speaker: "七夕神使",
     tags: ["intervention", "jealousy"],
@@ -500,86 +571,80 @@ export const EVENTS = [
       { type: "stat", path: "characters.{{target.id}}.jealousy", op: "add", value: 20 },
       { type: "stat", path: "characters.{{target.id}}.{{target.uniquePrimary}}", op: "add", value: 4 },
       { type: "flag", key: "jealousy_triggered_{{target.id}}", value: true },
-      { type: "weightMod", eventId: "EVENT_{{target.id}}_jealousy_01", value: 40 },
+      { type: "weightMod", eventId: "{{target.jealousyEventId}}", value: 40 },
+      { type: "weightMod", eventId: "{{target.crisisEventId}}", value: 16 },
     ],
     choices: [
       {
         id: "spark",
         label: "點燃，但不要燒穿",
         effects: [
-          { type: "stat", path: "characters.{{target.id}}.jealousy", op: "add", value: 10 },
           { type: "stat", path: "characters.{{target.id}}.affection", op: "add", value: 3 },
-          { type: "tension", pair: "{{target.id}}-pepsi", op: "add", value: 7 },
+          { type: "tension", pair: "{{target.id}}-{{target.rivalId}}", op: "add", value: 7 },
         ],
       },
       {
         id: "burn",
-        label: "讓她當眾問出口",
+        label: "讓她當眾問出口，強制進入對應事件",
         effects: [
-          { type: "stat", path: "characters.{{target.id}}.jealousy", op: "add", value: 14 },
-          { type: "stat", path: "characters.{{target.id}}.{{target.uniquePrimary}}", op: "add", value: 4 },
-          { type: "tension", pair: "{{target.id}}-meteor", op: "add", value: 8 },
           { type: "flag", key: "public_jealous_{{target.id}}", value: true },
-          { type: "forceEvent", eventId: "EVENT_{{target.id}}_jealousy_01" },
+          { type: "tension", pair: "{{target.id}}-{{target.rivalId}}", op: "add", value: 8 },
+          { type: "forceEvent", eventId: "{{target.jealousyEventId}}" },
         ],
       },
     ],
   },
   {
     id: "IV_sabotage",
-    title: "干預：破壞約會",
+    title: "干預：破壞獨處",
     description:
-      "{{target.name}} 排開的兩人時間被打亂。門被敲開，禮物被撞歪，台詞接不上。她看著月月，不知道該怪誰。",
+      "{{target.name}} 與月月的獨處被打亂。門被敲開。這只在獨處真正發生時有效。",
     characters: [],
     speaker: "現場",
     tags: ["intervention", "sabotage"],
     intervention: true,
+    onEnter: [
+      { type: "flag", key: "date_broken_{{target.id}}", value: true },
+      { type: "flag", key: "solo_active_{{target.id}}", value: false },
+      { type: "weightMod", eventId: "{{target.crisisEventId}}", value: 24 },
+    ],
     choices: [
       {
         id: "break",
-        label: "讓約會徹底泡湯",
+        label: "讓獨處徹底泡湯，進入善後危機",
         effects: [
-          { type: "stat", path: "characters.{{target.id}}.affection", op: "add", value: -8 },
-          { type: "stat", path: "characters.{{target.id}}.jealousy", op: "add", value: 10 },
-          { type: "stat", path: "characters.{{target.id}}.pride", op: "add", value: 4 },
-          { type: "flag", key: "date_broken_{{target.id}}", value: true },
+          { type: "stat", path: "characters.{{target.id}}.{{target.uniquePrimary}}", op: "add", value: 4 },
+          { type: "forceEvent", eventId: "{{target.crisisEventId}}" },
+          { type: "log", text: "{{target.name}} 的獨處被拆掉。下一張是善後危機。" },
         ],
       },
       {
         id: "almost",
-        label: "破壞一半，留下未完成",
+        label: "破壞一半，留下未完成，讓情敵之後進場",
         effects: [
-          { type: "stat", path: "characters.{{target.id}}.affection", op: "add", value: -3 },
-          { type: "stat", path: "characters.{{target.id}}.{{target.uniquePrimary}}", op: "add", value: 6 },
-          { type: "stat", path: "characters.{{target.id}}.jealousy", op: "add", value: 6 },
+          { type: "eventStatus", status: "unresolved" },
+          { type: "tension", pair: "{{target.id}}-{{target.rivalId}}", op: "add", value: 8 },
+          { type: "weightMod", eventId: "{{target.shuraEventId}}", value: 18 },
+          { type: "log", text: "獨處沒結束，修羅場被提前排進池裡。" },
         ],
       },
     ],
   },
   {
     id: "IV_force",
-    title: "干預：強制登場",
+    title: "干預：扭轉命運",
     description:
-      "無論 {{target.name}} 原本站在多遠，神使把她推到月月面前。燈光打在她身上。她沒有準備好，可是已經不能假裝只是路過。",
+      "主播扭轉現場。不是給 {{target.name}} 加一點好感，而是讓第三人入場，或把指定角色推上危機。",
     characters: [],
     speaker: "七夕神使",
     tags: ["intervention", "force"],
     intervention: true,
-    onEnter: [
-      { type: "flag", key: "forced_{{target.id}}", value: true },
-      { type: "weightMod", eventId: "EVENT_office_simmer", value: 5 },
-    ],
+    onEnter: [{ type: "flag", key: "forced_{{target.id}}", value: true }],
     choices: [
       {
         id: "center",
-        label: "讓她成為這一幕的主角",
-        effects: [
-          { type: "stat", path: "characters.{{target.id}}.affection", op: "add", value: 5 },
-          { type: "stat", path: "characters.{{target.id}}.{{target.uniquePrimary}}", op: "add", value: 6 },
-          { type: "flag", key: "forced_{{target.id}}", value: true },
-          { type: "forceEvent", eventId: "EVENT_forced_spotlight" },
-          { type: "log", text: "{{target.name}} 被強制推到舞台中央。" },
-        ],
+        label: "改變現場局勢",
+        effects: [{ type: "log", text: "現場被扭轉。下一張不再是聚光燈加點。" }],
       },
     ],
   },
@@ -587,28 +652,30 @@ export const EVENTS = [
     id: "IV_rewrite",
     title: "干預：改寫命運",
     description:
-      "這很貴。神使改寫了 {{target.name}} 以為已經定下來的一條線。命運值燃燒時，現場的星光閃了一下。",
+      "這很貴。神使改寫 {{target.name}} 以為已經定下來的一條線。不是把嫉妒換成好感。",
     characters: [],
     speaker: "七夕神使",
     tags: ["intervention", "rewrite"],
     intervention: true,
     choices: [
       {
-        id: "ease",
-        label: "把她的嫉妒降下來，換成更深的喜歡",
+        id: "push",
+        label: "把這條線推到今晚必現",
         effects: [
-          { type: "stat", path: "characters.{{target.id}}.jealousy", op: "add", value: -20 },
-          { type: "stat", path: "characters.{{target.id}}.affection", op: "add", value: 10 },
           { type: "flag", key: "fate_rewritten_{{target.id}}", value: true },
+          { type: "forceEvent", eventId: "{{target.rewriteEventId}}" },
+          { type: "log", text: "{{target.name}} 的主線被改寫，下一張進入改寫場景。" },
         ],
       },
       {
-        id: "bind",
-        label: "把她的核心戀愛觀再往前推一步",
+        id: "block",
+        label: "封鎖相反危機，改走另一條",
         effects: [
-          { type: "stat", path: "characters.{{target.id}}.{{target.uniquePrimary}}", op: "add", value: 15 },
-          { type: "stat", path: "characters.{{target.id}}.affection", op: "add", value: 6 },
           { type: "flag", key: "fate_rewritten_{{target.id}}", value: true },
+          { type: "flag", key: "crisis_blocked_{{target.id}}", value: true },
+          { type: "weightMod", eventId: "{{target.blockEventId}}", value: -999 },
+          { type: "forceEvent", eventId: "{{target.rewriteEventId}}" },
+          { type: "log", text: "相反危機被封鎖。改寫場景將決定這條線怎麼走。" },
         ],
       },
     ],
@@ -617,14 +684,15 @@ export const EVENTS = [
     id: "EVENT_office_simmer",
     title: "辦公室裡的高溫",
     description:
-      "沒有人先開口。冷氣開得很低，空氣卻熱。五個人用不同的方式看月月：依賴、嘴硬、理解、克制、挑釁。修羅場還沒爆炸，但已經不再是普通七夕。",
+      "沒有人先開口。冷氣開得很低，空氣卻熱。五個人用不同的方式看月月：依賴、嘴硬、理解、克制、挑釁。這是換氣，不是高潮。",
     characters: ["nini", "meteor", "pepsi", "jupiter", "mars"],
     speaker: "現場",
     pool: true,
-    repeatable: true,
-    weight: 30,
-    tags: ["dynamic", "common"],
-    conditions: { flag: "dynamic_pool_unlocked" },
+    weight: 5,
+    tags: ["dynamic", "observation", "breathing"],
+    conditions: {
+      all: [{ flag: "dynamic_pool_unlocked" }, { not: { completed: "EVENT_office_simmer" } }],
+    },
     choices: [
       {
         id: "breathe",
@@ -649,8 +717,8 @@ export const EVENTS = [
     characters: ["nini"],
     speaker: "雪碧日日",
     pool: true,
-    weight: 10,
-    tags: ["nini", "jealousy", "dynamic"],
+    weight: 16,
+    tags: ["nini", "jealousy", "character"],
     conditions: {
       all: [
         { flag: "dynamic_pool_unlocked" },
@@ -697,8 +765,8 @@ export const EVENTS = [
     characters: ["meteor"],
     speaker: "沙士流星",
     pool: true,
-    weight: 10,
-    tags: ["meteor", "jealousy", "dynamic"],
+    weight: 16,
+    tags: ["meteor", "jealousy", "character"],
     conditions: {
       all: [
         { flag: "dynamic_pool_unlocked" },
@@ -718,6 +786,7 @@ export const EVENTS = [
         effects: [
           { type: "stat", path: "characters.meteor.destiny", op: "add", value: 6 },
           { type: "stat", path: "characters.meteor.affection", op: "add", value: 5 },
+          { type: "weightMod", eventId: "EVENT_meteor_never_broke_up_01", value: 12 },
         ],
       },
       {
@@ -738,8 +807,8 @@ export const EVENTS = [
     characters: ["pepsi"],
     speaker: "百事月月",
     pool: true,
-    weight: 8,
-    tags: ["pepsi", "resonance", "dynamic"],
+    weight: 10,
+    tags: ["pepsi", "resonance", "character"],
     conditions: {
       all: [
         { flag: "dynamic_pool_unlocked" },
@@ -807,6 +876,8 @@ export const EVENTS = [
         label: "讓月月說：今晚先不要問",
         effects: [
           { type: "stat", path: "characters.jupiter.patience", op: "add", value: 4 },
+          { type: "flag", key: "jupiter_unanswered", value: true },
+          { type: "weightMod", eventId: "EVENT_jupiter_packing_01", value: 18 },
           { type: "eventStatus", status: "unresolved" },
         ],
       },
@@ -863,7 +934,8 @@ export const EVENTS = [
     speaker: "西打木星",
     pool: true,
     weight: 20,
-    tags: ["jupiter", "date", "dynamic"],
+    tags: ["jupiter", "date", "solo", "romance"],
+    onEnter: [{ type: "flag", key: "solo_active_jupiter", value: true }],
     conditions: {
       all: [
         { flag: "dynamic_pool_unlocked" },
@@ -881,6 +953,7 @@ export const EVENTS = [
         id: "stay",
         label: "讓這段兩人時間完整發生",
         effects: [
+          { type: "flag", key: "solo_active_jupiter", value: false },
           { type: "stat", path: "characters.jupiter.affection", op: "add", value: 8 },
           { type: "stat", path: "characters.jupiter.hope", op: "add", value: 6 },
           { type: "flag", key: "jupiter_quiet_date", value: true },
@@ -890,8 +963,10 @@ export const EVENTS = [
         id: "interrupt",
         label: "讓門被其他人敲開",
         effects: [
+          { type: "flag", key: "solo_active_jupiter", value: false },
           { type: "stat", path: "characters.jupiter.jealousy", op: "add", value: 7 },
           { type: "tension", pair: "jupiter-mars", op: "add", value: 6 },
+          { type: "weightMod", eventId: "EVENT_jupiter_packing_01", value: 16 },
         ],
       },
     ],
@@ -920,6 +995,7 @@ export const EVENTS = [
         effects: [
           { type: "stat", path: "characters.meteor.destiny", op: "add", value: 7 },
           { type: "stat", path: "characters.meteor.affection", op: "add", value: 5 },
+          { type: "weightMod", eventId: "EVENT_meteor_never_broke_up_01", value: 18 },
         ],
       },
       {
@@ -963,6 +1039,7 @@ export const EVENTS = [
         label: "讓月月說自己還沒準備好",
         effects: [
           { type: "stat", path: "characters.pepsi.destiny", op: "add", value: 4 },
+          { type: "weightMod", eventId: "EVENT_pepsi_identity_01", value: 20 },
           { type: "eventStatus", status: "unresolved" },
         ],
       },
@@ -976,13 +1053,21 @@ export const EVENTS = [
     characters: ["nini"],
     speaker: "雪碧日日",
     pool: true,
-    weight: 8,
-    tags: ["nini", "dependence", "dynamic"],
+    weight: 24,
+    tags: ["nini", "dependence", "crisis"],
     conditions: {
       all: [
         { flag: "dynamic_pool_unlocked" },
         { not: { completed: "EVENT_nini_dependence_01" } },
-        { path: "characters.nini.dependence", op: "gte", value: 80 },
+        {
+          any: [
+            { completed: "EVENT_nini_obsession_01" },
+            { flag: "nini_allowed_stay" },
+            { flag: "secret_nini" },
+            { flag: "moon_hiding" },
+            { path: "characters.nini.dependence", op: "gte", value: 58 },
+          ],
+        },
       ],
     },
     choices: [
@@ -1013,13 +1098,19 @@ export const EVENTS = [
     characters: ["meteor"],
     speaker: "沙士流星",
     pool: true,
-    weight: 10,
-    tags: ["meteor", "pride", "dynamic"],
+    weight: 12,
+    tags: ["meteor", "pride", "character"],
     conditions: {
       all: [
         { flag: "dynamic_pool_unlocked" },
         { not: { completed: "EVENT_meteor_pride_01" } },
-        { path: "characters.meteor.pride", op: "gte", value: 80 },
+        {
+          any: [
+            { flag: "moon_curious" },
+            { completed: "EVENT_meteor_nostalgia_01" },
+            { path: "characters.meteor.pride", op: "gte", value: 60 },
+          ],
+        },
       ],
     },
     choices: [
@@ -1086,14 +1177,22 @@ export const EVENTS = [
     characters: ["jupiter"],
     speaker: "西打木星",
     pool: true,
-    weight: 8,
-    tags: ["jupiter", "hope", "dynamic"],
+    weight: 26,
+    tags: ["jupiter", "hope", "crisis"],
     conditions: {
       all: [
         { flag: "dynamic_pool_unlocked" },
         { not: { completed: "EVENT_jupiter_hope_low_01" } },
-        { path: "characters.jupiter.hope", op: "lte", value: 30 },
+        { not: { flag: "crisis_blocked_jupiter" } },
         { path: "characters.jupiter.devotion", op: "gte", value: 70 },
+        {
+          any: [
+            { completed: "EVENT_jupiter_packing_01" },
+            { flag: "jupiter_unanswered" },
+            { flag: "jupiter_asked" },
+            { path: "characters.jupiter.hope", op: "lte", value: 45 },
+          ],
+        },
       ],
     },
     choices: [
@@ -1124,13 +1223,18 @@ export const EVENTS = [
     characters: ["mars"],
     speaker: "芬達火星",
     pool: true,
-    weight: 8,
-    tags: ["mars", "provocation", "dynamic"],
+    weight: 18,
+    tags: ["mars", "provocation", "conflict"],
     conditions: {
       all: [
         { flag: "dynamic_pool_unlocked" },
         { not: { completed: "EVENT_mars_kings_01" } },
-        { path: "characters.mars.provocation", op: "gte", value: 80 },
+        {
+          any: [
+            { flag: "mars_duel_started" },
+            { path: "characters.mars.provocation", op: "gte", value: 76 },
+          ],
+        },
       ],
     },
     choices: [
@@ -1141,6 +1245,7 @@ export const EVENTS = [
           { type: "stat", path: "characters.mars.chemistry", op: "add", value: 8 },
           { type: "stat", path: "characters.mars.affection", op: "add", value: 5 },
           { type: "tension", pair: "moon-mars", op: "add", value: 8 },
+          { type: "weightMod", eventId: "EVENT_mars_too_close_01", value: 16 },
         ],
       },
       {
@@ -1157,18 +1262,15 @@ export const EVENTS = [
     id: "EVENT_forced_spotlight",
     title: "被推到燈光下",
     description:
-      "{{target.name}} 被神使推到月月面前。她沒有準備好台詞，可是已經不能假裝只是路過。",
+      "舊的聚光燈加點已被淘汰。現場改為把 {{target.name}} 推進她自己的危機。",
     characters: [],
     speaker: "現場",
-    tags: ["forced", "dynamic"],
+    tags: ["forced", "legacy"],
     choices: [
       {
         id: "face",
-        label: "讓月月正視她",
-        effects: [
-          { type: "stat", path: "characters.{{target.id}}.affection", op: "add", value: 6 },
-          { type: "stat", path: "characters.{{target.id}}.{{target.uniquePrimary}}", op: "add", value: 4 },
-        ],
+        label: "改變現場局勢，進入她的危機",
+        effects: [{ type: "forceEvent", eventId: "{{target.crisisEventId}}" }],
       },
     ],
   },
@@ -1189,6 +1291,7 @@ export const EVENTS = [
       },
     ],
   },
+  ...PHASE1_EVENTS,
 ];
 
 export const EVENT_BY_ID = Object.fromEntries(EVENTS.map((e) => [e.id, e]));

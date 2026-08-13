@@ -2,7 +2,7 @@ import { GAME_CONFIG } from "../config/game.config.js";
 import { CHARACTER_BY_ID } from "../../data/characters.js";
 import { SEASONS } from "../../data/seasons/index.js";
 import { EVENTS } from "../../data/seasons/qixi-2026/events.js";
-import { INTERVENTIONS } from "../../data/seasons/qixi-2026/interventions.js";
+import { INTERVENTIONS, activeSoloId, pickForceFollowup, SOLO_FLAG_IDS, soloFlag } from "../../data/seasons/qixi-2026/interventions.js";
 import { SEASON } from "../../data/seasons/qixi-2026/season.js";
 import { createMockDonationProvider, fateFromDonation } from "./donation.js";
 import {
@@ -61,6 +61,12 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
     };
   }
 
+  function clearSoloFlags() {
+    for (const id of SOLO_FLAG_IDS) {
+      if (state.flags[soloFlag(id)]) state.flags[soloFlag(id)] = false;
+    }
+  }
+
   function unlockDynamicPhase() {
     state.flags[SEASON.unlockInterventionsFlag] = true;
     state.flags.audience_aware = true;
@@ -69,6 +75,15 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
   }
 
   function startEvent(eventId, { force = false } = {}) {
+    if (eventId === "IV_sabotage") {
+      const solo = activeSoloId(state);
+      if (!solo) {
+        snapshotResult("干涉命運", ["目前沒有正在發生的獨處，破壞未執行。"]);
+        startEvent(SEASON.hubEventId);
+        return { ok: false, error: "目前沒有正在發生的獨處，無法破壞。" };
+      }
+      state.pendingTargetId = solo;
+    }
     const event = getEvent(eventId);
     if (!event) return { ok: false, error: "找不到事件" };
     if (state.currentSession.status === "settled" && !event.final) {
@@ -84,6 +99,10 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
       trackCharacterTouch(state, event.characters[0], "event", event.id);
     }
     if (event.onEnter) applyEffects(state, event.onEnter);
+    if (eventId === "IV_force" && state.pendingForceFollowup) {
+      state.currentSession.forcedNextEventId = state.pendingForceFollowup;
+      state.pendingForceFollowup = null;
+    }
     if (force) pushHistory(state, { kind: "admin", text: `手動觸發 ${event.title}` });
     pushHistory(state, { kind: "event", text: `事件開始：${event.title}`, eventId });
     persistState();
@@ -181,25 +200,36 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
     }
     const action = INTERVENTIONS.find((item) => item.id === type);
     if (!action) return { ok: false, error: "未知干預" };
-    if (action.needsTarget && !CHARACTER_BY_ID[targetId]) {
+    if (action.needsTarget && !CHARACTER_BY_ID[targetId] && !action.requiresSolo) {
       return { ok: false, error: "請選擇標角色" };
     }
+    if (action.requiresSolo || action.eventId === "IV_sabotage") {
+      const solo = activeSoloId(state);
+      if (!solo) {
+        return { ok: false, error: "目前沒有正在發生的獨處，無法破壞。" };
+      }
+      targetId = solo;
+    }
     const cost = GAME_CONFIG.interventionCosts[action.costKey];
-    if (state.fate < cost) return { ok: false, error: `命運值不足（需要 ${cost}）` };
-
-    state.fate -= cost;
+    const stage = getEvent(state.currentEventId);
+    if (action.eventId === "IV_force") {
+      state.pendingForceFollowup = pickForceFollowup(stage?.characters || [], targetId);
+    }
     state.pendingTargetId = targetId || null;
     const target = CHARACTER_BY_ID[targetId];
     trackCharacterTouch(state, targetId, "intervention", action.eventId);
     pushHistory(state, {
       kind: "intervention",
-      text: `觀眾對 ${target?.name || "現場"} 發動了 [${action.name}]，消耗命運 ${cost}`,
+      text: `主播執行「${action.name}」（權限 ${cost}）→ ${target?.name || "現場"}。金流在遊戲外，此處不扣款。`,
       targetId,
       interventionId: type,
     });
-    snapshotResult(action.name, [`消耗命運值 ${cost}`, `對象：${target?.name || "無"}`, "這會改變接下來可能發生的事件。"]);
-    startEvent(action.eventId);
-    return { ok: true };
+    snapshotResult(action.name, [
+      `主播操作權限 ${cost}`,
+      `對象：${target?.name || "無"}`,
+      "這會改變接下來可能發生的事件，不是加減好感。",
+    ]);
+    return startEvent(action.eventId);
   }
 
   function applyDonation(payload) {
@@ -242,11 +272,18 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
     const event = getEvent(state.currentEventId);
     if (!event) return { ok: false };
     if (!event.hub && !event.intervention && !event.final) completeEvent(state, event.id);
+    if (event.solo || (event.tags || []).includes("solo") || event.id === "EVENT_jupiter_quiet_date") {
+      clearSoloFlags();
+    }
     pushHistory(state, { kind: "admin", text: `跳過事件 ${event.title}` });
     const fallback = event.choices?.[0];
     if (fallback) {
       applyEffects(state, fallback.effects);
-      resolveQueue();
+      if (!state.queuedEventId && !state.queuedAdvance && !state.queuedFinalize) {
+        goHubOrForced();
+      } else {
+        resolveQueue();
+      }
     } else {
       goHubOrForced();
     }
@@ -273,6 +310,9 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
     }
     if (current?.intervention) return skipEvent();
     if (current && !current.hub && !current.final) completeEvent(state, current.id);
+    if (current && ((current.tags || []).includes("solo") || current.id === "EVENT_jupiter_quiet_date")) {
+      clearSoloFlags();
+    }
     unlockDynamicPhase();
     const next = drawPoolEvent(state, rng);
     if (!next) {
@@ -381,6 +421,7 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
       currentEvent: interpolateEvent(rawEvent, ctx),
       interventionsUnlocked: Boolean(state.flags[SEASON.unlockInterventionsFlag]),
       pool: listPoolCandidates(state),
+      soloActive: activeSoloId(state),
       nightScores: Object.fromEntries(
         Object.values(CHARACTER_BY_ID).map((c) => [c.id, Number(nightScore(state, c.id).toFixed(2))])
       ),
@@ -390,9 +431,10 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
         status: characterStatus(state, c.id),
         nightScore: Number(nightScore(state, c.id).toFixed(2)),
       })),
-      interventions: INTERVENTIONS.map((item) => ({
+      interventions: INTERVENTIONS.filter((item) => item.host).map((item) => ({
         ...item,
         cost: GAME_CONFIG.interventionCosts[item.costKey],
+        available: item.requiresSolo ? Boolean(activeSoloId(state)) : true,
       })),
       config: {
         costs: GAME_CONFIG.interventionCosts,
