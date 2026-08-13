@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Live Love Event｜百合戀愛修羅場</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Orbitron:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="bg-grid" aria-hidden="true"></div>
+    <div class="bg-glow" aria-hidden="true"></div>
+
+    <div class="app">
+      <header class="top-bar">
+        <div class="brand">
+          <span class="live-badge">
+            <span class="live-dot"></span>
+            LIVE
+          </span>
+          <div class="brand-copy">
+            <p class="kicker">ColaMoon · Collab Stream</p>
+            <h1>百合戀愛修羅場</h1>
+          </div>
+        </div>
+        <div class="stream-meta">
+          <span id="viewer-count">12,480 觀看中</span>
+          <span class="divider">·</span>
+          <span id="event-progress">事件 1 / 8</span>
+        </div>
+      </header>
+
+      <main class="stage">
+        <section class="stream-panel" aria-label="直播畫面">
+          <div class="scanlines" aria-hidden="true"></div>
+          <div class="stage-frame">
+            <div id="portrait-row" class="portrait-row"></div>
+            <p id="scene-tag" class="scene-tag">#開播問候</p>
+            <div class="dialogue-box">
+              <p id="speaker-name" class="speaker">全員</p>
+              <p id="dialogue-text" class="dialogue">
+                三個女孩同時看向鏡頭。今夜的聯動直播，由你決定修羅場的走向。
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <aside class="side-panel">
+          <section class="affection-card" aria-label="好感度">
+            <h2>好感度</h2>
+            <div id="affection-list" class="affection-list"></div>
+          </section>
+
+          <section class="chat-card" aria-label="彈幕">
+            <h2>彈幕</h2>
+            <ul id="chat-log" class="chat-log"></ul>
+          </section>
+        </aside>
+      </main>
+
+      <section class="choice-dock" aria-label="互動選項">
+        <div class="choice-header">
+          <h2>你的選擇</h2>
+          <div id="cooldown-meter" class="cooldown-meter is-ready" aria-live="polite">
+            <span id="cooldown-label">可以發言</span>
+            <span id="cooldown-bar" class="cooldown-bar"></span>
+          </div>
+        </div>
+        <div id="choice-list" class="choice-list"></div>
+      </section>
+    </div>
+
+    <div id="ending-overlay" class="ending-overlay" hidden>
+      <div class="ending-card">
+        <p class="ending-kicker">EVENT CLEAR</p>
+        <h2 id="ending-title">結局</h2>
+        <p id="ending-text"></p>
+        <button id="restart-btn" type="button">再播一場</button>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
