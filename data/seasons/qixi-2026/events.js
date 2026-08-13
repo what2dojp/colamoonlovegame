@@ -212,6 +212,7 @@ export const EVENTS = [
         effects: [
           { type: "flag", key: "interventionsUnlocked", value: true },
           { type: "flag", key: "audience_aware", value: true },
+          { type: "flag", key: "dynamic_pool_unlocked", value: true },
           { type: "queueEvent", eventId: "EVENT_008_office_hub" },
         ],
       },
@@ -221,6 +222,7 @@ export const EVENTS = [
         effects: [
           { type: "flag", key: "interventionsUnlocked", value: true },
           { type: "flag", key: "audience_aware", value: true },
+          { type: "flag", key: "dynamic_pool_unlocked", value: true },
           { type: "tension", pair: "nini-meteor", op: "add", value: 8 },
           { type: "tension", pair: "meteor-mars", op: "add", value: 8 },
           { type: "tension", pair: "jupiter-mars", op: "add", value: 6 },
@@ -231,9 +233,9 @@ export const EVENTS = [
   },
   {
     id: "EVENT_008_office_hub",
-    title: "教主辦公室・後宮尚未起火",
+    title: "五人正式碰面",
     description:
-      "五個人都還維持著「我只是剛好來」的表情。空氣卻開始熱。神使可以繼續旁觀，也可以花費命運值干預。記住：數值只是引擎，感情才是現場。",
+      "五個人都還維持著「我只是剛好來」的表情。空氣卻開始熱。開場結束，中段改由條件式事件池抽出。神使可以干預來改變「接下來可能發生什麼」。今晚隨時可以結算，但那只代表今晚演到這裡。",
     characters: ["nini", "meteor", "pepsi", "jupiter", "mars"],
     speaker: "現場",
     priority: 10,
@@ -242,7 +244,7 @@ export const EVENTS = [
     choices: [
       {
         id: "watch",
-        label: "繼續旁觀，等待條件成熟的事件",
+        label: "繼續旁觀，抽出下一張中段事件",
         effects: [{ type: "advanceStory" }],
       },
       {
@@ -260,7 +262,9 @@ export const EVENTS = [
     characters: ["nini"],
     speaker: "雪碧日日",
     priority: 70,
-    tags: ["nini", "obsession"],
+    pool: true,
+    weight: 20,
+    tags: ["nini", "obsession", "dynamic"],
     conditions: {
       all: [
         { flag: "interventionsUnlocked" },
@@ -300,7 +304,9 @@ export const EVENTS = [
     characters: ["mars", "meteor"],
     speaker: "芬達火星",
     priority: 72,
-    tags: ["mars", "conflict"],
+    pool: true,
+    weight: 20,
+    tags: ["mars", "conflict", "dynamic"],
     conditions: {
       all: [
         { flag: "interventionsUnlocked" },
@@ -343,7 +349,9 @@ export const EVENTS = [
     characters: ["jupiter"],
     speaker: "西打木星",
     priority: 68,
-    tags: ["jupiter", "devotion"],
+    pool: true,
+    weight: 20,
+    tags: ["jupiter", "devotion", "dynamic"],
     conditions: {
       all: [
         { flag: "interventionsUnlocked" },
@@ -370,6 +378,9 @@ export const EVENTS = [
           { type: "stat", path: "characters.jupiter.devotion", op: "add", value: 5 },
           { type: "stat", path: "characters.jupiter.hope", op: "add", value: -6 },
           { type: "stat", path: "characters.jupiter.jealousy", op: "add", value: 5 },
+          { type: "flag", key: "jupiter_unanswered", value: true },
+          { type: "eventStatus", status: "unresolved" },
+          { type: "log", text: "木星已把喜歡說出口。月月還沒有回答。這件事還沒結束。" },
         ],
       },
     ],
@@ -444,6 +455,10 @@ export const EVENTS = [
     speaker: "現場",
     tags: ["intervention", "encounter"],
     intervention: true,
+    onEnter: [
+      { type: "weightMod", eventId: "EVENT_jupiter_quiet_date", value: 15 },
+      { type: "weightMod", eventId: "EVENT_{{target.id}}_jealousy_01", value: 8 },
+    ],
     choices: [
       {
         id: "stay",
@@ -476,6 +491,11 @@ export const EVENTS = [
     speaker: "七夕神使",
     tags: ["intervention", "jealousy"],
     intervention: true,
+    onEnter: [
+      { type: "stat", path: "characters.{{target.id}}.jealousy", op: "add", value: 20 },
+      { type: "flag", key: "jealousy_triggered_{{target.id}}", value: true },
+      { type: "weightMod", eventId: "EVENT_{{target.id}}_jealousy_01", value: 40 },
+    ],
     choices: [
       {
         id: "spark",
@@ -494,6 +514,7 @@ export const EVENTS = [
           { type: "stat", path: "characters.{{target.id}}.{{target.uniquePrimary}}", op: "add", value: 4 },
           { type: "tension", pair: "{{target.id}}-meteor", op: "add", value: 8 },
           { type: "flag", key: "public_jealous_{{target.id}}", value: true },
+          { type: "forceEvent", eventId: "EVENT_{{target.id}}_jealousy_01" },
         ],
       },
     ],
@@ -538,6 +559,10 @@ export const EVENTS = [
     speaker: "七夕神使",
     tags: ["intervention", "force"],
     intervention: true,
+    onEnter: [
+      { type: "flag", key: "forced_{{target.id}}", value: true },
+      { type: "weightMod", eventId: "EVENT_office_simmer", value: 5 },
+    ],
     choices: [
       {
         id: "center",
@@ -546,6 +571,7 @@ export const EVENTS = [
           { type: "stat", path: "characters.{{target.id}}.affection", op: "add", value: 5 },
           { type: "stat", path: "characters.{{target.id}}.{{target.uniquePrimary}}", op: "add", value: 6 },
           { type: "flag", key: "forced_{{target.id}}", value: true },
+          { type: "forceEvent", eventId: "EVENT_forced_spotlight" },
           { type: "log", text: "{{target.name}} 被強制推到舞台中央。" },
         ],
       },
@@ -578,6 +604,393 @@ export const EVENTS = [
           { type: "stat", path: "characters.{{target.id}}.affection", op: "add", value: 6 },
           { type: "flag", key: "fate_rewritten_{{target.id}}", value: true },
         ],
+      },
+    ],
+  },
+  {
+    id: "EVENT_office_simmer",
+    title: "辦公室裡的高溫",
+    description:
+      "沒有人先開口。冷氣開得很低，空氣卻熱。五個人用不同的方式看月月：依賴、嘴硬、理解、克制、挑釁。修羅場還沒爆炸，但已經不再是普通七夕。",
+    characters: ["nini", "meteor", "pepsi", "jupiter", "mars"],
+    speaker: "現場",
+    pool: true,
+    repeatable: true,
+    weight: 30,
+    tags: ["dynamic", "common"],
+    conditions: { flag: "dynamic_pool_unlocked" },
+    choices: [
+      {
+        id: "breathe",
+        label: "讓場面再熱一點",
+        effects: [
+          { type: "tension", pair: "nini-meteor", op: "add", value: 3 },
+          { type: "tension", pair: "jupiter-mars", op: "add", value: 3 },
+        ],
+      },
+      {
+        id: "cool",
+        label: "先把話題轉到飲料",
+        effects: [{ type: "log", text: "暫時沒有爆炸。事件池還在燒。" }],
+      },
+    ],
+  },
+  {
+    id: "EVENT_nini_jealousy_01",
+    title: "日日開始吃醋",
+    description:
+      "日日把晶晶抱得更緊。「剛剛那個人站得比較近。」她笑著，聲音卻不太乖。「月月是我的。鑰匙還在我這裡。」",
+    characters: ["nini"],
+    speaker: "雪碧日日",
+    pool: true,
+    weight: 10,
+    tags: ["nini", "jealousy", "dynamic"],
+    conditions: {
+      all: [
+        { flag: "dynamic_pool_unlocked" },
+        { not: { completed: "EVENT_nini_jealousy_01" } },
+        {
+          any: [
+            { flag: "jealousy_triggered_nini" },
+            {
+              all: [
+                { path: "characters.nini.obsession", op: "gte", value: 60 },
+                { path: "characters.nini.jealousy", op: "gte", value: 50 },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    choices: [
+      {
+        id: "soothe",
+        label: "讓月月說：我沒有要丟下妳",
+        effects: [
+          { type: "stat", path: "characters.nini.affection", op: "add", value: 6 },
+          { type: "stat", path: "characters.nini.obsession", op: "add", value: 8 },
+          { type: "stat", path: "characters.nini.jealousy", op: "add", value: -4 },
+        ],
+      },
+      {
+        id: "boundary",
+        label: "讓月月說：不要這樣說話",
+        effects: [
+          { type: "stat", path: "characters.nini.jealousy", op: "add", value: 8 },
+          { type: "stat", path: "characters.nini.trust", op: "add", value: -5 },
+          { type: "eventStatus", status: "unresolved" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "EVENT_meteor_jealousy_01",
+    title: "流星翻舊帳",
+    description:
+      "流星靠著門框冷笑。「命中注定的人現在要看妳跟誰站比較近嗎？」她把童年的那句結婚誓言咬得很乾。",
+    characters: ["meteor"],
+    speaker: "沙士流星",
+    pool: true,
+    weight: 10,
+    tags: ["meteor", "jealousy", "dynamic"],
+    conditions: {
+      all: [
+        { flag: "dynamic_pool_unlocked" },
+        { not: { completed: "EVENT_meteor_jealousy_01" } },
+        {
+          any: [
+            { flag: "jealousy_triggered_meteor" },
+            { path: "characters.meteor.jealousy", op: "gte", value: 45 },
+          ],
+        },
+      ],
+    },
+    choices: [
+      {
+        id: "remember",
+        label: "讓月月把童年約定講出來",
+        effects: [
+          { type: "stat", path: "characters.meteor.destinyBelief", op: "add", value: 6 },
+          { type: "stat", path: "characters.meteor.affection", op: "add", value: 5 },
+        ],
+      },
+      {
+        id: "now",
+        label: "讓月月說：現在不是小時候",
+        effects: [
+          { type: "stat", path: "characters.meteor.pride", op: "add", value: 6 },
+          { type: "stat", path: "characters.meteor.jealousy", op: "add", value: 8 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "EVENT_pepsi_jealousy_01",
+    title: "百事很少吃醋的一次",
+    description:
+      "百事月月的嫉妒來得很輕，輕到幾乎像理解。「我知道妳會逃。我只是沒想到，今晚逃的方向這麼多人。」",
+    characters: ["pepsi"],
+    speaker: "百事月月",
+    pool: true,
+    weight: 8,
+    tags: ["pepsi", "jealousy", "dynamic"],
+    conditions: {
+      all: [
+        { flag: "dynamic_pool_unlocked" },
+        { not: { completed: "EVENT_pepsi_jealousy_01" } },
+        {
+          any: [
+            { flag: "jealousy_triggered_pepsi" },
+            { path: "characters.pepsi.jealousy", op: "gte", value: 20 },
+          ],
+        },
+      ],
+    },
+    choices: [
+      {
+        id: "see",
+        label: "讓月月承認被看穿",
+        effects: [
+          { type: "stat", path: "characters.pepsi.soulResonance", op: "add", value: 6 },
+          { type: "stat", path: "characters.pepsi.affection", op: "add", value: 4 },
+        ],
+      },
+      {
+        id: "hide",
+        label: "讓月月繼續躲",
+        effects: [{ type: "stat", path: "characters.pepsi.jealousy", op: "add", value: 6 }],
+      },
+    ],
+  },
+  {
+    id: "EVENT_jupiter_jealousy_01",
+    title: "木星把喜歡握回去",
+    description:
+      "木星的醋意不像爆炸，比較像手收回去。「我看到了。我還是想被選。可是我不會在這裡逼妳。」",
+    characters: ["jupiter"],
+    speaker: "西打木星",
+    pool: true,
+    weight: 10,
+    tags: ["jupiter", "jealousy", "dynamic"],
+    conditions: {
+      all: [
+        { flag: "dynamic_pool_unlocked" },
+        { not: { completed: "EVENT_jupiter_jealousy_01" } },
+        {
+          any: [
+            { flag: "jealousy_triggered_jupiter" },
+            { path: "characters.jupiter.jealousy", op: "gte", value: 40 },
+          ],
+        },
+      ],
+    },
+    choices: [
+      {
+        id: "hold",
+        label: "讓月月握住她收回去的手",
+        effects: [
+          { type: "stat", path: "characters.jupiter.affection", op: "add", value: 7 },
+          { type: "stat", path: "characters.jupiter.hope", op: "add", value: 6 },
+        ],
+      },
+      {
+        id: "later",
+        label: "讓月月說：今晚先不要問",
+        effects: [
+          { type: "stat", path: "characters.jupiter.restraint", op: "add", value: 4 },
+          { type: "eventStatus", status: "unresolved" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "EVENT_mars_jealousy_01",
+    title: "火星把醋意當成挑釁",
+    description:
+      "火星笑得很難看。「喔，原來妳今晚比較想看別人。」她往前一步，距離短到像要互傷。「那就看妳敢不敢看回來。」",
+    characters: ["mars"],
+    speaker: "芬達火星",
+    pool: true,
+    weight: 10,
+    tags: ["mars", "jealousy", "dynamic"],
+    conditions: {
+      all: [
+        { flag: "dynamic_pool_unlocked" },
+        { not: { completed: "EVENT_mars_jealousy_01" } },
+        {
+          any: [
+            { flag: "jealousy_triggered_mars" },
+            { path: "characters.mars.jealousy", op: "gte", value: 40 },
+          ],
+        },
+      ],
+    },
+    choices: [
+      {
+        id: "lookback",
+        label: "讓月月看回去，誰也不讓",
+        effects: [
+          { type: "stat", path: "characters.mars.chemistry", op: "add", value: 8 },
+          { type: "stat", path: "characters.mars.affection", op: "add", value: 5 },
+        ],
+      },
+      {
+        id: "leave",
+        label: "讓月月先走開",
+        effects: [
+          { type: "stat", path: "characters.mars.jealousy", op: "add", value: 10 },
+          { type: "stat", path: "characters.mars.pride", op: "add", value: 5 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "EVENT_jupiter_quiet_date",
+    title: "木星的安靜約會",
+    description:
+      "走廊只剩木星。她把月月上周想喝的飲料放好，沒有要答案。「我不是來當朋友的。我只是……想跟妳單獨待一下子。」",
+    characters: ["jupiter"],
+    speaker: "西打木星",
+    pool: true,
+    weight: 20,
+    tags: ["jupiter", "date", "dynamic"],
+    conditions: {
+      all: [
+        { flag: "dynamic_pool_unlocked" },
+        { not: { completed: "EVENT_jupiter_quiet_date" } },
+        {
+          any: [
+            { flag: "encounter_jupiter" },
+            { path: "characters.jupiter.devotion", op: "gte", value: 84 },
+          ],
+        },
+      ],
+    },
+    choices: [
+      {
+        id: "stay",
+        label: "讓這段兩人時間完整發生",
+        effects: [
+          { type: "stat", path: "characters.jupiter.affection", op: "add", value: 8 },
+          { type: "stat", path: "characters.jupiter.hope", op: "add", value: 6 },
+          { type: "flag", key: "jupiter_quiet_date", value: true },
+        ],
+      },
+      {
+        id: "interrupt",
+        label: "讓門被其他人敲開",
+        effects: [
+          { type: "stat", path: "characters.jupiter.jealousy", op: "add", value: 7 },
+          { type: "tension", pair: "jupiter-mars", op: "add", value: 6 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "EVENT_meteor_nostalgia_01",
+    title: "沙士與沒說完的結婚",
+    description:
+      "流星把一罐沙士敲在桌上。「國小那句，我沒當玩笑。」她別過臉，「妳現在跟誰在一起都沒關係。最後還是會回到我身邊。」",
+    characters: ["meteor"],
+    speaker: "沙士流星",
+    pool: true,
+    weight: 18,
+    tags: ["meteor", "dynamic"],
+    conditions: {
+      all: [
+        { flag: "dynamic_pool_unlocked" },
+        { not: { completed: "EVENT_meteor_nostalgia_01" } },
+        { path: "characters.meteor.nostalgia", op: "gte", value: 80 },
+      ],
+    },
+    choices: [
+      {
+        id: "believe",
+        label: "讓月月沒有否定那句約定",
+        effects: [
+          { type: "stat", path: "characters.meteor.destinyBelief", op: "add", value: 7 },
+          { type: "stat", path: "characters.meteor.affection", op: "add", value: 5 },
+        ],
+      },
+      {
+        id: "tease",
+        label: "讓月月回嗆：那妳先承認喜歡",
+        effects: [
+          { type: "stat", path: "characters.meteor.pride", op: "add", value: 5 },
+          { type: "stat", path: "characters.meteor.affection", op: "add", value: 4 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "EVENT_pepsi_soul_01",
+    title: "靈魂會認出彼此",
+    description:
+      "深棕色頭髮的月月沒有擠上來。「我不需要搶。如果兩個人的靈魂如此理解彼此，相遇本身就是答案。」她把這句話說得很輕，像已經確定。",
+    characters: ["pepsi"],
+    speaker: "百事月月",
+    pool: true,
+    weight: 15,
+    tags: ["pepsi", "dynamic"],
+    conditions: {
+      all: [
+        { flag: "dynamic_pool_unlocked" },
+        { not: { completed: "EVENT_pepsi_soul_01" } },
+        { path: "characters.pepsi.soulResonance", op: "gte", value: 78 },
+      ],
+    },
+    choices: [
+      {
+        id: "resonate",
+        label: "讓月月讓這份理解停留",
+        effects: [
+          { type: "stat", path: "characters.pepsi.affection", op: "add", value: 6 },
+          { type: "stat", path: "characters.pepsi.understanding", op: "add", value: 4 },
+        ],
+      },
+      {
+        id: "run",
+        label: "讓月月說自己還沒準備好",
+        effects: [
+          { type: "stat", path: "characters.pepsi.destinyBelief", op: "add", value: 4 },
+          { type: "eventStatus", status: "unresolved" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "EVENT_forced_spotlight",
+    title: "被推到燈光下",
+    description:
+      "{{target.name}} 被神使推到月月面前。她沒有準備好台詞，可是已經不能假裝只是路過。",
+    characters: [],
+    speaker: "現場",
+    tags: ["forced", "dynamic"],
+    choices: [
+      {
+        id: "face",
+        label: "讓月月正視她",
+        effects: [
+          { type: "stat", path: "characters.{{target.id}}.affection", op: "add", value: 6 },
+          { type: "stat", path: "characters.{{target.id}}.{{target.uniquePrimary}}", op: "add", value: 4 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "FINAL_night_partner",
+    title: "今晚，月月決定和誰過夜？",
+    description:
+      "辦公室的燈一盞盞關掉。這不是永久戀愛結局，只是七夕這一夜的結算。月月看過還在現場的每一個人，最後對 {{partner.name}} 說：「今晚……妳留下來。」其他人沒有被刪除。故事會在下一次活動繼續。",
+    characters: [],
+    speaker: "可樂月月",
+    final: true,
+    tags: ["final", "session"],
+    choices: [
+      {
+        id: "close_night",
+        label: "讓今晚安靜地結束（暫時休戰）",
+        effects: [{ type: "finalizeSession" }],
       },
     ],
   },

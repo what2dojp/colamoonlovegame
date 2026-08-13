@@ -57,49 +57,4 @@ export function characterStatus(state, id) {
   return "關係進行中";
 }
 
-export function resolveTrajectory(state) {
-  const interventions = (state.history || []).filter((h) => h.kind === "intervention").length;
-  const scores = CHARACTERS.map((c) => {
-    const stats = state.characters[c.id];
-    const aimed = (state.history || []).filter(
-      (h) => h.kind === "intervention" && h.targetId === c.id
-    ).length;
-    const flags = Object.entries(state.flags || {})
-      .filter(([, v]) => v)
-      .filter(([k]) => k.includes(c.id)).length;
-    const unique = stats[c.uniquePrimary] || 0;
-    const score =
-      stats.affection * 0.35 +
-      unique * 0.35 +
-      stats.jealousy * 0.1 +
-      aimed * 6 +
-      flags * 5;
-    return { id: c.id, score };
-  }).sort((a, b) => b.score - a.score);
-
-  const [lead, second] = scores;
-  const gap = lead.score - second.score;
-  const derived = computeDerived(state);
-
-  if (derived.fireIndex >= 70 && gap < 12) {
-    return {
-      type: "conflict",
-      label: "走向：後宮失火，沒有人能單獨帶走她",
-      leadId: lead.id,
-    };
-  }
-  if (gap >= 14 && interventions >= 2) {
-    return {
-      type: "leaning",
-      label: `走向：現場開始偏向 ${CHARACTER_BY_ID[lead.id].name}，但還沒結束`,
-      leadId: lead.id,
-    };
-  }
-  return {
-    type: "open",
-    label: "走向：觀眾還在認識她們，結局尚未鎖死",
-    leadId: null,
-  };
-}
-
 export { STAT_LABELS };

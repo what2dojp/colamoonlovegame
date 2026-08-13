@@ -1,5 +1,5 @@
 import { GAME_CONFIG } from "../config/game.config.js";
-import { CHARACTERS, CHARACTER_BY_ID } from "../../data/characters.js";
+import { CHARACTER_BY_ID } from "../../data/characters.js";
 import { SEASONS } from "../../data/seasons/index.js";
 import { EVENTS } from "../../data/seasons/qixi-2026/events.js";
 import { INTERVENTIONS } from "../../data/seasons/qixi-2026/interventions.js";
@@ -11,22 +11,35 @@ import {
   eventContext,
   getEvent,
   interpolateEvent,
-  listAvailableStoryEvents,
 } from "./event-engine.js";
-import { characterStatus, computeDerived, resolveTrajectory } from "./derived.js";
+import { characterStatus, computeDerived } from "./derived.js";
 import { clearSave, cloneState, createInitialState, loadSave, writeSave } from "./save.js";
+import {
+  buildProgressCard,
+  drawPoolEvent,
+  ensureSession,
+  listPoolCandidates,
+  nightPartnerFlag,
+  pickNightPartner,
+  setEventRecord,
+  settlementView,
+  trackCharacterTouch,
+} from "./session.js";
 
 function nowStamp() {
   return Date.now();
 }
 
 function pushHistory(state, entry) {
-  state.history.unshift({ t: nowStamp(), ...entry });
+  const item = { t: nowStamp(), ...entry };
+  state.history.unshift(item);
   state.history = state.history.slice(0, 80);
+  state.eventHistory = state.history;
 }
 
-export function createGame({ persist = true, donationProvider } = {}) {
+export function createGame({ persist = true, donationProvider, rng = Math.random } = {}) {
   let state = persist ? loadSave() || createInitialState() : createInitialState();
+  ensureSession(state);
   const listeners = new Set();
   const donations = donationProvider || createMockDonationProvider();
 
@@ -47,42 +60,94 @@ export function createGame({ persist = true, donationProvider } = {}) {
     };
   }
 
+  function unlockDynamicPhase() {
+    state.flags[SEASON.unlockInterventionsFlag] = true;
+    state.flags.audience_aware = true;
+    state.flags.dynamic_pool_unlocked = true;
+    state.currentSession.phase = "dynamic";
+  }
+
   function startEvent(eventId, { force = false } = {}) {
     const event = getEvent(eventId);
     if (!event) return { ok: false, error: "找不到事件" };
+    if (state.currentSession.status === "settled" && !event.final) {
+      return { ok: false, error: "本次已暫時休戰" };
+    }
     state.currentEventId = eventId;
+    setEventRecord(state, eventId, { status: "active" });
+    state.currentSession.eventCount += 1;
+    if (event.id === SEASON.hubEventId || eventId === "EVENT_007_realization") {
+      if (eventId === SEASON.hubEventId) unlockDynamicPhase();
+    }
+    if (event.characters?.length) {
+      trackCharacterTouch(state, event.characters[0], "event", event.id);
+    }
     if (event.onEnter) applyEffects(state, event.onEnter);
     if (force) pushHistory(state, { kind: "admin", text: `手動觸發 ${event.title}` });
+    pushHistory(state, { kind: "event", text: `事件開始：${event.title}`, eventId });
     persistState();
     return { ok: true };
   }
 
+  function goHubOrForced() {
+    if (state.currentSession.forcedNextEventId) {
+      const nextId = state.currentSession.forcedNextEventId;
+      state.currentSession.forcedNextEventId = null;
+      startEvent(nextId);
+      return;
+    }
+    startEvent(SEASON.hubEventId);
+  }
+
   function resolveQueue() {
+    if (state.queuedFinalize) {
+      state.queuedFinalize = false;
+      finalizeSettlement();
+      return;
+    }
     if (state.queuedEventId) {
       const nextId = state.queuedEventId;
       state.queuedEventId = null;
-      const current = getEvent(state.currentEventId);
-      if (current && !current.hub && !current.intervention) completeEvent(state, current.id);
       startEvent(nextId);
       return;
     }
     if (state.queuedAdvance) {
       state.queuedAdvance = false;
-      const next = listAvailableStoryEvents(state)[0];
+      if (state.currentSession.phase !== "intro") unlockDynamicPhase();
+      const next = drawPoolEvent(state, rng);
       if (next) startEvent(next.id);
-      else startEvent(SEASON.hubEventId);
+      else {
+        snapshotResult("事件池", ["目前沒有符合條件的中段事件。"]);
+        startEvent(SEASON.hubEventId);
+      }
     }
   }
 
   function choose(choiceId) {
+    if (state.currentSession.status === "paused") {
+      return { ok: false, error: "本次事件已暫停" };
+    }
+    if (state.currentSession.status === "settled") {
+      return { ok: false, error: "今晚已經暫時休戰" };
+    }
     const event = getEvent(state.currentEventId);
     if (!event) return { ok: false, error: "目前沒有事件" };
     const choice = (event.choices || []).find((item) => item.id === choiceId);
     if (!choice) return { ok: false, error: "找不到選項" };
 
     const logs = applyEffects(state, choice.effects);
-    if (!event.hub && !event.intervention) completeEvent(state, event.id);
-    if (event.intervention) completeEvent(state, `${event.id}:${state.pendingTargetId}:${choiceId}`);
+    const unresolved = (choice.effects || []).some(
+      (effect) => effect.type === "eventStatus" && effect.status === "unresolved"
+    );
+    if (!event.hub && !event.intervention && !event.final) {
+      completeEvent(state, event.id, unresolved ? "unresolved" : "resolved");
+    }
+    if (event.intervention) {
+      completeEvent(state, `${event.id}:${state.pendingTargetId}:${choiceId}`, "resolved");
+    }
+    if (event.characters?.[0]) {
+      trackCharacterTouch(state, event.characters[0], "vote", event.id);
+    }
 
     pushHistory(state, {
       kind: event.intervention ? "intervention" : "choice",
@@ -92,8 +157,15 @@ export function createGame({ persist = true, donationProvider } = {}) {
     });
     snapshotResult(event.title, logs.length ? logs : [`已選擇：${choice.label}`]);
 
-    if (!state.queuedEventId && !state.queuedAdvance && !event.hub) {
-      state.queuedEventId = SEASON.hubEventId;
+    if (event.id === "EVENT_007_realization") unlockDynamicPhase();
+
+    if (!state.queuedEventId && !state.queuedAdvance && !state.queuedFinalize && !event.hub && !event.final) {
+      if (state.currentSession.forcedNextEventId) {
+        state.queuedEventId = state.currentSession.forcedNextEventId;
+        state.currentSession.forcedNextEventId = null;
+      } else {
+        state.queuedEventId = SEASON.hubEventId;
+      }
     }
     resolveQueue();
     persistState();
@@ -101,6 +173,8 @@ export function createGame({ persist = true, donationProvider } = {}) {
   }
 
   function intervene(type, targetId, { force = false } = {}) {
+    if (state.currentSession.status === "paused") return { ok: false, error: "本次事件已暫停" };
+    if (state.currentSession.status === "settled") return { ok: false, error: "今晚已經暫時休戰" };
     if (!force && !state.flags[SEASON.unlockInterventionsFlag]) {
       return { ok: false, error: "先讓觀眾認識角色。干預尚未解鎖。" };
     }
@@ -115,13 +189,14 @@ export function createGame({ persist = true, donationProvider } = {}) {
     state.fate -= cost;
     state.pendingTargetId = targetId || null;
     const target = CHARACTER_BY_ID[targetId];
+    trackCharacterTouch(state, targetId, "intervention", action.eventId);
     pushHistory(state, {
       kind: "intervention",
       text: `觀眾對 ${target?.name || "現場"} 發動了 [${action.name}]，消耗命運 ${cost}`,
       targetId,
       interventionId: type,
     });
-    snapshotResult(action.name, [`消耗命運值 ${cost}`, `對象：${target?.name || "無"}`]);
+    snapshotResult(action.name, [`消耗命運值 ${cost}`, `對象：${target?.name || "無"}`, "這會改變接下來可能發生的事件。"]);
     startEvent(action.eventId);
     return { ok: true };
   }
@@ -131,9 +206,9 @@ export function createGame({ persist = true, donationProvider } = {}) {
     state.fate += gained;
     pushHistory(state, {
       kind: "donation",
-      text: `${payload.from} 斗內 ${payload.amount}，命運值 +${gained}${payload.message ? `「${payload.message}」` : ""}`,
+      text: `${payload.from} 斗內 ${payload.amount} → 命運干預權 +${gained}${payload.message ? `「${payload.message}」` : ""}`,
     });
-    snapshotResult("模擬斗內", [`命運值 +${gained}`]);
+    snapshotResult("模擬斗內", [`命運值 +${gained}（干預權，不是直接加好感）`]);
     persistState();
   }
 
@@ -161,39 +236,150 @@ export function createGame({ persist = true, donationProvider } = {}) {
   }
 
   function skipEvent() {
+    if (state.currentSession.status === "settled") return { ok: false, error: "本次已暫時休戰" };
     const event = getEvent(state.currentEventId);
-    if (!event) return;
-    if (!event.hub && !event.intervention) completeEvent(state, event.id);
+    if (!event) return { ok: false };
+    if (!event.hub && !event.intervention && !event.final) completeEvent(state, event.id);
     pushHistory(state, { kind: "admin", text: `跳過事件 ${event.title}` });
     const fallback = event.choices?.[0];
     if (fallback) {
       applyEffects(state, fallback.effects);
       resolveQueue();
     } else {
-      startEvent(SEASON.hubEventId);
+      goHubOrForced();
     }
+    persistState();
+    return { ok: true };
+  }
+
+  function nextEvent() {
+    if (state.currentSession.status === "settled") return { ok: false, error: "本次已暫時休戰" };
+    if (state.currentSession.status === "paused") resumeSession();
+    const current = getEvent(state.currentEventId);
+    if (current?.final) return { ok: false, error: "請先看完今晚結算" };
+
+    const intro = SEASON.introEventIds;
+    const introIndex = intro.indexOf(state.currentEventId);
+    if (introIndex >= 0 && introIndex < intro.length - 1) {
+      completeEvent(state, state.currentEventId);
+      return startEvent(intro[introIndex + 1], { force: true });
+    }
+    if (introIndex === intro.length - 1) {
+      completeEvent(state, state.currentEventId);
+      unlockDynamicPhase();
+      return startEvent(SEASON.hubEventId, { force: true });
+    }
+    if (current?.intervention) return skipEvent();
+    if (current && !current.hub && !current.final) completeEvent(state, current.id);
+    unlockDynamicPhase();
+    const next = drawPoolEvent(state, rng);
+    if (!next) {
+      snapshotResult("事件池", ["目前沒有符合條件的中段事件。"]);
+      return startEvent(SEASON.hubEventId);
+    }
+    return startEvent(next.id, { force: true });
+  }
+
+  function pauseSession() {
+    if (state.currentSession.status === "settled") return { ok: false, error: "本次已暫時休戰" };
+    state.currentSession.status = "paused";
+    state.currentSession.pausedEventId = state.currentEventId;
+    pushHistory(state, { kind: "admin", text: "暫停本次事件" });
+    persistState();
+    return { ok: true };
+  }
+
+  function resumeSession() {
+    if (state.currentSession.status === "settled") return { ok: false, error: "本次已暫時休戰" };
+    state.currentSession.status = "active";
+    pushHistory(state, { kind: "admin", text: "繼續本次事件" });
+    persistState();
+    return { ok: true };
+  }
+
+  function resetSession() {
+    const archive = state.archive || {};
+    const saveId = state.saveId;
+    const partnerFlags = Object.fromEntries(
+      Object.entries(state.flags || {}).filter(([key]) => key.endsWith("_night_partner"))
+    );
+    const seasonId = state.currentSeason || GAME_CONFIG.currentSeason;
+    state = createInitialState(seasonId);
+    state.archive = archive;
+    state.saveId = saveId;
+    state.flags = { ...state.flags, ...partnerFlags };
     persistState();
   }
 
   function resetSeason() {
+    const archive = state.archive || {};
     clearSave();
     state = createInitialState(state.currentSeason || GAME_CONFIG.currentSeason);
+    state.archive = archive;
     persistState();
   }
 
+  function endSession() {
+    if (state.currentSession.status === "settled") return { ok: false, error: "本次已暫時休戰" };
+    if (state.currentEventId === SEASON.finalEventId) return { ok: true };
+    const partner = pickNightPartner(state);
+    state.currentSession.nightPartner = partner;
+    state.currentSession.phase = "final";
+    state.pendingTargetId = partner;
+    pushHistory(state, {
+      kind: "admin",
+      text: `結束本次事件：進入今晚結算（陪伴者判定為 ${CHARACTER_BY_ID[partner].name}）`,
+    });
+    return startEvent(SEASON.finalEventId);
+  }
+
+  function finalizeSettlement() {
+    const partner = state.currentSession.nightPartner || pickNightPartner(state);
+    state.currentSession.nightPartner = partner;
+    const flag = nightPartnerFlag(state.currentSeason);
+    state.flags[flag] = partner;
+    const card = buildProgressCard(state);
+    state.currentSession.progressCard = card;
+    state.currentSession.status = "settled";
+    state.currentSession.phase = "settled";
+    completeEvent(state, SEASON.finalEventId, "resolved");
+    state.archive[state.currentSeason] = {
+      nightPartner: partner,
+      completedEvents: [...state.completedEvents],
+      importantFlags: Object.entries(state.flags)
+        .filter(([, value]) => value)
+        .map(([key, value]) => ({ key, value })),
+      progressCard: card,
+      settledAt: Date.now(),
+      sessionId: state.currentSession.id,
+    };
+    snapshotResult("七夕事件進度卡", [
+      "本次事件狀態：暫時休戰",
+      `今晚陪伴者：${CHARACTER_BY_ID[partner].name}`,
+      `${flag} = ${partner}`,
+    ]);
+    pushHistory(state, {
+      kind: "settlement",
+      text: `今晚結算完成。陪伴者 ${CHARACTER_BY_ID[partner].name}。不是故事結局。`,
+    });
+  }
+
   function getPublicState() {
+    ensureSession(state);
     const derived = computeDerived(state);
-    const trajectory = resolveTrajectory(state);
+    const settlement = settlementView(state);
     const rawEvent = getEvent(state.currentEventId);
     const ctx = eventContext(state);
     return {
       ...cloneState(state),
       derived,
-      trajectory,
+      settlement,
+      trajectory: settlement,
       season: SEASONS[state.currentSeason],
       currentEvent: interpolateEvent(rawEvent, ctx),
       interventionsUnlocked: Boolean(state.flags[SEASON.unlockInterventionsFlag]),
-      charactersView: CHARACTERS.map((c) => ({
+      pool: listPoolCandidates(state),
+      charactersView: Object.values(CHARACTER_BY_ID).map((c) => ({
         ...c,
         values: state.characters[c.id],
         status: characterStatus(state, c.id),
@@ -214,6 +400,7 @@ export function createGame({ persist = true, donationProvider } = {}) {
       if (event.key === GAME_CONFIG.saveKey && event.newValue) {
         try {
           state = JSON.parse(event.newValue);
+          ensureSession(state);
           listeners.forEach((fn) => fn(getPublicState()));
         } catch {
           /* ignore broken payload */
@@ -233,12 +420,17 @@ export function createGame({ persist = true, donationProvider } = {}) {
     intervene,
     startEvent,
     skipEvent,
+    nextEvent,
+    pauseSession,
+    resumeSession,
+    resetSession,
     resetSeason,
+    endSession,
     addFate,
     setStat,
     setTension,
     simulateDonation: (payload) => donations.simulate(payload),
-    listStoryEvents: () => listAvailableStoryEvents(state),
+    listPool: () => listPoolCandidates(state),
     allEvents: () => EVENTS.map((event) => ({ id: event.id, title: event.title, tags: event.tags })),
   };
 }

@@ -52,6 +52,9 @@ export function evalCondition(cond, ctx) {
   if (cond.not) return !evalCondition(cond.not, ctx);
   if (cond.flag) return ctx.flags?.[cond.flag] === (cond.value ?? true);
   if (cond.completed) return (ctx.completedEvents || []).includes(cond.completed);
+  if (cond.unresolved) {
+    return (ctx.currentSession?.unresolvedEventIds || []).includes(cond.unresolved);
+  }
   if (cond.path) {
     const path = interpolate(cond.path, ctx);
     return evalOp(getByPath(ctx, path), cond.op || "eq", interpolate(cond.value, ctx));

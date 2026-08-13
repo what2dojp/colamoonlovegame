@@ -27,10 +27,11 @@ python3 -m http.server 8080
 ## 結構
 
 - `data/` 角色、關係、季節劇情（資料驅動）
-- `src/engine/` 事件引擎、命運值、存檔、mock 斗內
+- `src/engine/` 事件引擎、命運值、存檔、mock 斗內、今晚結算
 - `src/config/game.config.js` 干預成本與數值範圍
 - `qixi/2026/` 本季觀眾畫面
-- `admin/` 教主控制台
-- 存檔在瀏覽器 `localStorage`（`colamoonlove.save.v1`），之後可讀取跨年度資料
+- `admin/` 教主控制台（下一事件／暫停／結束本次事件）
+- 存檔在瀏覽器 `localStorage`（`colamoonlove.save.v1`），含 `archive` 與 `qixi_2026_night_partner`
+- 沒有故事結局：結束直播只會進入「今晚陪伴」結算與進度卡（暫時休戰）
 
 未來季節預計放在 `/valentine/2027/`、`/qixi/2027/`。

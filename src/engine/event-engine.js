@@ -29,6 +29,8 @@ export function interpolateEvent(event, ctx) {
 
 export function eventContext(state) {
   const target = state.pendingTargetId ? CHARACTER_BY_ID[state.pendingTargetId] : null;
+  const partnerId = state.currentSession?.nightPartner;
+  const partner = partnerId ? CHARACTER_BY_ID[partnerId] : null;
   return {
     ...state,
     target: target
@@ -38,20 +40,25 @@ export function eventContext(state) {
           uniquePrimary: target.uniquePrimary,
         }
       : null,
+    partner: partner
+      ? {
+          ...partner,
+          ...state.characters[partner.id],
+        }
+      : null,
   };
 }
 
 export function isEventAvailable(event, state) {
   if (!event) return false;
-  if (event.intervention) return false;
-  if (event.hub) return evalCondition(event.conditions, eventContext(state));
+  if (event.intervention || event.final) return false;
   return evalCondition(event.conditions, eventContext(state));
 }
 
 export function listAvailableStoryEvents(state) {
-  return EVENTS.filter((event) => !event.intervention && !event.hub && isEventAvailable(event, state)).sort(
-    (a, b) => (b.priority || 0) - (a.priority || 0)
-  );
+  return EVENTS.filter(
+    (event) => !event.intervention && !event.hub && !event.final && !event.pool && isEventAvailable(event, state)
+  ).sort((a, b) => (b.priority || 0) - (a.priority || 0));
 }
 
 function resolvePath(path, ctx) {
@@ -103,6 +110,33 @@ export function applyEffects(state, effects, extraLog = []) {
       logs.push(text);
     } else if (effect.type === "log") {
       logs.push(interpolate(effect.text, ctx));
+    } else if (effect.type === "weightMod") {
+      if (!state.currentSession.weightMods) state.currentSession.weightMods = {};
+      const eventId = interpolate(effect.eventId, ctx);
+      state.currentSession.weightMods[eventId] =
+        (state.currentSession.weightMods[eventId] || 0) + Number(effect.value || 0);
+      logs.push(`事件池權重變化：${eventId} ${effect.value > 0 ? "+" : ""}${effect.value}`);
+    } else if (effect.type === "forceEvent") {
+      const eventId = interpolate(effect.eventId, ctx);
+      state.currentSession.forcedNextEventId = eventId;
+      logs.push(`下一張事件將強制發生：${eventId}`);
+    } else if (effect.type === "finalizeSession") {
+      state.queuedFinalize = true;
+    } else if (effect.type === "eventStatus") {
+      const eventId = interpolate(effect.eventId || state.currentEventId, ctx);
+      const status = effect.status;
+      if (status === "unresolved") {
+        if (!state.currentSession.unresolvedEventIds) state.currentSession.unresolvedEventIds = [];
+        if (!state.currentSession.unresolvedEventIds.includes(eventId)) {
+          state.currentSession.unresolvedEventIds.push(eventId);
+        }
+        if (!state.eventRecords) state.eventRecords = {};
+        state.eventRecords[eventId] = {
+          ...(state.eventRecords[eventId] || { id: eventId }),
+          status: "unresolved",
+          updatedAt: Date.now(),
+        };
+      }
     }
   }
 
@@ -113,8 +147,15 @@ export function getEvent(eventId) {
   return EVENT_BY_ID[eventId] || null;
 }
 
-export function completeEvent(state, eventId) {
-  if (eventId && !state.completedEvents.includes(eventId)) {
+export function completeEvent(state, eventId, status = "resolved") {
+  if (!eventId) return;
+  if (!state.completedEvents.includes(eventId)) {
     state.completedEvents.push(eventId);
   }
+  if (!state.eventRecords) state.eventRecords = {};
+  state.eventRecords[eventId] = {
+    ...(state.eventRecords[eventId] || { id: eventId, startedAt: Date.now() }),
+    status,
+    updatedAt: Date.now(),
+  };
 }

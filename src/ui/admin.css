@@ -47,4 +47,10 @@ pre {
   padding: 8px;
   font-size: 11px;
 }
-@media (max-width: 900px) { .row { grid-template-columns: 1fr; } }
+button.danger {
+  background: #6a2038;
+  border-color: #ff7aa2;
+}
+.card-box {
+  border-color: #ffd36a;
+}

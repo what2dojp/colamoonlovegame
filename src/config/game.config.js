@@ -1,5 +1,5 @@
 export const GAME_CONFIG = {
-  version: 1,
+  version: 2,
   currentSeason: "qixi-2026",
   saveKey: "colamoonlove.save.v1",
   statMin: 0,

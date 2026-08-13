@@ -2,6 +2,7 @@ import { GAME_CONFIG } from "../config/game.config.js";
 import { CHARACTERS } from "../../data/characters.js";
 import { RELATIONSHIP_PAIRS, pairKey } from "../../data/relationships.js";
 import { SEASONS } from "../../data/seasons/index.js";
+import { createSession, makeId } from "./session.js";
 
 export { pairKey };
 
@@ -24,18 +25,42 @@ export function createInitialState(seasonId = GAME_CONFIG.currentSeason) {
 
   return {
     version: GAME_CONFIG.version,
+    saveId: makeId("save"),
     currentSeason: seasonId,
     fate: GAME_CONFIG.startingFate,
     characters,
     relationships,
-    completedEvents: [],
     flags: {},
+    completedEvents: [],
+    eventRecords: {},
+    eventHistory: [],
     history: [],
-    ending: null,
+    currentSession: createSession(),
+    archive: {},
     currentEventId: season.openingEventId,
     pendingTargetId: null,
     lastResult: null,
   };
+}
+
+export function migrateSave(data) {
+  if (!data || typeof data !== "object") return null;
+  const base = createInitialState(data.currentSeason || GAME_CONFIG.currentSeason);
+  const merged = {
+    ...base,
+    ...data,
+    version: GAME_CONFIG.version,
+    saveId: data.saveId || base.saveId,
+    flags: data.flags || {},
+    completedEvents: data.completedEvents || [],
+    eventRecords: data.eventRecords || {},
+    eventHistory: data.eventHistory || data.history || [],
+    history: data.history || data.eventHistory || [],
+    currentSession: data.currentSession ? { ...createSession(), ...data.currentSession } : createSession(),
+    archive: data.archive || {},
+  };
+  delete merged.ending;
+  return merged;
 }
 
 export function loadSave() {
@@ -43,8 +68,9 @@ export function loadSave() {
     const raw = localStorage.getItem(GAME_CONFIG.saveKey);
     if (!raw) return null;
     const data = JSON.parse(raw);
-    if (!data || data.version !== GAME_CONFIG.version) return null;
-    return data;
+    if (!data) return null;
+    if (data.version > GAME_CONFIG.version) return null;
+    return migrateSave(data);
   } catch {
     return null;
   }

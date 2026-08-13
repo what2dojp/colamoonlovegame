@@ -13,10 +13,37 @@ function meter(label, value, extra = "") {
   return `<div class="meter ${extra}"><span>${label}</span><b>${value}</b></div>`;
 }
 
+function renderProgressCard(card) {
+  if (!card) return "";
+  const rows = card.characters
+    .map(
+      (c) =>
+        `<li>${c.name}　親密度 ${c.affection}　${c.uniqueLabel} ${c.uniqueValue}　嫉妒 ${c.jealousy}</li>`
+    )
+    .join("");
+  return `
+    <section class="progress-card">
+      <p class="kicker">${card.seasonId} · ${card.saveId}</p>
+      <h2>${card.title}</h2>
+      <p class="status-line">${card.status}</p>
+      <p>${card.eventName}</p>
+      <p class="sub">${card.chapter}</p>
+      <p>今晚陪伴者：<b>${card.nightPartner}</b></p>
+      <p>🔥 後宮火災指數 ${card.fireIndex}</p>
+      <ul>${rows}</ul>
+      <p>本次重要事件：${card.importantEvents[0] || "開場與現場互動"}</p>
+      <p>尚未解決：${card.unresolved.join("、") || "無"}</p>
+      <p>干預摘要：${card.interventionSummary[0] || "無"}</p>
+      <p>下一次可解鎖：${card.nextUnlockable.join("、") || "視條件"}</p>
+    </section>`;
+}
+
 function render(state) {
   const event = state.currentEvent;
   const result = state.lastResult;
-  const latest = state.history[0]?.text || "七夕事件尚未被干預。";
+  const latest = (state.eventHistory || state.history)[0]?.text || "七夕事件尚未被干預。";
+  const locked = state.settlement.status !== "active";
+  const card = state.settlement.progressCard;
 
   app.innerHTML = `
     <div class="top">
@@ -29,8 +56,10 @@ function render(state) {
         ${meter(state.derived.shuraLabel, state.derived.shura)}
         ${meter("命運值", state.fate, "fate")}
       </div>
-      <p class="logline">${latest}</p>
+      <p class="logline">${state.settlement.label} · ${latest}</p>
     </div>
+
+    ${renderProgressCard(card)}
 
     <div class="layout">
       <section class="panel">
@@ -41,7 +70,7 @@ function render(state) {
           ${(event?.choices || [])
             .map(
               (choice) =>
-                `<button class="choice" data-choice="${choice.id}">${choice.label}</button>`
+                `<button class="choice" data-choice="${choice.id}" ${locked && state.settlement.status === "paused" ? "disabled" : ""} ${state.settlement.status === "settled" && !event?.final ? "disabled" : ""}>${choice.label}</button>`
             )
             .join("")}
         </div>
@@ -50,7 +79,7 @@ function render(state) {
             ? `<div class="result"><b>事件結果</b><br>${result.logs.join("<br>") || result.title}</div>`
             : ""
         }
-        <p class="trajectory">${state.trajectory.label}</p>
+        <p class="trajectory">${state.settlement.label}</p>
       </section>
 
       <aside class="panel chars">
@@ -77,7 +106,7 @@ function render(state) {
         ${state.interventions
           .map(
             (item) => `
-          <button class="iv-btn" data-iv="${item.id}" ${state.interventionsUnlocked ? "" : "disabled"}>
+          <button class="iv-btn" data-iv="${item.id}" ${state.interventionsUnlocked && state.settlement.status === "active" ? "" : "disabled"}>
             ${item.name}
             <small>${item.cost} 命運</small>
           </button>`
@@ -85,9 +114,11 @@ function render(state) {
           .join("")}
       </div>
       ${
-        state.interventionsUnlocked
-          ? `<p class="lock">干預會觸發事件，而不是只加減好感。</p>`
-          : `<p class="lock">先看完開場、認識五個人。干預會在那之後解鎖。</p>`
+        state.interventionsUnlocked && state.settlement.status === "active"
+          ? `<p class="lock">干預會改變接下來可能發生的事件，不是只加減好感。</p>`
+          : state.settlement.status === "settled"
+            ? `<p class="lock">今晚暫時休戰。關係會帶到下一次活動。</p>`
+            : `<p class="lock">先看完開場、認識五個人。干預會在那之後解鎖。</p>`
       }
     </section>
   `;
