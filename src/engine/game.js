@@ -213,7 +213,7 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
     const cost = GAME_CONFIG.interventionCosts[action.costKey];
     const stage = getEvent(state.currentEventId);
     if (action.eventId === "IV_force") {
-      state.pendingForceFollowup = pickForceFollowup(stage?.characters || [], targetId);
+      state.pendingForceFollowup = pickForceFollowup(stage?.characters || [], targetId, state.flags);
     }
     state.pendingTargetId = targetId || null;
     const target = CHARACTER_BY_ID[targetId];

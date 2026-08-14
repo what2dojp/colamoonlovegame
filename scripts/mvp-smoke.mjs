@@ -217,7 +217,7 @@ assert(
   "jealousy intervention boosts pool weight"
 );
 jealous.choose("burn");
-assert(jealous.getState().currentEvent.id === "EVENT_nini_jealousy_01", "forceEvent jumped to nini jealousy");
+assert(jealous.getState().currentEvent.id === "EVENT_nini_lockbox_01", "forceEvent jumped to nini lockbox crisis");
 
 const pepsiIv = createGame({ persist: false, rng: () => 0 });
 playIntro(pepsiIv);

@@ -391,6 +391,41 @@ export const PHASE1_EVENTS = [
           { type: "tension", pair: "moon-mars", op: "add", value: 6 },
         ],
       },
+      ],
+    }),
+  skeleton({
+    id: "EVENT_letter_moon_saw",
+    title: "月月看見那封信",
+    description:
+      "信封還在 {{target.name}} 那邊。月月已經看見了。她知道有一封信存在，接下來不能假裝沒這回事。",
+    characters: [],
+    speaker: "可樂月月",
+    weight: 16,
+    tags: ["letter", "moon"],
+    conditions: {
+      all: [
+        { flag: "dynamic_pool_unlocked" },
+        { flag: "letter_seen_by_moon" },
+        { not: { completed: "EVENT_letter_moon_saw" } },
+      ],
+    },
+    choices: [
+      {
+        id: "admit",
+        label: "讓月月承認她看見了",
+        effects: [
+          { type: "weightMod", eventId: "{{target.letterEventId}}", value: 16 },
+          { type: "log", text: "月月知道這封信。收信人之後仍會讀到，但現場已經不一樣。" },
+        ],
+      },
+      {
+        id: "wait",
+        label: "讓月月先不說破",
+        effects: [
+          { type: "weightMod", eventId: "{{target.letterEventId}}", value: 8 },
+          { type: "eventStatus", status: "unresolved" },
+        ],
+      },
     ],
   }),
   skeleton({
@@ -415,6 +450,7 @@ export const PHASE1_EVENTS = [
             { completed: "EVENT_nini_obsession_01" },
             { completed: "EVENT_nini_dependence_01" },
             { flag: "letter_misread_by_nini" },
+            { flag: "fate_rewritten_nini" },
           ],
         },
       ],
@@ -555,6 +591,7 @@ export const PHASE1_EVENTS = [
             { flag: "jupiter_asked" },
             { flag: "date_broken_jupiter" },
             { flag: "public_jealous_jupiter" },
+            { flag: "fate_rewritten_jupiter" },
             { path: "characters.jupiter.hope", op: "lte", value: 55 },
           ],
         },
@@ -600,6 +637,8 @@ export const PHASE1_EVENTS = [
             { flag: "mars_duel_started" },
             { flag: "encounter_mars" },
             { flag: "date_broken_mars" },
+            { flag: "public_jealous_mars" },
+            { flag: "fate_rewritten_mars" },
             { completed: "EVENT_mars_chemistry_01" },
             { completed: "EVENT_mars_kings_01" },
           ],
@@ -648,6 +687,7 @@ export const PHASE1_EVENTS = [
         id: "wait",
         label: "讓她願意等，先不收別人的東西",
         effects: [
+          { type: "flag", key: "crisis_blocked_nini", value: true },
           { type: "weightMod", eventId: "EVENT_nini_lockbox_01", value: -999 },
           { type: "stat", path: "characters.nini.trust", op: "add", value: 8 },
         ],
@@ -675,6 +715,7 @@ export const PHASE1_EVENTS = [
         id: "break",
         label: "讓那句話停在小時候",
         effects: [
+          { type: "flag", key: "crisis_blocked_meteor", value: true },
           { type: "weightMod", eventId: "EVENT_meteor_never_broke_up_01", value: -999 },
           { type: "stat", path: "characters.meteor.pride", op: "add", value: 6 },
         ],
@@ -702,6 +743,7 @@ export const PHASE1_EVENTS = [
         id: "cut",
         label: "切斷映照，先不當另一個自己",
         effects: [
+          { type: "flag", key: "crisis_blocked_pepsi", value: true },
           { type: "weightMod", eventId: "EVENT_pepsi_identity_01", value: -999 },
           { type: "stat", path: "characters.pepsi.destiny", op: "add", value: 4 },
         ],
@@ -729,6 +771,7 @@ export const PHASE1_EVENTS = [
         id: "stay",
         label: "封鎖離開，讓她今晚留下",
         effects: [
+          { type: "flag", key: "crisis_blocked_jupiter", value: true },
           { type: "weightMod", eventId: "EVENT_jupiter_hope_low_01", value: -999 },
           { type: "weightMod", eventId: "EVENT_jupiter_packing_01", value: -999 },
           { type: "stat", path: "characters.jupiter.hope", op: "add", value: 12 },
@@ -757,6 +800,7 @@ export const PHASE1_EVENTS = [
         id: "away",
         label: "讓她先走，不繼續互傷",
         effects: [
+          { type: "flag", key: "crisis_blocked_mars", value: true },
           { type: "weightMod", eventId: "EVENT_mars_too_close_01", value: -999 },
           { type: "stat", path: "characters.mars.pride", op: "add", value: 6 },
         ],

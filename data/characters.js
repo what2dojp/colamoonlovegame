@@ -82,7 +82,7 @@ export const CHARACTERS = [
     rivalId: "meteor",
     soloEventId: "EVENT_pepsi_solo_01",
     letterEventId: "EVENT_letter_pepsi",
-    jealousyEventId: "EVENT_pepsi_identity_01",
+    jealousyEventId: "EVENT_pepsi_jealousy_01",
     crisisEventId: "EVENT_pepsi_identity_01",
     crisisEventId2: "EVENT_pepsi_soul_01",
     shuraEventId: "EVENT_shura_pepsi_meteor_01",

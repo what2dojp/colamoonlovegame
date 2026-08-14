@@ -453,8 +453,8 @@ export const EVENTS = [
         effects: [
           { type: "flag", key: "letter_to_{{target.id}}", value: true },
           { type: "flag", key: "letter_seen_by_moon", value: true },
-          { type: "forceEvent", eventId: "{{target.letterEventId}}" },
-          { type: "log", text: "月月看見了信封。{{target.name}} 開始等一個回應。" },
+          { type: "forceEvent", eventId: "EVENT_letter_moon_saw" },
+          { type: "log", text: "月月看見了信封。下一張是月月知道這封信存在，不是收信人自己讀信。" },
         ],
       },
       {
@@ -526,13 +526,13 @@ export const EVENTS = [
         ],
       },
       {
-        id: "interrupt",
-        label: "在最甜的時候讓情敵出現",
+        id: "unlocked",
+        label: "讓獨處開始，門先半掩",
         effects: [
           { type: "flag", key: "encounter_{{target.id}}", value: true },
-          { type: "tension", pair: "{{target.id}}-{{target.rivalId}}", op: "add", value: 8 },
-          { type: "forceEvent", eventId: "{{target.shuraEventId}}" },
-          { type: "log", text: "獨處被拆成修羅場。" },
+          { type: "flag", key: "solo_door_unlocked_{{target.id}}", value: true },
+          { type: "forceEvent", eventId: "{{target.soloEventId}}" },
+          { type: "log", text: "下一張仍是獨處。門沒鎖死，之後才能被干涉命運破壞。" },
         ],
       },
     ],
@@ -578,19 +578,21 @@ export const EVENTS = [
     choices: [
       {
         id: "spark",
-        label: "點燃，但不要燒穿",
+        label: "點燃，進入她的嫉妒／反應",
         effects: [
-          { type: "stat", path: "characters.{{target.id}}.affection", op: "add", value: 3 },
           { type: "tension", pair: "{{target.id}}-{{target.rivalId}}", op: "add", value: 7 },
+          { type: "forceEvent", eventId: "{{target.jealousyEventId}}" },
+          { type: "log", text: "下一張進入輕度嫉妒／角色反應，不是加好感。" },
         ],
       },
       {
         id: "burn",
-        label: "讓她當眾問出口，強制進入對應事件",
+        label: "讓她當眾問出口，強制進入危機",
         effects: [
           { type: "flag", key: "public_jealous_{{target.id}}", value: true },
           { type: "tension", pair: "{{target.id}}-{{target.rivalId}}", op: "add", value: 8 },
-          { type: "forceEvent", eventId: "{{target.jealousyEventId}}" },
+          { type: "forceEvent", eventId: "{{target.crisisEventId}}" },
+          { type: "log", text: "下一張進入對應危機，比嫉妒反應更重。" },
         ],
       },
     ],
@@ -1062,12 +1064,14 @@ export const EVENTS = [
       all: [
         { flag: "dynamic_pool_unlocked" },
         { not: { completed: "EVENT_nini_dependence_01" } },
+        { not: { flag: "crisis_blocked_nini" } },
         {
           any: [
             { completed: "EVENT_nini_obsession_01" },
             { flag: "nini_allowed_stay" },
             { flag: "secret_nini" },
             { flag: "moon_hiding" },
+            { flag: "fate_rewritten_nini" },
             { path: "characters.nini.dependence", op: "gte", value: 58 },
           ],
         },
@@ -1193,6 +1197,7 @@ export const EVENTS = [
             { completed: "EVENT_jupiter_packing_01" },
             { flag: "jupiter_unanswered" },
             { flag: "jupiter_asked" },
+            { flag: "fate_rewritten_jupiter" },
             { path: "characters.jupiter.hope", op: "lte", value: 45 },
           ],
         },

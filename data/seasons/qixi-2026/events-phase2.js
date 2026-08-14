@@ -221,7 +221,6 @@ export const PHASE2_EVENTS = [
             { flag: "secret_meteor" },
             { flag: "secret_pepsi" },
             { flag: "letter_misread_by_meteor" },
-            { flag: "letter_misread_by_pepsi" },
             {
               all: [
                 { completed: "EVENT_meteor_nostalgia_01" },
@@ -388,7 +387,6 @@ export const PHASE2_EVENTS = [
           any: [
             { flag: "secret_nini" },
             { flag: "letter_misread_by_nini" },
-            { flag: "letter_misread_by_pepsi" },
             { flag: "date_broken_nini" },
             {
               all: [
@@ -545,6 +543,7 @@ export const PHASE2_EVENTS = [
             { flag: "date_broken_jupiter" },
             { flag: "letter_misread_by_mars" },
             { flag: "letter_misread_by_jupiter" },
+            { flag: "fate_rewritten_mars" },
             {
               all: [
                 {

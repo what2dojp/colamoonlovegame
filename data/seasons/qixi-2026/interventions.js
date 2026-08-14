@@ -16,8 +16,9 @@ const CRISIS_BY_ID = {
   mars: "EVENT_mars_too_close_01",
 };
 
-export function pickForceFollowup(stageCharacters, targetId) {
-  const ids = stageCharacters || [];
+const HUB_EVENT_ID = "EVENT_008_office_hub";
+
+function shuraForStage(ids) {
   if (ids.length === 1) {
     if (ids[0] === "meteor") return "EVENT_shura_nini_meteor_01";
     if (ids[0] === "pepsi") return "EVENT_shura_pepsi_meteor_01";
@@ -31,6 +32,14 @@ export function pickForceFollowup(stageCharacters, targetId) {
     if (ids.includes("nini") && ids.includes("pepsi")) return "EVENT_shura_nini_pepsi_01";
     if (ids.includes("jupiter") && ids.includes("mars")) return "EVENT_shura_jupiter_mars_01";
   }
+  return null;
+}
+
+export function pickForceFollowup(stageCharacters, targetId, flags = {}) {
+  const ids = stageCharacters || [];
+  const shura = shuraForStage(ids);
+  if (shura) return shura;
+  if (flags[`crisis_blocked_${targetId}`] === true) return HUB_EVENT_ID;
   return CRISIS_BY_ID[targetId] || "EVENT_nini_lockbox_01";
 }
 
