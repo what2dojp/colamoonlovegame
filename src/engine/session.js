@@ -6,6 +6,7 @@ import { SEASONS } from "../../data/seasons/index.js";
 import { evalCondition } from "./conditions.js";
 import { computeDerived } from "./derived.js";
 import { eventContext } from "./event-engine.js";
+import { captureTonightSnapshot } from "./stat-delta.js";
 
 function getEvent(eventId) {
   return EVENT_BY_ID[eventId] || null;
@@ -45,7 +46,30 @@ export function ensureSession(state) {
   if (!state.eventHistory) state.eventHistory = state.history || [];
   if (!state.archive) state.archive = {};
   if (!state.saveId) state.saveId = makeId("save");
+  if (!state.occurredEventIds) {
+    state.occurredEventIds = [...(state.completedEvents || [])];
+  }
+  if (!state.currentSession.openingSnapshot && state.characters) {
+    state.currentSession.openingSnapshot = captureTonightSnapshot(state);
+  }
+  markOccurred(state, state.currentEventId);
   return state.currentSession;
+}
+
+export function markOccurred(state, eventId) {
+  if (!eventId) return;
+  const event = getEvent(eventId);
+  if (!event || event.hub || event.intervention || event.final) return;
+  if (!state.occurredEventIds) state.occurredEventIds = [];
+  if (!state.occurredEventIds.includes(eventId)) state.occurredEventIds.push(eventId);
+}
+
+export function hasOccurred(state, eventId) {
+  if (!eventId) return false;
+  if ((state.occurredEventIds || []).includes(eventId)) return true;
+  if ((state.completedEvents || []).includes(eventId)) return true;
+  const record = state.eventRecords?.[eventId];
+  return record?.status === "resolved" || record?.status === "unresolved";
 }
 
 export function setEventRecord(state, eventId, patch) {
@@ -71,9 +95,7 @@ export function listPoolCandidates(state) {
   return EVENTS.filter((event) => {
     if (!event.pool) return false;
     if (event.final) return false;
-    const record = state.eventRecords?.[event.id];
-    if (!event.repeatable && (state.completedEvents || []).includes(event.id)) return false;
-    if (record?.status === "resolved" && !event.repeatable) return false;
+    if (hasOccurred(state, event.id)) return false;
     return evalCondition(event.conditions, ctx);
   }).map((event) => ({
     id: event.id,

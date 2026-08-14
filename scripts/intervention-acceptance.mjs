@@ -407,46 +407,28 @@ function peekSecret(targetId, choiceId) {
     const game = fresh();
     const fate = game.getState().fate;
     const primary = CHARACTER_BY_ID[id].uniquePrimary;
-    const initial = CHARACTER_BY_ID[id].initial[primary];
     game.setStat(id, primary, 90);
     must(game.getState().characters[id][primary] === 90, `${id} core raised before 1000`);
     must(game.intervene("rewrite", id).ok, `rewrite ${id}`);
-    must(game.getState().currentEvent.id === "IV_rewrite", "1000 opens rewrite");
-    game.choose("push");
     must(game.getState().fate === fate, "1000 does not deduct fate");
-    must(game.getState().flags[`fate_rewritten_${id}`], `fate_rewritten_${id}`);
-    must(game.getState().currentEvent.id === CHARACTER_BY_ID[id].rewriteEventId, `${id} push forceEvents rewrite scene`);
-    must(game.getState().characters[id][primary] === initial, `${id} 1000 resets ${primary} to initial ${initial}`);
+    must(game.getState().currentEvent.id === "EVENT_008_office_hub", "1000 returns to hub");
+    must(game.getState().lastResult.kind === "rewrite", "1000 is a number shuffle popup");
+    must(game.getState().characters[id][primary] !== 90, `${id} 1000 reshuffles ${primary}`);
+    must(!game.getState().flags[`fate_rewritten_${id}`], `1000 does not write fate_rewritten_${id}`);
+    must(!game.getState().flags[`crisis_blocked_${id}`], `1000 does not write crisis_blocked_${id}`);
+    must(game.getState().currentEvent.id !== CHARACTER_BY_ID[id].rewriteEventId, `${id} 1000 does not open rewrite scene`);
+    must(!JSON.stringify(game.getState().lastResult).includes("EVENT_rewrite"), "1000 result hides rewrite event ids");
   }
 
-  const blocked = fresh();
-  blocked.intervene("peek", "nini");
-  blocked.choose("secret");
-  blocked.choose("keep");
-  must(inPool(blocked, "EVENT_nini_lockbox_01") || blocked.getState().flags.secret_nini, "secret_nini enables lockbox path");
-  blocked.intervene("rewrite", "nini");
-  blocked.choose("block");
-  must(blocked.getState().flags.crisis_blocked_nini, "block writes crisis_blocked_nini");
-  must(blocked.getState().currentEvent.id === "EVENT_rewrite_nini", "then rewrite scene");
-  blocked.choose("wait");
-  must(!inPool(blocked, "EVENT_nini_lockbox_01"), "crisis_blocked_nini removes lockbox from pool");
-  must(!inPool(blocked, "EVENT_nini_dependence_01"), "crisis_blocked_nini also removes dependence from pool");
-
-  const pushWait = fresh();
-  pushWait.intervene("peek", "nini");
-  pushWait.choose("secret");
-  pushWait.choose("keep");
-  pushWait.intervene("rewrite", "nini");
-  pushWait.choose("push");
-  pushWait.choose("wait");
-  must(pushWait.getState().flags.fate_rewritten_nini, "push+wait still writes fate_rewritten");
-  must(pushWait.getState().flags.crisis_blocked_nini, "push+wait now sets crisis_blocked_nini");
-  must(!inPool(pushWait, "EVENT_nini_lockbox_01"), "wait blocks lockbox from the pool, not just weight -999");
+  const randomPick = fresh();
+  randomPick.intervene("rewrite");
+  must(randomPick.getState().lastResult.characterId === "nini", "1000 without a target randomly selects a character");
+  must(randomPick.getState().currentEvent.id === "EVENT_008_office_hub", "random 1000 still returns to hub");
 
   const override = fresh();
-  override.intervene("rewrite", "nini");
-  override.choose("block");
+  override.startEvent("EVENT_rewrite_nini", { force: true });
   override.choose("wait");
+  must(override.getState().flags.crisis_blocked_nini, "rewrite scene wait still can block crisis");
   must(!inPool(override, "EVENT_nini_lockbox_01"), "blocked lockbox not in pool");
   override.intervene("force", "nini");
   override.choose("center");
@@ -454,38 +436,24 @@ function peekSecret(targetId, choiceId) {
   must(override.getState().currentEvent.id === "EVENT_008_office_hub", "500 blocked crisis redirects to hub");
 
   const jupiterStay = fresh();
-  jupiterStay.intervene("rewrite", "jupiter");
-  jupiterStay.choose("push");
+  jupiterStay.startEvent("EVENT_rewrite_jupiter", { force: true });
   jupiterStay.choose("stay");
-  must(jupiterStay.getState().flags.fate_rewritten_jupiter, "jupiter rewrite stay");
   must(jupiterStay.getState().flags.crisis_blocked_jupiter, "jupiter stay sets crisis_blocked_jupiter");
   must(!inPool(jupiterStay, "EVENT_jupiter_packing_01"), "blocked packing not in pool");
   must(!inPool(jupiterStay, "EVENT_jupiter_hope_low_01"), "blocked hope_low not in pool");
 
   const meteorBlock = fresh();
-  meteorBlock.intervene("peek", "meteor");
-  meteorBlock.choose("secret");
-  meteorBlock.choose("keep");
-  meteorBlock.intervene("rewrite", "meteor");
-  meteorBlock.choose("block");
+  meteorBlock.startEvent("EVENT_rewrite_meteor", { force: true });
   meteorBlock.choose("break");
   must(!inPool(meteorBlock, "EVENT_meteor_never_broke_up_01"), "blocked never_broke_up not in pool");
 
   const pepsiBlock = fresh();
-  pepsiBlock.intervene("peek", "pepsi");
-  pepsiBlock.choose("secret");
-  pepsiBlock.choose("keep");
-  pepsiBlock.intervene("rewrite", "pepsi");
-  pepsiBlock.choose("block");
+  pepsiBlock.startEvent("EVENT_rewrite_pepsi", { force: true });
   pepsiBlock.choose("cut");
   must(!inPool(pepsiBlock, "EVENT_pepsi_identity_01"), "blocked identity not in pool");
 
   const marsBlock = fresh();
-  marsBlock.intervene("peek", "mars");
-  marsBlock.choose("secret");
-  marsBlock.choose("keep");
-  marsBlock.intervene("rewrite", "mars");
-  marsBlock.choose("block");
+  marsBlock.startEvent("EVENT_rewrite_mars", { force: true });
   marsBlock.choose("away");
   must(!inPool(marsBlock, "EVENT_mars_too_close_01"), "blocked too_close not in pool");
 
@@ -502,9 +470,9 @@ function peekSecret(targetId, choiceId) {
   addRow({
     cost: 1000,
     name: "改寫命運",
-    effect: "五人各自進 rewrite 場景，並把核心數值重置回初始；封鎖選項寫 crisis_blocked，對應危機與 dependence 不再進池",
-    next: "是（rewrite 場景）",
-    later: "是（fate_rewritten_* 被危機／修羅場讀取）",
+    effect: "隨機（或指定）一人，重新洗牌她的核心數值；不進改寫場景、不封鎖危機、不強制下一張",
+    next: "否（回到現場）",
+    later: "否（只改數值，不寫 fate_rewritten / crisis_blocked）",
     fake: "無",
     invalid: "無",
     result: "通過",
@@ -529,8 +497,8 @@ function peekSecret(targetId, choiceId) {
   addRow({
     cost: "—",
     name: "階梯差異",
-    effect: "100 讀資訊、200 造獨處、300 改正在發生的事、500 改場上是誰、1000 改這條線能不能走",
-    next: "五鍵都會改下一張",
+    effect: "100 讀資訊、200 造獨處、300 改正在發生的事、500 改場上是誰、1000 只洗牌數值",
+    next: "100–500 會改下一張；1000 回到現場",
     later: "有後續讀取",
     fake: "無",
     invalid: "無",

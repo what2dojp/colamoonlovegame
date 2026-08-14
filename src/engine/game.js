@@ -12,13 +12,21 @@ import {
   getEvent,
   interpolateEvent,
 } from "./event-engine.js";
-import { audienceStatus, characterDanger, characterStatus, computeDerived } from "./derived.js";
+import { audienceStatus, characterDanger, characterStatus, clampStat, computeDerived } from "./derived.js";
 import { clearSave, cloneState, createInitialState, loadSave, migrateSave, writeSave } from "./save.js";
+import {
+  buildTonightSettlement,
+  captureStatSnapshot,
+  diffStatSnapshots,
+  playerSafeLogs,
+} from "./stat-delta.js";
 import {
   buildProgressCard,
   drawPoolEvent,
   ensureSession,
+  hasOccurred,
   listPoolCandidates,
+  markOccurred,
   nightPartnerFlag,
   nightScore,
   pickNightPartner,
@@ -53,11 +61,12 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
     listeners.forEach((fn) => fn(getPublicState()));
   }
 
-  function snapshotResult(title, logs) {
+  function snapshotResult(title, logs, extra = {}) {
     state.lastResult = {
       title,
-      logs: logs.filter(Boolean),
+      logs: playerSafeLogs(logs),
       at: nowStamp(),
+      ...extra,
     };
   }
 
@@ -86,11 +95,25 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
     }
     const event = getEvent(eventId);
     if (!event) return { ok: false, error: "找不到事件" };
+    if (
+      !force &&
+      hasOccurred(state, eventId) &&
+      state.currentEventId !== eventId &&
+      !event.hub &&
+      !event.intervention &&
+      !event.final
+    ) {
+      if (state.currentSession.forcedNextEventId === eventId) {
+        state.currentSession.forcedNextEventId = null;
+      }
+      return startEvent(SEASON.hubEventId);
+    }
     if (state.currentSession.status === "settled" && !event.final) {
       return { ok: false, error: "本次已暫時休戰" };
     }
     state.currentEventId = eventId;
     setEventRecord(state, eventId, { status: "active" });
+    markOccurred(state, eventId);
     state.currentSession.eventCount += 1;
     if (event.id === SEASON.hubEventId || eventId === "EVENT_007_realization") {
       if (eventId === SEASON.hubEventId) unlockDynamicPhase();
@@ -155,7 +178,10 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
     const choice = (event.choices || []).find((item) => item.id === choiceId);
     if (!choice) return { ok: false, error: "找不到選項" };
 
+    const before = captureStatSnapshot(state);
     const logs = applyEffects(state, choice.effects);
+    const after = captureStatSnapshot(state);
+    const statChanges = diffStatSnapshots(before, after);
     const unresolved = (choice.effects || []).some(
       (effect) => effect.type === "eventStatus" && effect.status === "unresolved"
     );
@@ -175,7 +201,10 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
       eventId: event.id,
       targetId: state.pendingTargetId,
     });
-    snapshotResult(event.title, logs.length ? logs : [`已選擇：${choice.label}`]);
+    snapshotResult(event.title, logs, {
+      kind: statChanges.length ? "stats" : "choice",
+      statChanges,
+    });
 
     if (event.id === "EVENT_007_realization") unlockDynamicPhase();
 
@@ -215,6 +244,9 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
     if (action.eventId === "IV_force") {
       state.pendingForceFollowup = pickForceFollowup(stage?.characters || [], targetId, state.flags);
     }
+    if (action.id === "rewrite" || action.id === "rewriteFate") {
+      return applyRewriteFate(targetId);
+    }
     state.pendingTargetId = targetId || null;
     const target = CHARACTER_BY_ID[targetId];
     trackCharacterTouch(state, targetId, "intervention", action.eventId);
@@ -230,6 +262,55 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
       "這會改變接下來可能發生的事件，不是加減好感。",
     ]);
     return startEvent(action.eventId);
+  }
+
+  function applyRewriteFate(targetId) {
+    const ids = Object.keys(CHARACTER_BY_ID);
+    const pick = CHARACTER_BY_ID[targetId] ? targetId : ids[Math.floor(rng() * ids.length)] || ids[0];
+    const target = CHARACTER_BY_ID[pick];
+    const before = captureStatSnapshot(state);
+    for (const key of target.stats) {
+      const current = Number(state.characters[pick][key]) || 0;
+      let next = clampStat(Math.round(8 + rng() * 84));
+      if (next === current) next = clampStat(current >= 50 ? current - 21 : current + 21);
+      state.characters[pick][key] = next;
+    }
+    const after = captureStatSnapshot(state);
+    const statChanges = diffStatSnapshots(before, after);
+    state.pendingTargetId = pick;
+    trackCharacterTouch(state, pick, "intervention", "rewrite");
+    pushHistory(state, {
+      kind: "intervention",
+      text: `主播執行「改寫命運」→ ${target.name} 的核心數值被重新洗牌。`,
+      targetId: pick,
+      interventionId: "rewrite",
+    });
+    snapshotResult("改寫命運", ["命運已重新洗牌。"], {
+      kind: "rewrite",
+      characterId: pick,
+      name: target.name,
+      shortName: target.shortName,
+      icon: target.icon,
+      statChanges,
+    });
+    return startEvent(SEASON.hubEventId);
+  }
+
+  function holdTonight() {
+    if (state.currentSession.status === "settled") {
+      return { ok: false, error: "今晚已經暫時休戰" };
+    }
+    const settlement = state.currentSession.nightSettlement || buildTonightSettlement(state);
+    state.currentSession.status = "paused";
+    state.currentSession.pausedEventId = state.currentEventId;
+    state.currentSession.nightSettlement = settlement;
+    snapshotResult("今晚先到這裡", ["今晚的命運已保存。"], {
+      kind: "nightHold",
+      settlement,
+    });
+    pushHistory(state, { kind: "admin", text: "先讓場面停在這裡。今晚結算已保存。" });
+    persistState();
+    return { ok: true };
   }
 
   function applyDonation(payload) {
@@ -398,7 +479,6 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
     snapshotResult("七夕事件進度卡", [
       "本次事件狀態：暫時休戰",
       `今晚陪伴者：${CHARACTER_BY_ID[partner].name}`,
-      `${flag} = ${partner}`,
     ]);
     pushHistory(state, {
       kind: "settlement",
@@ -472,6 +552,7 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
     skipEvent,
     nextEvent,
     pauseSession,
+    holdTonight,
     resumeSession,
     resetSession,
     resetSeason,

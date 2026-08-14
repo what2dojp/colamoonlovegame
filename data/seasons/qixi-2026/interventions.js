@@ -85,9 +85,9 @@ export const INTERVENTIONS = [
     name: "改寫命運",
     costKey: "rewrite",
     eventId: "IV_rewrite",
-    needsTarget: true,
+    needsTarget: false,
     host: true,
-    blurb: "重新洗牌一名角色的核心數值。不是加點，也不是固定改成相反劇情。",
+    blurb: "隨機選定一人，重新洗牌她的核心數值。",
   },
   {
     id: "letter",

@@ -81,6 +81,10 @@ assert(afterIntro.charactersView.find((c) => c.id === "meteor").uniquePrimary ==
 assert(afterIntro.charactersView.find((c) => c.id === "pepsi").uniquePrimary === "resonance", "pepsi uniquePrimary");
 assert(afterIntro.charactersView.find((c) => c.id === "jupiter").uniquePrimary === "devotion", "jupiter uniquePrimary");
 assert(afterIntro.charactersView.find((c) => c.id === "mars").uniquePrimary === "chemistry", "mars uniquePrimary");
+assert(afterIntro.charactersView.find((c) => c.id === "jupiter").name === "芬達木星", "jupiter display name is 芬達木星");
+assert(afterIntro.charactersView.find((c) => c.id === "mars").name === "西打火星", "mars display name is 西打火星");
+assert(afterIntro.currentEvent.choices.length === 1, "hub no longer asks continue vs stop");
+assert(afterIntro.currentEvent.choices[0].label === "抽出下一張", "hub only draws the next card");
 assert(afterIntro.charactersView.length === 5, "moon is not a sixth playable character");
 const dangerSum = afterIntro.charactersView.reduce((sum, c) => sum + c.danger, 0);
 assert(afterIntro.derived.fireIndex === dangerSum, "fireIndex is the sum of five dangers");
@@ -141,7 +145,7 @@ const iv = game.intervene("encounter", "jupiter");
 assert(iv.ok, "encounter should run");
 assert(game.getState().fate === beforeFate, "encounter does not deduct fate");
 assert(game.getState().currentEvent.id === "IV_encounter", "encounter event started");
-assert(game.getState().currentEvent.description.includes("西打木星"), "event interpolates target");
+assert(game.getState().currentEvent.description.includes("芬達木星"), "event interpolates target");
 assert(
   game.getState().currentSession.weightMods.EVENT_jupiter_quiet_date > 0,
   "jupiter encounter raises jupiter solo weight"
@@ -604,6 +608,7 @@ peekMemory.choose("memory");
 assert(peekMemory.getState().flags.memory_unlocked_nini, "100 memory writes memory_unlocked");
 assert(peekMemory.getState().currentEvent.id === "EVENT_memory_nini", "100 memory forceEvents nini memory");
 assert(!SHURA_IDS.includes(peekMemory.getState().currentEvent.id), "100 memory is not shura");
+assert(!/EVENT_|FLAG_|IV_/.test(JSON.stringify(peekMemory.getState().lastResult?.logs || [])), "100 result logs hide internal ids");
 
 const keepSecret = createGame({ persist: false, rng: () => 0 });
 playIntro(keepSecret);
@@ -622,43 +627,86 @@ sparkVsBurn.intervene("intervene", "pepsi", { force: true });
 sparkVsBurn.choose("jealousy");
 sparkVsBurn.choose("spark");
 assert(sparkVsBurn.getState().currentEvent.id === "EVENT_pepsi_jealousy_01", "300 spark is pepsi jealousy, not identity");
+assert(!/EVENT_|FLAG_|IV_/.test(JSON.stringify(sparkVsBurn.getState().lastResult?.logs || [])), "300 result logs hide internal ids");
 assert(
   !sparkVsBurn.getState().pool.some((item) => item.id === "EVENT_pepsi_identity_01"),
   "300 spark does not unlock pepsi identity crisis"
 );
+
+assert(afterIntro.charactersView.find((c) => c.id === "jupiter").name === "芬達木星", "jupiter display name is 芬達木星");
+assert(afterIntro.charactersView.find((c) => c.id === "mars").name === "西打火星", "mars display name is 西打火星");
+assert(afterIntro.currentEvent.choices.length === 1, "hub no longer asks continue vs stop");
+assert(afterIntro.currentEvent.choices[0].label === "抽出下一張", "hub only draws the next card");
+
+const once = createGame({ persist: false, rng: () => 0 });
+playIntro(once);
+once.startEvent("EVENT_office_simmer", { force: true });
+once.choose("breathe");
+assert(once.getState().occurredEventIds.includes("EVENT_office_simmer"), "appeared event is marked occurred");
+assert(
+  !once.getState().pool.some((item) => item.id === "EVENT_office_simmer"),
+  "occurred event is permanently excluded from the pool"
+);
+assert(once.getState().flags.nini_arrived === true, "one-time events do not clear existing flags");
+once.startEvent("EVENT_office_simmer", { force: false });
+assert(once.getState().currentEvent.id === "EVENT_008_office_hub", "non-forced replay of an occurred card returns to hub");
+
+const hold = createGame({ persist: false, rng: () => 0 });
+playIntro(hold);
+const openingNini = hold.getState().currentSession.openingSnapshot.dangers.nini;
+hold.choose("watch");
+const drawnId = hold.getState().currentEvent.id;
+hold.choose(hold.getState().currentEvent.choices[0].id);
+const held = hold.holdTonight();
+assert(held.ok, "hold tonight succeeds");
+assert(hold.getState().settlement.status === "paused", "hold pauses the night");
+assert(hold.getState().lastResult.kind === "nightHold", "hold shows settlement popup data");
+assert(hold.getState().lastResult.settlement.eventCount >= 7, "settlement counts tonight's cards");
+assert(hold.getState().lastResult.settlement.characters.find((c) => c.id === "nini").from === openingNini, "settlement uses opening danger");
+assert(hold.getState().flags.nini_arrived === true, "hold keeps existing flags");
+assert(hold.getState().occurredEventIds.includes(drawnId), "hold keeps occurred events");
+assert(!/EVENT_|FLAG_|IV_/.test(JSON.stringify(hold.getState().lastResult.logs)), "settlement logs hide internal ids");
 
 const rewriteReset = createGame({ persist: false, rng: () => 0 });
 playIntro(rewriteReset);
 rewriteReset.setStat("nini", "obsession", 90);
 rewriteReset.setStat("meteor", "destiny", 90);
 rewriteReset.intervene("rewrite", "nini", { force: true });
-rewriteReset.choose("push");
-assert(rewriteReset.getState().currentEvent.id === "EVENT_rewrite_nini", "1000 lands on rewrite scene");
-assert(rewriteReset.getState().characters.nini.obsession === 38, "1000 resets nini obsession to initial");
-assert(rewriteReset.getState().characters.nini.obsession !== 90, "1000 core reset is actually felt");
+assert(rewriteReset.getState().currentEvent.id === "EVENT_008_office_hub", "1000 returns to normal hub flow");
+assert(rewriteReset.getState().lastResult.kind === "rewrite", "1000 shows rewrite popup data");
+assert(rewriteReset.getState().characters.nini.obsession !== 90, "1000 reshuffles nini core");
+assert(!rewriteReset.getState().flags.fate_rewritten_nini, "1000 does not write fate_rewritten");
+assert(!rewriteReset.getState().flags.crisis_blocked_nini, "1000 does not block a crisis");
+assert(rewriteReset.getState().currentEvent.id !== "EVENT_rewrite_nini", "1000 does not open a rewrite scene");
+assert(!JSON.stringify(rewriteReset.getState().lastResult).includes("EVENT_rewrite"), "1000 popup has no rewrite event id");
 
 const meteorReset = createGame({ persist: false, rng: () => 0 });
 playIntro(meteorReset);
 meteorReset.setStat("meteor", "destiny", 99);
 meteorReset.intervene("rewrite", "meteor", { force: true });
-meteorReset.choose("push");
-assert(meteorReset.getState().characters.meteor.destiny === 74, "1000 resets meteor destiny to initial");
+assert(meteorReset.getState().characters.meteor.destiny !== 99, "1000 reshuffles meteor destiny");
+assert(meteorReset.getState().currentEvent.id === "EVENT_008_office_hub", "1000 meteor still returns to hub");
 
 const rewriteShura = createGame({ persist: false, rng: () => 0 });
 playIntro(rewriteShura);
 rewriteShura.intervene("rewrite", "pepsi", { force: true });
-rewriteShura.choose("push");
-assert(rewriteShura.getState().flags.fate_rewritten_pepsi, "rewrite writes fate_rewritten_pepsi");
+assert(!rewriteShura.getState().flags.fate_rewritten_pepsi, "1000 does not write fate_rewritten_pepsi");
 assert(
-  rewriteShura.getState().pool.some((item) => item.id === "EVENT_shura_pepsi_meteor_02"),
-  "rewrite on pepsi is read by pepsi-meteor 02"
+  !rewriteShura.getState().pool.some((item) => item.id === "EVENT_shura_pepsi_meteor_02"),
+  "1000 does not force a later rewrite plot"
 );
+
+const randomRewrite = createGame({ persist: false, rng: () => 0 });
+playIntro(randomRewrite);
+randomRewrite.intervene("rewrite", undefined, { force: true });
+assert(randomRewrite.getState().lastResult.characterId === "nini", "1000 without a target randomly picks a character");
+assert(randomRewrite.getState().lastResult.kind === "rewrite", "random 1000 still only shuffles numbers");
 
 assert(eventPresentation(EVENT_BY_ID.EVENT_nini_sweet_01).label.includes("甜蜜"), "sweet cards are labeled 甜蜜");
 assert(eventPresentation(EVENT_BY_ID.EVENT_nini_nature_01).label.includes("性格"), "nature cards are labeled 性格");
 assert(eventPresentation(EVENT_BY_ID.EVENT_nini_overstep_01).label.includes("越界"), "overstep cards are labeled 越界");
-assert(eventPresentation(EVENT_BY_ID.EVENT_nini_foreshadow_01).label === "", "foreshadow is not shown as 伏筆");
-assert(!eventPresentation(EVENT_BY_ID.EVENT_nini_foreshadow_01).label.includes("伏筆"), "no 伏筆 leak");
+assert(eventPresentation(EVENT_BY_ID.EVENT_nini_foreshadow_01).label.includes("伏筆"), "foreshadow cards are labeled 伏筆");
+assert(eventPresentation(EVENT_BY_ID.EVENT_008_office_hub).label.includes("現場"), "hub cards are labeled 現場");
 assert(eventPresentation(EVENT_BY_ID.EVENT_nini_solo_01).label.includes("獨處"), "solo cards are labeled 獨處");
 assert(eventPresentation(EVENT_BY_ID.EVENT_nini_lockbox_01).kind === "crisis", "lockbox is crisis tone");
 assert(eventPresentation(EVENT_BY_ID.EVENT_shura_nini_meteor_01).kind === "shura", "shura tone is distinct");

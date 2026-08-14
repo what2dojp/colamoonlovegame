@@ -120,11 +120,9 @@ export function applyEffects(state, effects, extraLog = []) {
       const eventId = interpolate(effect.eventId, ctx);
       state.currentSession.weightMods[eventId] =
         (state.currentSession.weightMods[eventId] || 0) + Number(effect.value || 0);
-      logs.push(`事件池權重變化：${eventId} ${effect.value > 0 ? "+" : ""}${effect.value}`);
     } else if (effect.type === "forceEvent") {
       const eventId = interpolate(effect.eventId, ctx);
       state.currentSession.forcedNextEventId = eventId;
-      logs.push(`下一張事件將強制發生：${eventId}`);
     } else if (effect.type === "finalizeSession") {
       state.queuedFinalize = true;
     } else if (effect.type === "eventStatus") {

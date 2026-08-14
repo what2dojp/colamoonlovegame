@@ -34,11 +34,13 @@ export function eventPresentation(event) {
   if (tags.includes("letter")) return { kind: "letter", label: "✉ 情書", tone: "special" };
   if (tags.includes("solo") || tags.includes("date")) return { kind: "solo", label: "🌙 獨處", tone: "solo" };
   if (tags.includes("overstep")) return { kind: "overstep", label: "⚠ 越界", tone: "warn" };
-  if (tags.includes("foreshadow")) return { kind: "foreshadow", label: "", tone: "quiet" };
-  if (tags.includes("nature")) return { kind: "nature", label: "✦ 性格", tone: "calm" };
-  if (tags.includes("sweet")) return { kind: "sweet", label: "💗 甜蜜", tone: "calm" };
-  if (tags.includes("romance")) return { kind: "sweet", label: "💗 甜蜜", tone: "calm" };
-  if (event?.hub || tags.includes("hub")) return { kind: "hub", label: "現場", tone: "calm" };
+  if (tags.includes("foreshadow")) return { kind: "foreshadow", label: "👁 伏筆", tone: "quiet" };
+  if (tags.includes("nature")) return { kind: "nature", label: "✦ 性格", tone: "nature" };
+  if (tags.includes("sweet")) return { kind: "sweet", label: "💗 甜蜜", tone: "sweet" };
+  if (tags.includes("romance")) return { kind: "sweet", label: "💗 甜蜜", tone: "sweet" };
+  if (event?.hub || tags.includes("hub") || tags.includes("observation")) {
+    return { kind: "hub", label: "📍 現場", tone: "hub" };
+  }
   if (tags.includes("intro") || tags.includes("prologue")) return { kind: "intro", label: "開場", tone: "calm" };
   return { kind: "daily", label: "日常", tone: "calm" };
 }
@@ -47,7 +49,11 @@ export function eventCastLabel(event, charactersView) {
   const ids = event?.characters || [];
   if (!ids.length || ids.length >= 4 || event?.hub) return event?.speaker || "現場";
   const names = ids
-    .map((id) => charactersView.find((c) => c.id === id)?.name || id)
+    .map((id) => charactersView.find((c) => c.id === id)?.name)
     .filter(Boolean);
   return names.join(" × ") || event?.speaker || "現場";
+}
+
+export function audienceText(value) {
+  return String(value || "").replace(/\b(?:EVENT|FLAG|IV|scene|trigger|core)_[A-Za-z0-9_]+/g, "").trim();
 }

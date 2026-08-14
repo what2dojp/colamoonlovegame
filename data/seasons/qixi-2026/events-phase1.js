@@ -172,7 +172,7 @@ export const PHASE1_EVENTS = [
     description:
       "火星把距離縮到只剩半步，笑得很帥。「現在沒人看。這局還是玩玩。妳要走還是要接？」火花在，告白還沒來。",
     characters: ["mars"],
-    speaker: "芬達火星",
+    speaker: "西打火星",
     weight: 18,
     tags: ["mars", "solo", "romance"],
     onEnter: [{ type: "flag", key: "solo_active_mars", value: true }],
@@ -295,7 +295,7 @@ export const PHASE1_EVENTS = [
     title: "木星把信讀成答案",
     description: "木星的手很穩。信很短。她還是把喜歡聽成了「今晚有人希望她留下」。",
     characters: ["jupiter"],
-    speaker: "西打木星",
+    speaker: "芬達木星",
     weight: 16,
     tags: ["jupiter", "letter", "character"],
     conditions: {
@@ -330,7 +330,7 @@ export const PHASE1_EVENTS = [
     title: "火星把信揉掉又撿回來",
     description: "火星說「誰寫這種東西」。紙在她手裡停了三秒。她沒有真的丟進垃圾桶。",
     characters: ["mars"],
-    speaker: "芬達火星",
+    speaker: "西打火星",
     weight: 16,
     tags: ["mars", "letter", "character"],
     conditions: {
@@ -529,7 +529,7 @@ export const PHASE1_EVENTS = [
     description:
       "木星把備用飲料、充電線、備忘錄收回包裡。「我還愛妳。我只是不知道還要不要放在這裡。」",
     characters: ["jupiter"],
-    speaker: "西打木星",
+    speaker: "芬達木星",
     weight: 24,
     tags: ["jupiter", "crisis"],
     onEnter: [
@@ -577,7 +577,7 @@ export const PHASE1_EVENTS = [
     title: "火星與月月距離過近",
     description: "呼吸交錯。火星沒有再講笑話。「現在誰先退，誰就輸。」這已經不是互嗆。",
     characters: ["mars"],
-    speaker: "芬達火星",
+    speaker: "西打火星",
     weight: 26,
     tags: ["mars", "crisis", "romance"],
     conditions: {

@@ -357,7 +357,7 @@ export const DAILY_EVENTS = [
     description:
       "木星把吸管插好，冰量和甜度都對。「上周妳說這個比較順口。」月月說謝謝時，她的眼睛亮了一下，很快又收住。「我一點都不覺得麻煩。我只希望妳讓我照顧妳。」",
     characters: ["jupiter"],
-    speaker: "西打木星",
+    speaker: "芬達木星",
     weight: 28,
     tags: ["jupiter", "sweet", "romance", "daily"],
     conditions: ordinary("EVENT_jupiter_sweet_01"),
@@ -383,7 +383,7 @@ export const DAILY_EVENTS = [
     description:
       "月月說自己可以拿袋子。木星沒有生氣，只把袋子換到自己手上，聲音很軟。「不要拒絕我的幫助。妳開心，我就夠了。」她沒有要月月只看她，只是把自己放得很低。",
     characters: ["jupiter"],
-    speaker: "西打木星",
+    speaker: "芬達木星",
     weight: 20,
     tags: ["jupiter", "nature", "romance", "daily"],
     conditions: ordinary("EVENT_jupiter_nature_01"),
@@ -408,7 +408,7 @@ export const DAILY_EVENTS = [
     description:
       "桌上有一張不是月月字跡的便條。木星經過時把它翻過去，又若無其事地收進自己口袋。她對月月笑：「我幫妳清一下。妳不需要看那些。」月月本人沒看見她收的是誰的東西。",
     characters: ["jupiter"],
-    speaker: "西打木星",
+    speaker: "芬達木星",
     weight: 10,
     tags: ["jupiter", "overstep", "daily"],
     conditions: ordinary("EVENT_jupiter_overstep_01"),
@@ -434,7 +434,7 @@ export const DAILY_EVENTS = [
     description:
       "月月說這次自己來就好。木星點頭，沒有發脾氣。她走開兩步，對自己說得很輕：「是不是我做得還不夠？」然後把下一杯飲料準備得更仔細。",
     characters: ["jupiter"],
-    speaker: "西打木星",
+    speaker: "芬達木星",
     weight: 8,
     tags: ["jupiter", "foreshadow", "daily"],
     conditions: ordinary("EVENT_jupiter_foreshadow_01"),
@@ -461,7 +461,7 @@ export const DAILY_EVENTS = [
     description:
       "火星把袖口捲起來，靠到月月椅子旁邊。「誰先認真誰輸。現在開始算。」她笑得很帥，不是來吵架，是來玩。兩人丟了三句，走廊的空氣變熱，卻很好玩。",
     characters: ["mars"],
-    speaker: "芬達火星",
+    speaker: "西打火星",
     weight: 28,
     tags: ["mars", "sweet", "romance", "daily"],
     conditions: ordinary("EVENT_mars_sweet_01"),
@@ -488,7 +488,7 @@ export const DAILY_EVENTS = [
     description:
       "火星把這句話說得很乾脆。「我們就玩玩。誰先暈誰丟臉。」她自己也知道月月不好拿下，所以眼睛更亮。這不是嫌棄，是棋逢對手才開始有興趣。",
     characters: ["mars"],
-    speaker: "芬達火星",
+    speaker: "西打火星",
     weight: 20,
     tags: ["mars", "nature", "romance", "daily"],
     conditions: ordinary("EVENT_mars_nature_01"),
@@ -514,7 +514,7 @@ export const DAILY_EVENTS = [
     description:
       "月月剛跟別人講完一句話，火星就用肩膀撞過來。「喔，原來現在輪到她了。」她說得像玩笑，眼神卻多停了半秒。然後她自己先笑：「誰吃醋啊。我只是習慣妳在旁邊。」",
     characters: ["mars"],
-    speaker: "芬達火星",
+    speaker: "西打火星",
     weight: 10,
     tags: ["mars", "overstep", "daily"],
     conditions: ordinary("EVENT_mars_overstep_01"),
@@ -541,7 +541,7 @@ export const DAILY_EVENTS = [
     description:
       "又有人來找火星要聯絡方式。她隨口拒絕，動作比以前快。等那人走遠，她盯著地板說：「我以前也是這樣啊。怎麼可能。」月月沒有追問。火星自己把話吞回去。",
     characters: ["mars"],
-    speaker: "芬達火星",
+    speaker: "西打火星",
     weight: 8,
     tags: ["mars", "foreshadow", "daily"],
     conditions: ordinary("EVENT_mars_foreshadow_01"),

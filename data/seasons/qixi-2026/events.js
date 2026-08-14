@@ -146,7 +146,7 @@ export const EVENTS = [
     description:
       "木星敲門的節奏很整齊。她提起月月上周隨口提過的飲料，「我不知道妳今天要不要見我。可是我還是來了。」她的眼睛很亮，克制卻藏不住。這不是友情的距離。",
     characters: ["jupiter"],
-    speaker: "西打木星",
+    speaker: "芬達木星",
     priority: 92,
     tags: ["intro", "jupiter"],
     onEnter: [{ type: "flag", key: "jupiter_arrived", value: true }],
@@ -180,7 +180,7 @@ export const EVENTS = [
     description:
       "火星用腳踢了一下門。「躲什麼？看到我就倒楣？」她笑得很刺。兩人本該確認眼神然後自動避開，可七夕把路堵死了。互看三秒，誰都不先認輸。",
     characters: ["mars"],
-    speaker: "芬達火星",
+    speaker: "西打火星",
     priority: 91,
     tags: ["intro", "mars"],
     onEnter: [{ type: "flag", key: "mars_arrived", value: true }],
@@ -259,13 +259,8 @@ export const EVENTS = [
     choices: [
       {
         id: "watch",
-        label: "繼續旁觀，抽出下一張中段事件",
+        label: "抽出下一張",
         effects: [{ type: "advanceStory" }],
-      },
-      {
-        id: "hold",
-        label: "先讓場面停在這裡",
-        effects: [{ type: "log", text: "神使選擇按住場面。後宮火災指數暫時沒有爆炸。" }],
       },
     ],
   },
@@ -321,7 +316,7 @@ export const EVENTS = [
     description:
       "火星把流星的「命中注定」學了一遍，學得很難聽。「少靠靈魂和童年撐場面。」她看月月，又很快別開。「我沒理由。我就是討厭妳剛好長這樣。」化學反應已經比理由先到。",
     characters: ["mars", "meteor"],
-    speaker: "芬達火星",
+    speaker: "西打火星",
     priority: 72,
     pool: true,
     weight: 20,
@@ -368,7 +363,7 @@ export const EVENTS = [
     description:
       "木星把沒喝完的飲料放回桌上。「我當然難過。我喜歡妳這麼久了。」她吸了一口氣，「可是我喜歡妳，不代表妳欠我一個答案。」她沒有退場。她只是把選擇權完整地還給月月。",
     characters: ["jupiter"],
-    speaker: "西打木星",
+    speaker: "芬達木星",
     priority: 68,
     pool: true,
     weight: 18,
@@ -859,7 +854,7 @@ export const EVENTS = [
     description:
       "木星的醋意不像爆炸，比較像手收回去。「我看到了。我還是想被選。可是我不會在這裡逼妳。」",
     characters: ["jupiter"],
-    speaker: "西打木星",
+    speaker: "芬達木星",
     pool: true,
     weight: 10,
     tags: ["jupiter", "jealousy", "dynamic"],
@@ -902,7 +897,7 @@ export const EVENTS = [
     description:
       "火星笑得很難看。「喔，原來妳今晚比較想看別人。」她往前一步，距離短到像要互傷。「那就看妳敢不敢看回來。」",
     characters: ["mars"],
-    speaker: "芬達火星",
+    speaker: "西打火星",
     pool: true,
     weight: 10,
     tags: ["mars", "jealousy", "dynamic"],
@@ -944,7 +939,7 @@ export const EVENTS = [
     description:
       "走廊只剩木星。她把月月上周想喝的飲料放好，沒有要月月只看她。「我只希望妳讓我照顧妳。不要拒絕我的幫助。我一點都不覺得麻煩。」",
     characters: ["jupiter"],
-    speaker: "西打木星",
+    speaker: "芬達木星",
     pool: true,
     weight: 18,
     tags: ["jupiter", "date", "solo", "romance"],
@@ -1181,7 +1176,7 @@ export const EVENTS = [
     description:
       "木星把飲料放回原位。「我一直愛妳。這件事沒有變。」她吸了一口氣，「可是我開始想，我是不是應該放手，才算真的喜歡妳。」守護還在，希望卻在往下掉。",
     characters: ["jupiter"],
-    speaker: "西打木星",
+    speaker: "芬達木星",
     pool: true,
     weight: 26,
     tags: ["jupiter", "hope", "crisis"],
@@ -1228,7 +1223,7 @@ export const EVENTS = [
     description:
       "火星把下巴抬起來。「同類確認過眼神就該走。偏偏我們沒走。」互嗆已經不是玩笑，化學反應把距離燒得很短。",
     characters: ["mars"],
-    speaker: "芬達火星",
+    speaker: "西打火星",
     pool: true,
     weight: 18,
     tags: ["mars", "provocation", "conflict"],
