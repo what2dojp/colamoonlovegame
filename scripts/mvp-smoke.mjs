@@ -4,6 +4,7 @@ import { nightScore, pickNightPartner } from "../src/engine/session.js";
 import { migrateSave } from "../src/engine/save.js";
 import { pairKey } from "../src/engine/save.js";
 import { EVENT_BY_ID } from "../data/seasons/qixi-2026/events.js";
+import { eventPresentation } from "../src/ui/presentation.js";
 
 const assert = (cond, message) => {
   if (!cond) throw new Error(message);
@@ -80,6 +81,28 @@ assert(afterIntro.charactersView.find((c) => c.id === "meteor").uniquePrimary ==
 assert(afterIntro.charactersView.find((c) => c.id === "pepsi").uniquePrimary === "resonance", "pepsi uniquePrimary");
 assert(afterIntro.charactersView.find((c) => c.id === "jupiter").uniquePrimary === "devotion", "jupiter uniquePrimary");
 assert(afterIntro.charactersView.find((c) => c.id === "mars").uniquePrimary === "chemistry", "mars uniquePrimary");
+assert(afterIntro.charactersView.length === 5, "moon is not a sixth playable character");
+const dangerSum = afterIntro.charactersView.reduce((sum, c) => sum + c.danger, 0);
+assert(afterIntro.derived.fireIndex === dangerSum, "fireIndex is the sum of five dangers");
+assert(afterIntro.derived.dangers.nini === afterIntro.charactersView.find((c) => c.id === "nini").danger, "nini danger matches");
+assert(afterIntro.derived.fireLevel === "low", "ordinary intro fire stays visually calm");
+for (const c of afterIntro.charactersView) {
+  assert(typeof c.danger === "number", `${c.id} has danger`);
+  assert(["calm", "solo", "uneasy", "jealous", "crisis"].includes(c.audienceStatus.key), `${c.id} audience status is public`);
+  assert(!String(c.audienceStatus.label).includes("_"), `${c.id} status is not a flag key`);
+  assert(!JSON.stringify(c.audienceStatus).includes("public_jealous"), "audience status does not leak public_jealous");
+  assert(!JSON.stringify(c.audienceStatus).includes("foreshadow_"), "audience status does not leak foreshadow flags");
+  assert(!JSON.stringify(c.audienceStatus).includes("secret_"), "audience status does not leak secret flags");
+}
+const fireBefore = afterIntro.derived.fireIndex;
+game.setStat("nini", "jealousy", 90);
+assert(game.getState().derived.fireIndex > fireBefore, "fireIndex updates when a character danger rises");
+assert(
+  game.getState().derived.fireIndex ===
+    game.getState().charactersView.reduce((sum, c) => sum + c.danger, 0),
+  "updated fireIndex still equals the five-danger sum"
+);
+game.setStat("nini", "jealousy", afterIntro.characters.nini.jealousy);
 for (const id of [
   "EVENT_nini_dependence_01",
   "EVENT_meteor_pride_01",
@@ -629,6 +652,29 @@ assert(rewriteShura.getState().flags.fate_rewritten_pepsi, "rewrite writes fate_
 assert(
   rewriteShura.getState().pool.some((item) => item.id === "EVENT_shura_pepsi_meteor_02"),
   "rewrite on pepsi is read by pepsi-meteor 02"
+);
+
+assert(eventPresentation(EVENT_BY_ID.EVENT_nini_sweet_01).label.includes("甜蜜"), "sweet cards are labeled 甜蜜");
+assert(eventPresentation(EVENT_BY_ID.EVENT_nini_nature_01).label.includes("性格"), "nature cards are labeled 性格");
+assert(eventPresentation(EVENT_BY_ID.EVENT_nini_overstep_01).label.includes("越界"), "overstep cards are labeled 越界");
+assert(eventPresentation(EVENT_BY_ID.EVENT_nini_foreshadow_01).label === "", "foreshadow is not shown as 伏筆");
+assert(!eventPresentation(EVENT_BY_ID.EVENT_nini_foreshadow_01).label.includes("伏筆"), "no 伏筆 leak");
+assert(eventPresentation(EVENT_BY_ID.EVENT_nini_solo_01).label.includes("獨處"), "solo cards are labeled 獨處");
+assert(eventPresentation(EVENT_BY_ID.EVENT_nini_lockbox_01).kind === "crisis", "lockbox is crisis tone");
+assert(eventPresentation(EVENT_BY_ID.EVENT_shura_nini_meteor_01).kind === "shura", "shura tone is distinct");
+assert(eventPresentation(EVENT_BY_ID.EVENT_memory_nini).label.includes("回憶"), "memory cards are labeled 回憶");
+assert(eventPresentation(EVENT_BY_ID.EVENT_letter_nini).label.includes("情書"), "letter cards are labeled 情書");
+
+const soloUi = createGame({ persist: false, rng: () => 0 });
+playIntro(soloUi);
+soloUi.intervene("encounter", "mars", { force: true });
+soloUi.choose("stay");
+assert(soloUi.getState().soloActive === "mars", "200 still writes the live solo");
+assert(soloUi.getState().charactersView.find((c) => c.id === "mars").audienceStatus.key === "solo", "mars card becomes 獨處中");
+assert(soloUi.getState().charactersView.find((c) => c.id === "mars").audienceStatus.label.includes("獨處"), "solo status is readable");
+assert(
+  !JSON.stringify(soloUi.getState().charactersView.find((c) => c.id === "mars").audienceStatus).includes("solo_active_mars"),
+  "solo UI does not expose the flag key"
 );
 
 console.log("mvp smoke ok", {

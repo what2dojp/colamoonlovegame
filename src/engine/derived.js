@@ -10,29 +10,73 @@ export function average(values) {
   return values.reduce((sum, n) => sum + n, 0) / values.length;
 }
 
+function hasForeshadow(state, id) {
+  const flags = state.flags || {};
+  const prefix = `foreshadow_${id}`;
+  return Object.keys(flags).some((key) => key.startsWith(prefix) && flags[key] === true);
+}
+
+export function characterDanger(state, id) {
+  const def = CHARACTER_BY_ID[id];
+  const stats = state.characters?.[id] || {};
+  if (!def) return 0;
+  const unique = Number(stats[def.uniquePrimary]) || 0;
+  const initial = Number(def.initial?.[def.uniquePrimary]) || 0;
+  const uniqueRise = Math.max(0, unique - initial);
+  const jealousy = typeof stats.jealousy === "number" ? stats.jealousy : 0;
+  let score = 4 + jealousy * 0.4 + uniqueRise * 0.55 + unique * 0.1;
+  if (state.flags?.[`public_jealous_${id}`]) score += 22;
+  if (state.flags?.[`date_broken_${id}`]) score += 18;
+  if (state.flags?.[`solo_active_${id}`]) score += 6;
+  return clampStat(score);
+}
+
+export function audienceStatus(state, id) {
+  const def = CHARACTER_BY_ID[id];
+  const stats = state.characters?.[id] || {};
+  const evId = state.currentEventId || "";
+  if (state.flags?.[`solo_active_${id}`] === true) {
+    return { key: "solo", label: "🌙 獨處中", hint: "與月月獨處中" };
+  }
+  const inNamedCrisis =
+    evId === def?.crisisEventId ||
+    evId === def?.crisisEventId2 ||
+    (evId.includes("shura") && evId.includes(id));
+  if (inNamedCrisis || state.flags?.[`public_jealous_${id}`] || state.flags?.[`date_broken_${id}`]) {
+    return { key: "crisis", label: "危機", hint: "現場不穩" };
+  }
+  const jealousy = typeof stats.jealousy === "number" ? stats.jealousy : 0;
+  if (state.flags?.[`jealousy_triggered_${id}`] || jealousy >= 50) {
+    return { key: "jealous", label: "嫉妒", hint: "在意距離" };
+  }
+  const unique = Number(stats[def?.uniquePrimary]) || 0;
+  const initial = Number(def?.initial?.[def?.uniquePrimary]) || 0;
+  if (hasForeshadow(state, id) || unique - initial >= 10) {
+    return { key: "uneasy", label: "有些異常", hint: "還說不準" };
+  }
+  return { key: "calm", label: "平靜", hint: "" };
+}
+
+export function fireLevel(fireIndex) {
+  const { fireCalm, fireWarm, fireHot } = GAME_CONFIG.derived;
+  if (fireIndex >= fireHot) return "extreme";
+  if (fireIndex >= fireWarm) return "high";
+  if (fireIndex >= fireCalm) return "mid";
+  return "low";
+}
+
 export function computeDerived(state) {
-  const jealousies = CHARACTERS.map((c) => state.characters[c.id]?.jealousy).filter(
-    (value) => typeof value === "number"
-  );
-  const tensions = Object.values(state.relationships).map((r) => r.tension);
+  const dangers = Object.fromEntries(CHARACTERS.map((c) => [c.id, characterDanger(state, c.id)]));
+  const fireIndex = CHARACTERS.reduce((sum, c) => sum + dangers[c.id], 0);
   const affections = CHARACTERS.map((c) => state.characters[c.id].affection);
-  const conflictCount = (state.history || []).filter((h) =>
-    ["intervention", "conflict"].includes(h.kind)
-  ).length;
-
-  const fireIndex = clampStat(
-    average(jealousies) * GAME_CONFIG.derived.fireJealousyWeight +
-      Math.max(0, ...tensions) * GAME_CONFIG.derived.fireTensionWeight +
-      Math.min(100, conflictCount * 8) * GAME_CONFIG.derived.fireHistoryWeight
-  );
-
   const loveTemp = clampStat(average(affections));
-  let shura = "平靜";
-  if (fireIndex >= GAME_CONFIG.derived.shuraWarm) shura = "警報";
-  else if (fireIndex >= GAME_CONFIG.derived.shuraCalm) shura = "升溫";
+  const level = fireLevel(fireIndex);
+  const shura = level === "extreme" || level === "high" ? "警報" : level === "mid" ? "升溫" : "平靜";
 
   return {
     fireIndex,
+    dangers,
+    fireLevel: level,
     loveTemp,
     shura,
     shuraLabel: shura === "警報" ? "💥 修羅場警報" : shura === "升溫" ? "🔥 現場升溫" : "🌙 尚未失控",

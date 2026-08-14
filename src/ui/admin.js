@@ -1,5 +1,6 @@
 import { STAT_LABELS } from "../../data/characters.js";
 import { createGame } from "../engine/game.js";
+import { FATE_COPY } from "./presentation.js";
 
 const game = createGame();
 const app = document.getElementById("app");
@@ -13,7 +14,8 @@ function render(state) {
         <h1>教主控制台 · ${state.season.title}</h1>
         <p class="muted">
           階段：${state.settlement.phase}　狀態：${state.settlement.label}　
-          目前：${state.currentEvent?.id || "-"}　火災 ${state.derived.fireIndex}
+          目前：${state.currentEvent?.id || "-"}　🔥 失火 ${state.derived.fireIndex}
+          ${state.charactersView.map((c) => `${c.shortName}${c.danger}`).join(" ")}
           ${state.soloActive ? `　獨處中：${state.soloActive}` : ""}
           ${state.flags.qixi_2026_night_partner ? `　今晚陪伴 flag：${state.flags.qixi_2026_night_partner}` : ""}
         </p>
@@ -184,6 +186,9 @@ app.addEventListener("click", (event) => {
   }
   const iv = event.target.dataset.iv;
   if (iv) {
+    const copy = FATE_COPY[iv];
+    const label = copy ? `${copy.cost}｜${copy.title}` : iv;
+    if (!confirm(`${label}\n\n你即將改變目前的局勢。\n確定要觸碰這條命運嗎？`)) return;
     const target = document.getElementById("iv-target")?.value;
     const result = game.intervene(iv, target, { force: true });
     if (result && result.ok === false) alert(result.error);

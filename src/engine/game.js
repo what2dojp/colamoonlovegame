@@ -12,7 +12,7 @@ import {
   getEvent,
   interpolateEvent,
 } from "./event-engine.js";
-import { characterStatus, computeDerived } from "./derived.js";
+import { audienceStatus, characterDanger, characterStatus, computeDerived } from "./derived.js";
 import { clearSave, cloneState, createInitialState, loadSave, migrateSave, writeSave } from "./save.js";
 import {
   buildProgressCard,
@@ -429,6 +429,8 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
         ...c,
         values: state.characters[c.id],
         status: characterStatus(state, c.id),
+        audienceStatus: audienceStatus(state, c.id),
+        danger: characterDanger(state, c.id),
         nightScore: Number(nightScore(state, c.id).toFixed(2)),
       })),
       interventions: INTERVENTIONS.filter((item) => item.host).map((item) => ({

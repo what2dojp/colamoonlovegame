@@ -1,0 +1,53 @@
+export const FATE_COPY = {
+  peek: { cost: 100, title: "偷看命運", tag: "看見不該知道的事" },
+  encounter: { cost: 200, title: "碰觸命運", tag: "讓某人靠近月月" },
+  intervene: { cost: 300, title: "干涉命運", tag: "改變正在發生的事" },
+  force: { cost: 500, title: "扭轉命運", tag: "改變現在的局勢" },
+  rewrite: { cost: 1000, title: "改寫命運", tag: "重新洗牌一人的命運" },
+};
+
+const FIRE_COPY = {
+  low: { label: "平靜", line: "現場還穩。" },
+  mid: { label: "升溫", line: "開始有一點熱。" },
+  high: { label: "不妙", line: "好像開始不妙了。" },
+  extreme: { label: "失火", line: "後宮真的在燒。" },
+};
+
+export function fireCopy(level) {
+  return FIRE_COPY[level] || FIRE_COPY.low;
+}
+
+export function eventPresentation(event) {
+  const tags = event?.tags || [];
+  const id = event?.id || "";
+  if (event?.final) return { kind: "final", label: "今晚結算", tone: "special" };
+  if (event?.intervention || tags.includes("intervention")) {
+    return { kind: "fate", label: "✦ 命運", tone: "special" };
+  }
+  if (tags.includes("shura") || id.includes("shura")) {
+    return { kind: "shura", label: "⚔ 修羅場", tone: "shura" };
+  }
+  if (tags.includes("crisis") || /lockbox|never_broke|identity|packing|too_close|hope_low|dependence/.test(id)) {
+    return { kind: "crisis", label: "🔥 危機", tone: "crisis" };
+  }
+  if (tags.includes("memory")) return { kind: "memory", label: "📖 回憶", tone: "special" };
+  if (tags.includes("letter")) return { kind: "letter", label: "✉ 情書", tone: "special" };
+  if (tags.includes("solo") || tags.includes("date")) return { kind: "solo", label: "🌙 獨處", tone: "solo" };
+  if (tags.includes("overstep")) return { kind: "overstep", label: "⚠ 越界", tone: "warn" };
+  if (tags.includes("foreshadow")) return { kind: "foreshadow", label: "", tone: "quiet" };
+  if (tags.includes("nature")) return { kind: "nature", label: "✦ 性格", tone: "calm" };
+  if (tags.includes("sweet")) return { kind: "sweet", label: "💗 甜蜜", tone: "calm" };
+  if (tags.includes("romance")) return { kind: "sweet", label: "💗 甜蜜", tone: "calm" };
+  if (event?.hub || tags.includes("hub")) return { kind: "hub", label: "現場", tone: "calm" };
+  if (tags.includes("intro") || tags.includes("prologue")) return { kind: "intro", label: "開場", tone: "calm" };
+  return { kind: "daily", label: "日常", tone: "calm" };
+}
+
+export function eventCastLabel(event, charactersView) {
+  const ids = event?.characters || [];
+  if (!ids.length || ids.length >= 4 || event?.hub) return event?.speaker || "現場";
+  const names = ids
+    .map((id) => charactersView.find((c) => c.id === id)?.name || id)
+    .filter(Boolean);
+  return names.join(" × ") || event?.speaker || "現場";
+}

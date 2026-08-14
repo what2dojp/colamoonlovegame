@@ -29,6 +29,9 @@ export const GAME_CONFIG = {
     fireHistoryWeight: 0.2,
     shuraCalm: 35,
     shuraWarm: 65,
+    fireCalm: 160,
+    fireWarm: 300,
+    fireHot: 500,
   },
   nightScoreWeights: {
     nini: { affection: 0.35, obsession: 0.3, jealousy: 0.15, trust: 0.1, dependence: 0.1 },
