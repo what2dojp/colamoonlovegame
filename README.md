@@ -35,3 +35,26 @@ python3 -m http.server 8080
 - 沒有故事結局：結束直播只會進入「今晚陪伴」結算與進度卡（暫時休戰）
 
 未來季節預計放在 `/valentine/2027/`、`/qixi/2027/`。
+
+## 發布到 Vercel
+
+這是靜態網站（vanilla ES modules），不需要 build。
+
+1. 打開 [vercel.com/new](https://vercel.com/new)
+2. Import GitHub 倉庫 `what2dojp/colamoonlovegame`
+3. Framework Preset 選 **Other**
+4. Root Directory 留空（專案根目錄）
+5. 按 Deploy
+
+發布後路徑：
+
+- `/` 平台入口
+- `/qixi/2026/` 觀眾畫面
+- `/admin/` 教主控制台
+- `/live-love-event/` 直播互動原型
+
+本機若已登入 Vercel CLI，也可以：
+
+```bash
+npx vercel --prod --yes
+```

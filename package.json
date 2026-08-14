@@ -2,5 +2,9 @@
   "name": "colamoonlovegame",
   "private": true,
   "type": "module",
-  "description": "ColaMoon Love Harem Fire — long-running VTuber love event platform"
+  "description": "ColaMoon Love Harem Fire — long-running VTuber love event platform",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "deploy": "vercel --prod --yes"
+  }
 }
