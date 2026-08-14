@@ -218,9 +218,9 @@ export const PHASE2_EVENTS = [
         { not: { completed: "EVENT_shura_pepsi_meteor_01" } },
         {
           any: [
-            { flag: "secret_meteor" },
-            { flag: "secret_pepsi" },
             { flag: "letter_misread_by_meteor" },
+            { flag: "date_broken_pepsi" },
+            { flag: "date_broken_meteor" },
             {
               all: [
                 { completed: "EVENT_meteor_nostalgia_01" },
@@ -385,9 +385,9 @@ export const PHASE2_EVENTS = [
         { not: { completed: "EVENT_shura_nini_pepsi_01" } },
         {
           any: [
-            { flag: "secret_nini" },
             { flag: "letter_misread_by_nini" },
             { flag: "date_broken_nini" },
+            { flag: "date_broken_pepsi" },
             {
               all: [
                 { completed: "EVENT_pepsi_understanding_01" },
@@ -541,20 +541,10 @@ export const PHASE2_EVENTS = [
         {
           any: [
             { flag: "date_broken_jupiter" },
+            { flag: "date_broken_mars" },
             { flag: "letter_misread_by_mars" },
             { flag: "letter_misread_by_jupiter" },
             { flag: "fate_rewritten_mars" },
-            {
-              all: [
-                {
-                  any: [
-                    { completed: "EVENT_mars_chemistry_01" },
-                    { completed: "EVENT_mars_kings_01" },
-                  ],
-                },
-                { any: [{ flag: "jupiter_seen" }, { flag: "jupiter_quiet_date" }] },
-              ],
-            },
           ],
         },
       ],

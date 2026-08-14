@@ -447,8 +447,14 @@ playIntro(doorIntrusion);
 doorIntrusion.intervene("encounter", "jupiter", { force: true });
 doorIntrusion.choose("stay");
 assert(doorIntrusion.getState().currentEvent.id === "EVENT_jupiter_quiet_date", "encounter lands on quiet date");
-doorIntrusion.choose("interrupt");
-assert(doorIntrusion.getState().flags.date_broken_jupiter, "quiet date interrupt writes date_broken_jupiter");
+assert(doorIntrusion.getState().flags.solo_active_jupiter, "quiet date writes solo_active_jupiter");
+assert(
+  !doorIntrusion.getState().pool.some((item) => item.id === "EVENT_shura_jupiter_mars_01"),
+  "jupiter solo itself does not open doorway shura"
+);
+doorIntrusion.intervene("sabotage", "jupiter", { force: true });
+doorIntrusion.choose("break");
+assert(doorIntrusion.getState().flags.date_broken_jupiter, "300 break writes date_broken_jupiter");
 assert(
   doorIntrusion.getState().pool.some((item) => item.id === "EVENT_shura_jupiter_mars_01"),
   "broken jupiter date opens doorway shura"
@@ -515,6 +521,105 @@ assert(
   publicJealousShura.getState().pool.some((item) => item.id === "EVENT_shura_nini_meteor_02"),
   "public_jealous_nini is read by nini-meteor 02"
 );
+
+const CHAR_IDS = ["nini", "meteor", "pepsi", "jupiter", "mars"];
+const CRISIS_IDS = [
+  "EVENT_nini_lockbox_01",
+  "EVENT_nini_dependence_01",
+  "EVENT_meteor_never_broke_up_01",
+  "EVENT_pepsi_identity_01",
+  "EVENT_jupiter_packing_01",
+  "EVENT_jupiter_hope_low_01",
+  "EVENT_mars_too_close_01",
+];
+const DAILY_KINDS = ["sweet", "nature", "overstep", "foreshadow"];
+const SOLO_BY_CHAR = {
+  nini: "EVENT_nini_solo_01",
+  meteor: "EVENT_meteor_solo_01",
+  pepsi: "EVENT_pepsi_solo_01",
+  jupiter: "EVENT_jupiter_quiet_date",
+  mars: "EVENT_mars_solo_01",
+};
+
+const poolAfterIntro = createGame({ persist: false, rng: () => 0 });
+playIntro(poolAfterIntro);
+const introPoolIds = poolAfterIntro.getState().pool.map((item) => item.id);
+assert(
+  introPoolIds.every((id) => !SHURA_IDS.includes(id)),
+  "ordinary play after intro has no shura in the pool"
+);
+assert(
+  introPoolIds.every((id) => !CRISIS_IDS.includes(id)),
+  "ordinary play after intro has no character crisis in the pool"
+);
+for (const id of CHAR_IDS) {
+  for (const kind of DAILY_KINDS) {
+    const eventId = `EVENT_${id}_${kind}_01`;
+    assert(EVENT_BY_ID[eventId], `${eventId} exists`);
+    assert(introPoolIds.includes(eventId), `${eventId} is in the ordinary pool`);
+  }
+  assert(introPoolIds.includes(SOLO_BY_CHAR[id]), `${id} solo is in the ordinary pool`);
+}
+
+const foreshadowOnly = createGame({ persist: false, rng: () => 0 });
+playIntro(foreshadowOnly);
+playForced(foreshadowOnly, "EVENT_nini_foreshadow_01", "wonder");
+assert(foreshadowOnly.getState().flags.foreshadow_nini_missing, "foreshadow writes foreshadow_nini_missing");
+assert(
+  !foreshadowOnly.getState().pool.some((item) => CRISIS_IDS.includes(item.id)),
+  "one foreshadow flag does not unlock a crisis"
+);
+assert(
+  !foreshadowOnly.getState().pool.some((item) => SHURA_IDS.includes(item.id)),
+  "one foreshadow flag does not unlock shura"
+);
+
+const peekMemory = createGame({ persist: false, rng: () => 0 });
+playIntro(peekMemory);
+peekMemory.intervene("peek", "nini", { force: true });
+peekMemory.choose("memory");
+assert(peekMemory.getState().flags.memory_unlocked_nini, "100 memory writes memory_unlocked");
+assert(peekMemory.getState().currentEvent.id === "EVENT_memory_nini", "100 memory forceEvents nini memory");
+assert(!SHURA_IDS.includes(peekMemory.getState().currentEvent.id), "100 memory is not shura");
+
+const keepSecret = createGame({ persist: false, rng: () => 0 });
+playIntro(keepSecret);
+keepSecret.intervene("peek", "nini", { force: true });
+keepSecret.choose("secret");
+keepSecret.choose("keep");
+assert(keepSecret.getState().flags.secret_nini, "100 keep writes secret_nini");
+assert(
+  !keepSecret.getState().pool.some((item) => item.id === "EVENT_nini_lockbox_01"),
+  "100 keep only raises weight, it does not put lockbox into the pool"
+);
+
+const sparkVsBurn = createGame({ persist: false, rng: () => 0 });
+playIntro(sparkVsBurn);
+sparkVsBurn.intervene("intervene", "pepsi", { force: true });
+sparkVsBurn.choose("jealousy");
+sparkVsBurn.choose("spark");
+assert(sparkVsBurn.getState().currentEvent.id === "EVENT_pepsi_jealousy_01", "300 spark is pepsi jealousy, not identity");
+assert(
+  !sparkVsBurn.getState().pool.some((item) => item.id === "EVENT_pepsi_identity_01"),
+  "300 spark does not unlock pepsi identity crisis"
+);
+
+const rewriteReset = createGame({ persist: false, rng: () => 0 });
+playIntro(rewriteReset);
+rewriteReset.setStat("nini", "obsession", 90);
+rewriteReset.setStat("meteor", "destiny", 90);
+rewriteReset.intervene("rewrite", "nini", { force: true });
+rewriteReset.choose("push");
+assert(rewriteReset.getState().currentEvent.id === "EVENT_rewrite_nini", "1000 lands on rewrite scene");
+assert(rewriteReset.getState().characters.nini.obsession === 38, "1000 resets nini obsession to initial");
+assert(rewriteReset.getState().characters.nini.obsession !== 90, "1000 core reset is actually felt");
+
+const meteorReset = createGame({ persist: false, rng: () => 0 });
+playIntro(meteorReset);
+meteorReset.setStat("meteor", "destiny", 99);
+meteorReset.intervene("rewrite", "meteor", { force: true });
+meteorReset.choose("push");
+assert(meteorReset.getState().characters.meteor.destiny === 74, "1000 resets meteor destiny to initial");
 
 const rewriteShura = createGame({ persist: false, rng: () => 0 });
 playIntro(rewriteShura);

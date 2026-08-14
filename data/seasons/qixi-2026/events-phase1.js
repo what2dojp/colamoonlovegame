@@ -84,151 +84,113 @@ export const PHASE1_EVENTS = [
   }),
   skeleton({
     id: "EVENT_nini_solo_01",
-    title: "日日的獨處：地下室口",
+    title: "日日的獨處：只講喜歡",
     description:
-      "走廊只剩日日。她把晶晶抱在胸前，看著地下室的方向。「現在只有我們。」",
+      "走廊只剩日日。她沒有先講地下室，只把月月的手拉到自己臉旁邊。「現在沒有別人。妳是我的約會，不是我要照顧的人。」晶晶被放到椅子上，像來見證這場示愛。",
     characters: ["nini"],
     speaker: "雪碧日日",
     weight: 18,
     tags: ["nini", "solo", "romance"],
     onEnter: [{ type: "flag", key: "solo_active_nini", value: true }],
     conditions: {
-      all: [
-        { flag: "dynamic_pool_unlocked" },
-        { not: { completed: "EVENT_nini_solo_01" } },
-        {
-          any: [
-            { flag: "encounter_nini" },
-            { flag: "letter_to_nini" },
-            { path: "characters.nini.obsession", op: "gte", value: 50 },
-          ],
-        },
-      ],
+      all: [{ flag: "dynamic_pool_unlocked" }, { not: { completed: "EVENT_nini_solo_01" } }],
     },
     choices: stayOrLeave(
       "nini",
       [
         clearSolo("nini"),
-        { type: "stat", path: "characters.nini.obsession", op: "add", value: 6 },
-        { type: "stat", path: "characters.nini.dependence", op: "add", value: 6 },
-        { type: "flag", key: "nini_allowed_stay", value: true },
-        { type: "weightMod", eventId: "EVENT_nini_dependence_01", value: 12 },
+        { type: "stat", path: "characters.nini.affection", op: "add", value: 6 },
+        { type: "stat", path: "characters.nini.obsession", op: "add", value: 4 },
+        { type: "stat", path: "characters.nini.trust", op: "add", value: 3 },
       ],
       [
         clearSolo("nini"),
-        { type: "stat", path: "characters.nini.trust", op: "add", value: -4 },
+        { type: "stat", path: "characters.nini.trust", op: "add", value: -2 },
         { type: "eventStatus", status: "unresolved" },
       ]
     ),
   }),
   skeleton({
     id: "EVENT_meteor_solo_01",
-    title: "流星的獨處：自動販賣機",
-    description: "流星踢了一下沙士機。「小時候也是這樣。妳先喝，我再嗆妳。」",
+    title: "流星的獨處：小時候那條路",
+    description:
+      "只剩流星。她把月月帶到販賣機前，講的是同款鞋子、舊操場、兩人一起去過的店。「以前也是這樣。妳先喝，我再嗆妳。」她把現在接回過去，還沒把「我們沒分手」當眾釘死。",
     characters: ["meteor"],
     speaker: "沙士流星",
     weight: 18,
     tags: ["meteor", "solo", "romance"],
     onEnter: [{ type: "flag", key: "solo_active_meteor", value: true }],
     conditions: {
-      all: [
-        { flag: "dynamic_pool_unlocked" },
-        { not: { completed: "EVENT_meteor_solo_01" } },
-        {
-          any: [
-            { flag: "encounter_meteor" },
-            { flag: "letter_to_meteor" },
-            { path: "characters.meteor.nostalgia", op: "gte", value: 80 },
-          ],
-        },
-      ],
+      all: [{ flag: "dynamic_pool_unlocked" }, { not: { completed: "EVENT_meteor_solo_01" } }],
     },
     choices: stayOrLeave(
       "meteor",
       [
         clearSolo("meteor"),
+        { type: "stat", path: "characters.meteor.affection", op: "add", value: 5 },
         { type: "stat", path: "characters.meteor.nostalgia", op: "add", value: 5 },
-        { type: "stat", path: "characters.meteor.destiny", op: "add", value: 4 },
-        { type: "weightMod", eventId: "EVENT_meteor_never_broke_up_01", value: 12 },
+        { type: "stat", path: "characters.meteor.destiny", op: "add", value: 2 },
       ],
       [
         clearSolo("meteor"),
-        { type: "stat", path: "characters.meteor.pride", op: "add", value: 5 },
+        { type: "stat", path: "characters.meteor.pride", op: "add", value: 4 },
         { type: "eventStatus", status: "unresolved" },
       ]
     ),
   }),
   skeleton({
     id: "EVENT_pepsi_solo_01",
-    title: "百事的獨處：同一句話",
-    description: "沒有第三人。百事和月月同時吸了一口氣。走廊安靜得不像七夕。",
+    title: "百事的獨處：同一拍呼吸",
+    description:
+      "沒有第三人。百事和月月同時吸了一口氣，又同時把下一句話說出來。百事笑：「我知道妳會選這個。」這還是默契，不是融合儀式。",
     characters: ["pepsi"],
     speaker: "百事月月",
     weight: 18,
     tags: ["pepsi", "solo", "romance"],
     onEnter: [{ type: "flag", key: "solo_active_pepsi", value: true }],
     conditions: {
-      all: [
-        { flag: "dynamic_pool_unlocked" },
-        { not: { completed: "EVENT_pepsi_solo_01" } },
-        {
-          any: [
-            { flag: "encounter_pepsi" },
-            { flag: "letter_to_pepsi" },
-            { path: "characters.pepsi.resonance", op: "gte", value: 78 },
-          ],
-        },
-      ],
+      all: [{ flag: "dynamic_pool_unlocked" }, { not: { completed: "EVENT_pepsi_solo_01" } }],
     },
     choices: stayOrLeave(
       "pepsi",
       [
         clearSolo("pepsi"),
-        { type: "stat", path: "characters.pepsi.resonance", op: "add", value: 6 },
-        { type: "stat", path: "characters.pepsi.similarity", op: "add", value: 4 },
-        { type: "weightMod", eventId: "EVENT_pepsi_identity_01", value: 12 },
+        { type: "stat", path: "characters.pepsi.affection", op: "add", value: 5 },
+        { type: "stat", path: "characters.pepsi.resonance", op: "add", value: 4 },
+        { type: "stat", path: "characters.pepsi.similarity", op: "add", value: 3 },
       ],
       [
         clearSolo("pepsi"),
-        { type: "stat", path: "characters.pepsi.destiny", op: "add", value: 4 },
+        { type: "stat", path: "characters.pepsi.understanding", op: "add", value: 2 },
         { type: "eventStatus", status: "unresolved" },
       ]
     ),
   }),
   skeleton({
     id: "EVENT_mars_solo_01",
-    title: "火星的獨處：走廊對峙",
-    description: "火星把距離縮到只剩半步。「現在沒人看。妳要走還是要接？」",
+    title: "火星的獨處：誰先暈誰輸",
+    description:
+      "火星把距離縮到只剩半步，笑得很帥。「現在沒人看。這局還是玩玩。妳要走還是要接？」火花在，告白還沒來。",
     characters: ["mars"],
     speaker: "芬達火星",
     weight: 18,
-    tags: ["mars", "solo", "conflict"],
+    tags: ["mars", "solo", "romance"],
     onEnter: [{ type: "flag", key: "solo_active_mars", value: true }],
     conditions: {
-      all: [
-        { flag: "dynamic_pool_unlocked" },
-        { not: { completed: "EVENT_mars_solo_01" } },
-        {
-          any: [
-            { flag: "encounter_mars" },
-            { flag: "letter_to_mars" },
-            { flag: "mars_duel_started" },
-          ],
-        },
-      ],
+      all: [{ flag: "dynamic_pool_unlocked" }, { not: { completed: "EVENT_mars_solo_01" } }],
     },
     choices: stayOrLeave(
       "mars",
       [
         clearSolo("mars"),
-        { type: "stat", path: "characters.mars.chemistry", op: "add", value: 7 },
-        { type: "tension", pair: "moon-mars", op: "add", value: 8 },
-        { type: "weightMod", eventId: "EVENT_mars_too_close_01", value: 16 },
+        { type: "stat", path: "characters.mars.chemistry", op: "add", value: 6 },
+        { type: "stat", path: "characters.mars.affection", op: "add", value: 3 },
+        { type: "tension", pair: "moon-mars", op: "add", value: 6 },
       ],
       [
         clearSolo("mars"),
-        { type: "stat", path: "characters.mars.pride", op: "add", value: 5 },
-        { type: "stat", path: "characters.mars.provocation", op: "add", value: 4 },
+        { type: "stat", path: "characters.mars.pride", op: "add", value: 4 },
+        { type: "stat", path: "characters.mars.provocation", op: "add", value: 3 },
       ]
     ),
   }),
@@ -444,12 +406,9 @@ export const PHASE1_EVENTS = [
         { not: { flag: "crisis_blocked_nini" } },
         {
           any: [
-            { flag: "secret_nini" },
-            { flag: "nini_allowed_stay" },
+            { flag: "public_jealous_nini" },
             { flag: "date_broken_nini" },
-            { completed: "EVENT_nini_obsession_01" },
-            { completed: "EVENT_nini_dependence_01" },
-            { flag: "letter_misread_by_nini" },
+            { flag: "forced_nini" },
             { flag: "fate_rewritten_nini" },
           ],
         },
@@ -491,11 +450,10 @@ export const PHASE1_EVENTS = [
         { not: { flag: "crisis_blocked_meteor" } },
         {
           any: [
-            { flag: "secret_meteor" },
             { flag: "public_jealous_meteor" },
             { flag: "date_broken_meteor" },
-            { completed: "EVENT_meteor_nostalgia_01" },
-            { flag: "letter_to_meteor" },
+            { flag: "forced_meteor" },
+            { flag: "fate_rewritten_meteor" },
           ],
         },
       ],
@@ -537,11 +495,10 @@ export const PHASE1_EVENTS = [
         { not: { flag: "crisis_blocked_pepsi" } },
         {
           any: [
-            { flag: "secret_pepsi" },
-            { flag: "jealousy_triggered_pepsi" },
+            { flag: "public_jealous_pepsi" },
             { flag: "date_broken_pepsi" },
-            { completed: "EVENT_pepsi_soul_01" },
-            { flag: "letter_to_pepsi" },
+            { flag: "forced_pepsi" },
+            { flag: "fate_rewritten_pepsi" },
           ],
         },
       ],
@@ -586,13 +543,10 @@ export const PHASE1_EVENTS = [
         { not: { flag: "crisis_blocked_jupiter" } },
         {
           any: [
-            { flag: "secret_jupiter" },
-            { flag: "jupiter_unanswered" },
-            { flag: "jupiter_asked" },
-            { flag: "date_broken_jupiter" },
             { flag: "public_jealous_jupiter" },
+            { flag: "date_broken_jupiter" },
+            { flag: "forced_jupiter" },
             { flag: "fate_rewritten_jupiter" },
-            { path: "characters.jupiter.hope", op: "lte", value: 55 },
           ],
         },
       ],
@@ -633,14 +587,10 @@ export const PHASE1_EVENTS = [
         { not: { flag: "crisis_blocked_mars" } },
         {
           any: [
-            { flag: "secret_mars" },
-            { flag: "mars_duel_started" },
-            { flag: "encounter_mars" },
-            { flag: "date_broken_mars" },
             { flag: "public_jealous_mars" },
+            { flag: "date_broken_mars" },
+            { flag: "forced_mars" },
             { flag: "fate_rewritten_mars" },
-            { completed: "EVENT_mars_chemistry_01" },
-            { completed: "EVENT_mars_kings_01" },
           ],
         },
       ],
@@ -668,12 +618,14 @@ export const PHASE1_EVENTS = [
   }),
   skeleton({
     id: "EVENT_rewrite_nini",
-    title: "改寫：留下是不是等於愛",
-    description: "神使改寫了日日那條線。接下來她會把「留下」當成愛，或第一次學會等。",
+    title: "改寫：執著被洗回原點",
+    description:
+      "神使把日日的執著洗回開始之前。數字被重寫了。這不是把病嬌變成天使，只是命運重新洗牌。接下來仍可封鎖危機，或讓這條線繼續往前。",
     characters: ["nini"],
     speaker: "七夕神使",
     weight: 24,
     tags: ["nini", "rewrite", "rare"],
+    onEnter: [{ type: "stat", path: "characters.nini.obsession", op: "set", value: 38 }],
     conditions: {
       all: [{ flag: "fate_rewritten_nini" }, { not: { completed: "EVENT_rewrite_nini" } }],
     },
@@ -696,12 +648,14 @@ export const PHASE1_EVENTS = [
   }),
   skeleton({
     id: "EVENT_rewrite_meteor",
-    title: "改寫：那句結婚還算不算",
-    description: "神使改寫流星的童年線。要嘛約定今晚生效，要嘛舊愛裂開。",
+    title: "改寫：命定被洗回原點",
+    description:
+      "神使把流星的命定洗回開始之前。數字被重寫了。童年還在，但這條線被重新洗牌。接下來仍可封鎖危機，或讓「沒分手」繼續成為現場事實。",
     characters: ["meteor"],
     speaker: "七夕神使",
     weight: 24,
     tags: ["meteor", "rewrite", "rare"],
+    onEnter: [{ type: "stat", path: "characters.meteor.destiny", op: "set", value: 74 }],
     conditions: {
       all: [{ flag: "fate_rewritten_meteor" }, { not: { completed: "EVENT_rewrite_meteor" } }],
     },
@@ -724,12 +678,14 @@ export const PHASE1_EVENTS = [
   }),
   skeleton({
     id: "EVENT_rewrite_pepsi",
-    title: "改寫：靈魂會不會認出彼此",
-    description: "神使改寫百事那條線。共鳴成為今晚主線，或月月切斷映照。",
+    title: "改寫：共鳴被洗回原點",
+    description:
+      "神使把百事的靈魂共鳴洗回開始之前。數字被重寫了。相似還在，融合儀式沒有被直接打開。這是重新洗牌，不是固定改成相反劇情。",
     characters: ["pepsi"],
     speaker: "七夕神使",
     weight: 24,
     tags: ["pepsi", "rewrite", "rare"],
+    onEnter: [{ type: "stat", path: "characters.pepsi.resonance", op: "set", value: 78 }],
     conditions: {
       all: [{ flag: "fate_rewritten_pepsi" }, { not: { completed: "EVENT_rewrite_pepsi" } }],
     },
@@ -752,12 +708,14 @@ export const PHASE1_EVENTS = [
   }),
   skeleton({
     id: "EVENT_rewrite_jupiter",
-    title: "改寫：她還要不要放手",
-    description: "神使改寫木星那條線。阻止她離開，或讓她真的開始走。",
+    title: "改寫：傾心被洗回原點",
+    description:
+      "神使把木星的傾心洗回開始之前。數字被重寫了。她仍想照顧月月，但這條線被重新洗牌。接下來仍可封鎖離開，或讓她開始收回備用品。",
     characters: ["jupiter"],
     speaker: "七夕神使",
     weight: 24,
     tags: ["jupiter", "rewrite", "rare"],
+    onEnter: [{ type: "stat", path: "characters.jupiter.devotion", op: "set", value: 84 }],
     conditions: {
       all: [{ flag: "fate_rewritten_jupiter" }, { not: { completed: "EVENT_rewrite_jupiter" } }],
     },
@@ -781,12 +739,14 @@ export const PHASE1_EVENTS = [
   }),
   skeleton({
     id: "EVENT_rewrite_mars",
-    title: "改寫：討厭還是沒走",
-    description: "神使改寫火星那條線。要嘛今晚距離過近，要嘛同類終於自動避開。",
+    title: "改寫：化學反應被洗回原點",
+    description:
+      "神使把火星的化學反應洗回開始之前。數字被重寫了。互撩還在，距離過近沒有被直接打開。這是重新洗牌，不是固定改成相反劇情。",
     characters: ["mars"],
     speaker: "七夕神使",
     weight: 24,
     tags: ["mars", "rewrite", "rare"],
+    onEnter: [{ type: "stat", path: "characters.mars.chemistry", op: "set", value: 44 }],
     conditions: {
       all: [{ flag: "fate_rewritten_mars" }, { not: { completed: "EVENT_rewrite_mars" } }],
     },

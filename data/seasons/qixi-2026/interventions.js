@@ -51,7 +51,7 @@ export const INTERVENTIONS = [
     eventId: "IV_peek_menu",
     needsTarget: true,
     host: true,
-    blurb: "讀取或揭露秘密，或決定誰收到那封信。秘密必須影響後續事件。",
+    blurb: "看見不該知道的東西：回憶、秘密，或決定誰收到那封信。",
   },
   {
     id: "encounter",
@@ -87,7 +87,7 @@ export const INTERVENTIONS = [
     eventId: "IV_rewrite",
     needsTarget: true,
     host: true,
-    blurb: "改寫一條角色劇情線。不是加點。",
+    blurb: "重新洗牌一名角色的核心數值。不是加點，也不是固定改成相反劇情。",
   },
   {
     id: "letter",
@@ -133,6 +133,6 @@ export const INTERVENTIONS = [
     eventId: "IV_rewrite",
     needsTarget: true,
     host: false,
-    blurb: "改寫一條角色劇情線。",
+    blurb: "重新洗牌一名角色的核心數值。不是加點。",
   },
 ];

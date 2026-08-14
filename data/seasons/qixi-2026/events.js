@@ -1,3 +1,4 @@
+import { DAILY_EVENTS, MEMORY_EVENTS } from "./events-daily.js";
 import { PHASE1_EVENTS } from "./events-phase1.js";
 import { PHASE2_EVENTS } from "./events-phase2.js";
 
@@ -410,12 +411,21 @@ export const EVENTS = [
     id: "IV_peek_menu",
     title: "干預：偷看命運",
     description:
-      "主播已確認現場金流。偷看命運可以決定：誰收到那封信，或誰的秘密被看見。這不是加好感。",
+      "主播已確認現場金流。偷看命運可以看見不該知道的東西：回憶、秘密，或決定誰收到那封信。這不是加好感。",
     characters: [],
     speaker: "七夕神使",
     tags: ["intervention", "peek"],
     intervention: true,
     choices: [
+      {
+        id: "memory",
+        label: "看回憶：掀開她不該被現場看見的過去",
+        effects: [
+          { type: "flag", key: "memory_unlocked_{{target.id}}", value: true },
+          { type: "forceEvent", eventId: "EVENT_memory_{{target.id}}" },
+          { type: "log", text: "下一張是 {{target.name}} 的回憶，不是修羅場。" },
+        ],
+      },
       {
         id: "letter",
         label: "傳遞情書：決定誰收到／誰看到／誰誤會",
@@ -655,7 +665,7 @@ export const EVENTS = [
     id: "IV_rewrite",
     title: "干預：改寫命運",
     description:
-      "這很貴。神使改寫 {{target.name}} 以為已經定下來的一條線。不是把嫉妒換成好感。",
+      "這很貴。神使重新洗牌 {{target.name}} 的核心數值，把這條線打回原點。不是加好感，也不是固定改成相反劇情。",
     characters: [],
     speaker: "七夕神使",
     tags: ["intervention", "rewrite"],
@@ -930,31 +940,25 @@ export const EVENTS = [
   },
   {
     id: "EVENT_jupiter_quiet_date",
-    title: "木星的安靜約會",
+    title: "木星的獨處：讓我照顧妳",
     description:
-      "走廊只剩木星。她把月月上周想喝的飲料放好，沒有要答案。「我不是來當朋友的。我只是……想跟妳單獨待一下子。」",
+      "走廊只剩木星。她把月月上周想喝的飲料放好，沒有要月月只看她。「我只希望妳讓我照顧妳。不要拒絕我的幫助。我一點都不覺得麻煩。」",
     characters: ["jupiter"],
     speaker: "西打木星",
     pool: true,
-    weight: 20,
+    weight: 18,
     tags: ["jupiter", "date", "solo", "romance"],
     onEnter: [{ type: "flag", key: "solo_active_jupiter", value: true }],
     conditions: {
       all: [
         { flag: "dynamic_pool_unlocked" },
         { not: { completed: "EVENT_jupiter_quiet_date" } },
-        {
-          any: [
-            { flag: "encounter_jupiter" },
-            { path: "characters.jupiter.devotion", op: "gte", value: 84 },
-          ],
-        },
       ],
     },
     choices: [
       {
         id: "stay",
-        label: "讓這段兩人時間完整發生",
+        label: "讓這段照顧完整發生",
         effects: [
           { type: "flag", key: "solo_active_jupiter", value: false },
           { type: "stat", path: "characters.jupiter.affection", op: "add", value: 8 },
@@ -963,15 +967,12 @@ export const EVENTS = [
         ],
       },
       {
-        id: "interrupt",
-        label: "讓門被其他人敲開",
+        id: "leave",
+        label: "先把這段照顧暫停一下",
         effects: [
           { type: "flag", key: "solo_active_jupiter", value: false },
-          { type: "flag", key: "date_broken_jupiter", value: true },
-          { type: "stat", path: "characters.jupiter.jealousy", op: "add", value: 7 },
-          { type: "tension", pair: "jupiter-mars", op: "add", value: 6 },
-          { type: "weightMod", eventId: "EVENT_jupiter_packing_01", value: 16 },
-          { type: "weightMod", eventId: "EVENT_shura_jupiter_mars_01", value: 14 },
+          { type: "stat", path: "characters.jupiter.hope", op: "add", value: -2 },
+          { type: "eventStatus", status: "unresolved" },
         ],
       },
     ],
@@ -1067,12 +1068,10 @@ export const EVENTS = [
         { not: { flag: "crisis_blocked_nini" } },
         {
           any: [
-            { completed: "EVENT_nini_obsession_01" },
-            { flag: "nini_allowed_stay" },
-            { flag: "secret_nini" },
-            { flag: "moon_hiding" },
+            { flag: "public_jealous_nini" },
+            { flag: "date_broken_nini" },
+            { flag: "forced_nini" },
             { flag: "fate_rewritten_nini" },
-            { path: "characters.nini.dependence", op: "gte", value: 58 },
           ],
         },
       ],
@@ -1195,10 +1194,10 @@ export const EVENTS = [
         {
           any: [
             { completed: "EVENT_jupiter_packing_01" },
-            { flag: "jupiter_unanswered" },
-            { flag: "jupiter_asked" },
+            { flag: "public_jealous_jupiter" },
+            { flag: "date_broken_jupiter" },
+            { flag: "forced_jupiter" },
             { flag: "fate_rewritten_jupiter" },
-            { path: "characters.jupiter.hope", op: "lte", value: 45 },
           ],
         },
       ],
@@ -1240,7 +1239,7 @@ export const EVENTS = [
         {
           any: [
             { flag: "mars_duel_started" },
-            { path: "characters.mars.provocation", op: "gte", value: 76 },
+            { path: "characters.mars.chemistry", op: "gte", value: 70 },
           ],
         },
       ],
@@ -1299,6 +1298,8 @@ export const EVENTS = [
       },
     ],
   },
+  ...DAILY_EVENTS,
+  ...MEMORY_EVENTS,
   ...PHASE1_EVENTS,
   ...PHASE2_EVENTS,
 ];

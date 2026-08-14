@@ -168,10 +168,20 @@ function peekSecret(targetId, choiceId) {
   must(read.has("letter_seen_by_moon"), "letter_seen_by_moon is read by EVENT_letter_moon_saw");
   must(!read.has("letter_misread_by_pepsi"), "dead letter_misread_by_pepsi condition removed");
 
+  for (const id of IDS) {
+    const mem = fresh();
+    must(mem.intervene("peek", id).ok, `peek memory ${id}`);
+    must(mem.getState().currentEvent.id === "IV_peek_menu", "100 opens peek menu");
+    must(mem.choose("memory").ok, "memory branch");
+    must(mem.getState().flags[`memory_unlocked_${id}`], `memory_unlocked_${id}`);
+    must(mem.getState().currentEvent.id === `EVENT_memory_${id}`, `100 memory forceEvents EVENT_memory_${id}`);
+    must(!String(mem.getState().currentEvent.id).includes("shura"), `${id} memory is not shura`);
+  }
+
   addRow({
     cost: 100,
     name: "偷看命運",
-    effect: "private→情書後續；seen→月月看見；misread→修羅場；秘密未公開加權重，公開 force 危機",
+    effect: "private→情書後續；seen→月月看見；misread→修羅場；回憶→EVENT_memory_*；秘密未公開加權重，公開 force 危機",
     next: "是（三路下一張都不同）",
     later: "是（letter_to_*、letter_seen_by_moon、secret_* 被後續讀取）",
     fake: "無",
@@ -396,12 +406,17 @@ function peekSecret(targetId, choiceId) {
   for (const id of IDS) {
     const game = fresh();
     const fate = game.getState().fate;
+    const primary = CHARACTER_BY_ID[id].uniquePrimary;
+    const initial = CHARACTER_BY_ID[id].initial[primary];
+    game.setStat(id, primary, 90);
+    must(game.getState().characters[id][primary] === 90, `${id} core raised before 1000`);
     must(game.intervene("rewrite", id).ok, `rewrite ${id}`);
     must(game.getState().currentEvent.id === "IV_rewrite", "1000 opens rewrite");
     game.choose("push");
     must(game.getState().fate === fate, "1000 does not deduct fate");
     must(game.getState().flags[`fate_rewritten_${id}`], `fate_rewritten_${id}`);
     must(game.getState().currentEvent.id === CHARACTER_BY_ID[id].rewriteEventId, `${id} push forceEvents rewrite scene`);
+    must(game.getState().characters[id][primary] === initial, `${id} 1000 resets ${primary} to initial ${initial}`);
   }
 
   const blocked = fresh();
@@ -487,7 +502,7 @@ function peekSecret(targetId, choiceId) {
   addRow({
     cost: 1000,
     name: "改寫命運",
-    effect: "五人各自進 rewrite 場景；封鎖選項寫 crisis_blocked，對應危機與 dependence 不再進池",
+    effect: "五人各自進 rewrite 場景，並把核心數值重置回初始；封鎖選項寫 crisis_blocked，對應危機與 dependence 不再進池",
     next: "是（rewrite 場景）",
     later: "是（fate_rewritten_* 被危機／修羅場讀取）",
     fake: "無",
