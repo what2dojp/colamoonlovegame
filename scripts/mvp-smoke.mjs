@@ -1,10 +1,9 @@
 import { createGame } from "../src/engine/game.js";
 import { GAME_CONFIG } from "../src/config/game.config.js";
 import { nightScore, pickNightPartner } from "../src/engine/session.js";
-import { migrateSave } from "../src/engine/save.js";
-import { pairKey } from "../src/engine/save.js";
+import { inspectSave, migrateSave, pairKey } from "../src/engine/save.js";
 import { EVENT_BY_ID } from "../data/seasons/qixi-2026/events.js";
-import { eventPresentation } from "../src/ui/presentation.js";
+import { audienceText, eventPresentation } from "../src/ui/presentation.js";
 
 const assert = (cond, message) => {
   if (!cond) throw new Error(message);
@@ -383,6 +382,37 @@ assert(persistB.getState().currentEvent.id === "EVENT_001_prologue", "reset sess
 assert(persistB.getState().archive["qixi-2026"].nightPartner === "jupiter", "reset keeps archive");
 assert(persistB.getState().flags.qixi_2026_night_partner === "jupiter", "reset keeps night partner flag");
 
+store.unrelated = "keep-me";
+assert(inspectSave().exists === true, "inspectSave sees the game key");
+assert(inspectSave().status === "playing", "reset session is still playing");
+const persistMid = createGame({ persist: true, rng: () => 0 });
+playIntro(persistMid);
+const midEvent = persistMid.getState().currentEvent.id;
+const persistReload = createGame({ persist: true });
+assert(persistReload.getState().currentEvent.id === midEvent, "refresh keeps the in-progress event");
+assert(persistReload.getState().lifecycle === "playing", "refresh keeps a playing session");
+assert(store.unrelated === "keep-me", "game persistence uses a dedicated key");
+persistReload.newGame();
+assert(persistReload.getState().currentEvent.id === "EVENT_001_prologue", "newGame returns to opening");
+assert(!persistReload.getState().flags.qixi_2026_night_partner, "newGame clears tonight companion");
+assert(!persistReload.getState().flags.nini_arrived, "newGame clears session flags");
+assert(persistReload.getState().occurredEventIds.every((id) => String(id).startsWith("EVENT_001") || id === persistReload.getState().currentEvent.id), "newGame clears previous occurred cards");
+assert(store.unrelated === "keep-me", "newGame does not call localStorage.clear");
+assert(inspectSave().status === "playing", "fresh game is playing");
+
+const persistFinish = createGame({ persist: true, rng: () => 0 });
+playIntro(persistFinish);
+persistFinish.holdTonight();
+persistFinish.confirmTonightHold();
+assert(persistFinish.getState().currentEvent.id === "FINAL_night_partner", "hold confirm reaches companion result");
+persistFinish.choose("close_night");
+assert(inspectSave().status === "finished", "settled session is finished");
+persistFinish.newGame();
+assert(persistFinish.getState().currentEvent.id === "EVENT_001_prologue", "replay after finish starts a new night");
+assert(inspectSave().status === "playing", "replay after finish is playing");
+assert(!audienceText("qixi_2026_night_partner = pepsi").includes("pepsi"), "audience text strips internal ids");
+assert(!audienceText("qixi_2026_night_partner = pepsi").includes("qixi_2026"), "audience text strips persistence keys");
+
 assert(EVENT_BY_ID.EVENT_shura_nini_meteor_01.weight >= 16 && EVENT_BY_ID.EVENT_shura_nini_meteor_01.weight <= 22, "nini-meteor 01 is CONFLICT weight");
 assert(EVENT_BY_ID.EVENT_shura_nini_meteor_02.weight >= 22 && EVENT_BY_ID.EVENT_shura_nini_meteor_02.weight <= 28, "nini-meteor 02 is CRISIS weight");
 assert(EVENT_BY_ID.EVENT_shura_pepsi_meteor_01.weight >= 16 && EVENT_BY_ID.EVENT_shura_pepsi_meteor_01.weight <= 22, "pepsi-meteor 01 is CONFLICT weight");
@@ -659,13 +689,31 @@ const drawnId = hold.getState().currentEvent.id;
 hold.choose(hold.getState().currentEvent.choices[0].id);
 const held = hold.holdTonight();
 assert(held.ok, "hold tonight succeeds");
-assert(hold.getState().settlement.status === "paused", "hold pauses the night");
+assert(hold.getState().lifecycle === "playing", "hold does not lock the session as finished");
+assert(hold.getState().settlement.status !== "paused", "hold no longer traps the night in paused");
+assert(hold.getState().currentSession.phase === "settling", "hold starts tonight settlement");
+assert(hold.choose("watch").ok === false, "ordinary draws stop after hold");
 assert(hold.getState().lastResult.kind === "nightHold", "hold shows settlement popup data");
 assert(hold.getState().lastResult.settlement.eventCount >= 7, "settlement counts tonight's cards");
 assert(hold.getState().lastResult.settlement.characters.find((c) => c.id === "nini").from === openingNini, "settlement uses opening danger");
 assert(hold.getState().flags.nini_arrived === true, "hold keeps existing flags");
 assert(hold.getState().occurredEventIds.includes(drawnId), "hold keeps occurred events");
-assert(!/EVENT_|FLAG_|IV_/.test(JSON.stringify(hold.getState().lastResult.logs)), "settlement logs hide internal ids");
+assert(!/EVENT_|FLAG_|IV_|qixi_/.test(JSON.stringify(hold.getState().lastResult.logs)), "settlement logs hide internal ids");
+assert(hold.confirmTonightHold().ok, "confirming hold enters the night result");
+assert(hold.getState().currentEvent.id === "FINAL_night_partner", "hold confirm shows tonight's companion");
+assert(!/pepsi|nini|meteor|jupiter|mars|qixi_2026_/.test(hold.getState().currentEvent.description), "final copy has no internal ids");
+hold.choose("close_night");
+assert(hold.getState().lifecycle === "finished", "closing the night marks the session finished");
+assert(!/qixi_2026_night_partner|pepsi/.test(JSON.stringify(hold.getState().lastResult.logs || [])), "finished logs hide persistence keys");
+const finishedPartner = hold.getState().currentSession.nightPartner;
+hold.newGame();
+assert(hold.getState().currentEvent.id === "EVENT_001_prologue", "replay returns to the opening");
+assert(hold.getState().lifecycle === "playing", "replay starts a playing session");
+assert(!hold.getState().occurredEventIds.includes(drawnId), "replay clears occurred events");
+assert(hold.getState().flags.nini_arrived !== true, "replay clears session flags");
+assert(!hold.getState().flags.qixi_2026_night_partner, "replay clears tonight companion");
+assert(hold.getState().currentSession.nightPartner !== finishedPartner || hold.getState().currentSession.nightPartner == null, "replay clears companion");
+assert(hold.getState().characters.nini.affection === 56, "replay restores initial affection");
 
 const rewriteReset = createGame({ persist: false, rng: () => 0 });
 playIntro(rewriteReset);

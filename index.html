@@ -36,6 +36,15 @@
         border: 1px solid rgba(255, 92, 138, 0.45);
         background: rgba(255, 60, 90, 0.12);
       }
+      a.primary {
+        border-color: rgba(255, 211, 106, 0.65);
+        background: rgba(255, 180, 60, 0.16);
+        font-weight: 800;
+      }
+      a.ghost {
+        opacity: 0.78;
+        background: transparent;
+      }
     </style>
   </head>
   <body>
@@ -43,11 +52,12 @@
       <p class="kicker">COLAMOON LOVE · HAREM FIRE</p>
       <h1>【七夕事件】「可樂海王後宮失火啦」</h1>
       <p>百合戀愛修羅場－由你決定後宮劇情<br />長期戀愛事件平台 · 2026 七夕</p>
-      <nav>
-        <a href="./qixi/2026/">進入觀眾畫面</a>
-        <a href="./admin/">教主控制台</a>
-        <a href="./live-love-event/">直播互動原型（可另擴充）</a>
+      <nav id="entry-nav">
+        <a class="primary" href="./qixi/2026/">開始七夕遊戲</a>
+        <a class="ghost" href="./admin/">教主控制台</a>
+        <a class="ghost" href="./live-love-event/">直播互動原型（可另擴充）</a>
       </nav>
     </main>
+    <script type="module" src="./src/ui/entry.js"></script>
   </body>
 </html>

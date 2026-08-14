@@ -1,8 +1,8 @@
 import { CHARACTERS, STAT_LABELS } from "../../data/characters.js";
-import { characterDanger, computeDerived } from "./derived.js";
+import { audienceStatus, characterDanger, computeDerived } from "./derived.js";
 
 const INTERNAL_LEAK =
-  /\b(EVENT_|FLAG_|IV_|scene_|trigger_|core_|fate_rewritten_|crisis_blocked_|solo_active_|weightMods)\b/i;
+  /\b(?:EVENT_|FLAG_|IV_|scene_|trigger_|core_|fate_rewritten_|crisis_blocked_|solo_active_|weightMods|qixi_\d{4}_|[A-Za-z][\w]*_night_partner)\b/i;
 
 export function playerSafeLogs(logs = []) {
   return logs.filter((line) => typeof line === "string" && line.trim() && !INTERNAL_LEAK.test(line));
@@ -71,14 +71,19 @@ export function buildTonightSettlement(state) {
   const eventCount = (state.occurredEventIds || []).length;
   return {
     eventCount,
-    characters: CHARACTERS.map((c) => ({
-      id: c.id,
-      name: c.name,
-      shortName: c.shortName,
-      icon: c.icon,
-      from: opening.dangers[c.id] ?? 0,
-      to: now.dangers[c.id] ?? 0,
-    })),
+    characters: CHARACTERS.map((c) => {
+      const status = audienceStatus(state, c.id);
+      return {
+        id: c.id,
+        name: c.name,
+        shortName: c.shortName,
+        icon: c.icon,
+        from: opening.dangers[c.id] ?? 0,
+        to: now.dangers[c.id] ?? 0,
+        affection: state.characters[c.id]?.affection ?? 0,
+        statusLabel: status.label,
+      };
+    }),
     fireFrom: opening.fireIndex,
     fireTo: now.fireIndex,
   };

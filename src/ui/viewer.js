@@ -87,18 +87,22 @@ function renderHeader(state) {
   const solo = state.charactersView.find((c) => c.audienceStatus?.key === "solo");
   const statusBits = [fire.label];
   if (solo) statusBits.push(`${solo.shortName}獨處中`);
-  const paused = state.settlement.status === "paused";
+  const playing = state.lifecycle === "playing";
+  const finished = state.lifecycle === "finished";
   return `
     <header class="top">
       <p class="kicker">${state.season.english}</p>
       <div class="top-row">
         <div>
           <h1>${state.season.title}</h1>
-          <p class="sub">七夕當夜 · ${paused ? "今晚已暫停保存" : state.settlement.label}</p>
+          <p class="sub">七夕當夜 · ${finished ? "今晚已結算" : state.settlement.label}</p>
         </div>
         <div class="top-actions">
           <p class="now-status" data-fire="${state.derived.fireLevel}">${statusBits.join(" · ")}</p>
-          <button class="hold-btn" data-hold="1" ${state.settlement.status === "settled" ? "disabled" : ""}>先讓場面停在這裡</button>
+          <div class="header-btns">
+            ${playing ? `<button class="hold-btn" data-hold="1">先讓場面停在這裡</button>` : ""}
+            <button class="replay-btn" data-replay="1">重新遊玩</button>
+          </div>
         </div>
       </div>
     </header>`;
@@ -108,8 +112,11 @@ function renderEvent(state) {
   const event = state.currentEvent;
   const present = eventPresentation(event);
   const disableChoices =
-    state.settlement.status === "paused" || (state.settlement.status === "settled" && !event?.final);
+    state.lifecycle === "finished" ||
+    state.settlement.status === "paused" ||
+    (state.currentSession?.phase === "settling" && !event?.final);
   const cast = eventCastLabel(event, state.charactersView);
+  const replayOnCard = event?.final || state.lifecycle === "finished";
   return `
     <section class="event-stage tone-${present.tone}" data-kind="${present.kind}">
       <div class="event-card">
@@ -127,6 +134,7 @@ function renderEvent(state) {
                 `<button class="choice" data-choice="${choice.id}" ${disableChoices ? "disabled" : ""}>${audienceText(choice.label)}</button>`
             )
             .join("")}
+          ${replayOnCard ? `<button class="choice replay-choice" data-replay="1">重新遊玩</button>` : ""}
         </div>
       </div>
     </section>`;
@@ -164,7 +172,13 @@ function renderMoonCard(state) {
 }
 
 function renderFateButtons(state) {
-  const unlocked = state.interventionsUnlocked && state.settlement.status === "active";
+  const unlocked =
+    state.interventionsUnlocked &&
+    state.lifecycle === "playing" &&
+    state.settlement.status === "active" &&
+    state.currentSession?.phase !== "settling" &&
+    state.currentSession?.phase !== "final" &&
+    !state.currentEvent?.final;
   const solo = state.soloActive;
   const soloName = state.charactersView.find((c) => c.id === solo)?.name;
   return `
@@ -186,11 +200,13 @@ function renderFateButtons(state) {
       </div>
       ${
         !unlocked
-          ? state.settlement.status === "settled"
-            ? `<p class="lock">今晚暫時休戰。關係會帶到下一次活動。</p>`
-            : state.settlement.status === "paused"
-              ? `<p class="lock">今晚的命運已保存。場面停在這裡。</p>`
-              : `<p class="lock">先看完開場。特殊命運會在認識五個人之後解鎖。</p>`
+          ? state.lifecycle === "finished" || state.settlement.status === "settled"
+            ? `<p class="lock">今晚已結算。可以重新遊玩，開始全新的七夕。</p>`
+            : state.currentSession?.phase === "settling" || state.currentSession?.phase === "final"
+              ? `<p class="lock">今晚正在結算。特殊命運已停止。</p>`
+              : state.settlement.status === "paused"
+                ? `<p class="lock">今晚的命運已保存。場面停在這裡。</p>`
+                : `<p class="lock">先看完開場。特殊命運會在認識五個人之後解鎖。</p>`
           : solo
             ? `<p class="lock">🌙 ${soloName} 正在與月月獨處。300 可以破壞這段。</p>`
             : `<p class="lock">特殊命運是主播主動干涉。沒有確認，不會執行。</p>`
@@ -291,18 +307,21 @@ function renderPopup() {
       .join("");
     return `
       <div class="modal result-modal" data-overlay="popup">
-        <div class="backdrop" data-popup-done="1"></div>
+        <div class="backdrop" data-hold-confirm="1"></div>
         <div class="card result-card hold-card">
           <p class="kicker">今晚結算</p>
           <h3>🌙 今晚先到這裡</h3>
           <p class="hold-count">今晚事件：${s.eventCount} 張</p>
           <ul class="hold-chars">${rows}</ul>
+          <p class="hold-status">${(s.characters || [])
+            .map((c) => `${c.shortName}　${c.statusLabel || "平靜"}`)
+            .join("　")}</p>
           <p class="hold-fire">🔥 月月失火指數</p>
           <p class="hold-fire-num">
             ${s.fireFrom} → <b><i data-count-from="${s.fireFrom}" data-count-to="${s.fireTo}">${s.fireFrom}</i></b>
           </p>
           <p class="hold-saved">今晚的命運已保存。</p>
-          <button class="choice" data-popup-done="1">繼續</button>
+          <button class="choice" data-hold-confirm="1">確認今晚結算</button>
         </div>
       </div>`;
   }
@@ -333,7 +352,7 @@ function renderPopup() {
     <div class="modal result-modal" data-overlay="popup">
       <div class="backdrop" data-popup-done="1"></div>
       <div class="card result-card">
-        <p class="kicker">數值變化</p>
+        <p class="kicker">✦ 命運變化</p>
         ${renderStatRows(result.statChanges || [])}
         <button class="choice" data-popup-done="1">繼續</button>
       </div>
@@ -389,6 +408,19 @@ function onState(state) {
 }
 
 app.addEventListener("click", (event) => {
+  if (event.target.closest("[data-replay]")) {
+    if (!confirm("確定要清除本局、開始全新的七夕遊戲？上一局進度不會保留。")) return;
+    closeOverlay();
+    ui.popup = null;
+    ui.seenResultAt = 0;
+    game.newGame();
+    return;
+  }
+  if (event.target.closest("[data-hold-confirm]")) {
+    ui.popup = null;
+    game.confirmTonightHold();
+    return;
+  }
   if (event.target.closest("[data-popup-done]")) {
     ui.popup = null;
     render(game.getState());
@@ -473,5 +505,13 @@ document.addEventListener("keydown", (event) => {
     render(game.getState());
   }
 });
+
+const params = new URLSearchParams(location.search);
+if (params.get("replay") === "1") {
+  game.newGame();
+  history.replaceState({}, "", location.pathname);
+} else if (game.getState().settlement.status === "paused") {
+  game.resumeSession();
+}
 
 game.subscribe(onState);

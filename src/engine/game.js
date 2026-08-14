@@ -13,7 +13,7 @@ import {
   interpolateEvent,
 } from "./event-engine.js";
 import { audienceStatus, characterDanger, characterStatus, clampStat, computeDerived } from "./derived.js";
-import { clearSave, cloneState, createInitialState, loadSave, migrateSave, writeSave } from "./save.js";
+import { clearGameSave, cloneState, createInitialState, inspectSave, lifecycleStatus, loadSave, migrateSave, writeSave } from "./save.js";
 import {
   buildTonightSettlement,
   captureStatSnapshot,
@@ -156,6 +156,10 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
     }
     if (state.queuedAdvance) {
       state.queuedAdvance = false;
+      if (state.currentSession.phase === "settling" || state.currentSession.phase === "final") {
+        persistState();
+        return;
+      }
       if (state.currentSession.phase !== "intro") unlockDynamicPhase();
       const next = drawPoolEvent(state, rng);
       if (next) startEvent(next.id);
@@ -175,6 +179,9 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
     }
     const event = getEvent(state.currentEventId);
     if (!event) return { ok: false, error: "目前沒有事件" };
+    if (state.currentSession.phase === "settling" && !event.final) {
+      return { ok: false, error: "今晚正在結算" };
+    }
     const choice = (event.choices || []).find((item) => item.id === choiceId);
     if (!choice) return { ok: false, error: "找不到選項" };
 
@@ -224,6 +231,9 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
   function intervene(type, targetId, { force = false } = {}) {
     if (state.currentSession.status === "paused") return { ok: false, error: "本次事件已暫停" };
     if (state.currentSession.status === "settled") return { ok: false, error: "今晚已經暫時休戰" };
+    if (state.currentSession.phase === "settling" || state.currentSession.phase === "final") {
+      return { ok: false, error: "今晚正在結算" };
+    }
     if (!force && !state.flags[SEASON.unlockInterventionsFlag]) {
       return { ok: false, error: "先讓觀眾認識角色。干預尚未解鎖。" };
     }
@@ -297,18 +307,31 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
   }
 
   function holdTonight() {
-    if (state.currentSession.status === "settled") {
-      return { ok: false, error: "今晚已經暫時休戰" };
-    }
-    const settlement = state.currentSession.nightSettlement || buildTonightSettlement(state);
-    state.currentSession.status = "paused";
-    state.currentSession.pausedEventId = state.currentEventId;
+    const settlement = buildTonightSettlement(state);
     state.currentSession.nightSettlement = settlement;
+    if (state.currentSession.status !== "settled") {
+      state.currentSession.phase = "settling";
+      state.currentSession.drawingLocked = true;
+    }
     snapshotResult("今晚先到這裡", ["今晚的命運已保存。"], {
       kind: "nightHold",
       settlement,
     });
     pushHistory(state, { kind: "admin", text: "先讓場面停在這裡。今晚結算已保存。" });
+    persistState();
+    return { ok: true };
+  }
+
+  function confirmTonightHold() {
+    if (state.currentSession.status === "settled") return { ok: true };
+    if (state.currentEventId === SEASON.finalEventId) return { ok: true };
+    return endSession();
+  }
+
+  function newGame() {
+    clearGameSave();
+    state = createInitialState(state.currentSeason || GAME_CONFIG.currentSeason);
+    ensureSession(state);
     persistState();
     return { ok: true };
   }
@@ -436,7 +459,7 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
 
   function resetSeason() {
     const archive = state.archive || {};
-    clearSave();
+    clearGameSave();
     state = createInitialState(state.currentSeason || GAME_CONFIG.currentSeason);
     state.archive = archive;
     persistState();
@@ -496,6 +519,7 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
       ...cloneState(state),
       derived,
       settlement,
+      lifecycle: lifecycleStatus(state),
       trajectory: settlement,
       season: SEASONS[state.currentSeason],
       currentEvent: interpolateEvent(rawEvent, ctx),
@@ -553,6 +577,8 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
     nextEvent,
     pauseSession,
     holdTonight,
+    confirmTonightHold,
+    newGame,
     resumeSession,
     resetSession,
     resetSeason,
@@ -566,4 +592,4 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
   };
 }
 
-export { INTERVENTIONS, GAME_CONFIG };
+export { INTERVENTIONS, GAME_CONFIG, inspectSave, lifecycleStatus };

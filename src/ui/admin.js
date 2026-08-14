@@ -31,6 +31,7 @@ function render(state) {
           <button data-act="pause">暫停本次事件</button>
           <button data-act="resume">繼續本次事件</button>
           <button data-act="reset-session">重置本次 Session</button>
+          <button data-act="new-game">清除本局／重新遊玩</button>
           <button class="danger" data-act="end">結束本次事件</button>
         </div>
         <div class="actions">
@@ -168,6 +169,9 @@ app.addEventListener("click", (event) => {
     if (act === "resume") game.resumeSession();
     if (act === "reset-session" && confirm("重置本次 Session？會保留 archive 與跨季 night partner flag。")) {
       game.resetSession();
+    }
+    if (act === "new-game" && confirm("清除本局、開始全新的七夕遊戲？上一局進度不會保留。")) {
+      game.newGame();
     }
     if (act === "end") {
       if (

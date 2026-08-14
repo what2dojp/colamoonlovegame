@@ -116,7 +116,20 @@ export function writeSave(state) {
   localStorage.setItem(GAME_CONFIG.saveKey, JSON.stringify(state));
 }
 
-export function clearSave() {
+export function lifecycleStatus(state) {
+  const session = state?.currentSession;
+  if (!state || !session) return "none";
+  if (session.status === "settled") return "finished";
+  return "playing";
+}
+
+export function inspectSave() {
+  const data = loadSave();
+  if (!data) return { exists: false, status: "none" };
+  return { exists: true, status: lifecycleStatus(data) };
+}
+
+export function clearGameSave() {
   localStorage.removeItem(GAME_CONFIG.saveKey);
 }
 

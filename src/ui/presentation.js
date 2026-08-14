@@ -55,5 +55,12 @@ export function eventCastLabel(event, charactersView) {
 }
 
 export function audienceText(value) {
-  return String(value || "").replace(/\b(?:EVENT|FLAG|IV|scene|trigger|core)_[A-Za-z0-9_]+/g, "").trim();
+  return String(value || "")
+    .replace(/\b(?:EVENT|FLAG|IV|scene|trigger|core|node)_[A-Za-z0-9_]+\b/g, "")
+    .replace(/\bqixi_\d{4}_[A-Za-z0-9_]+\b/gi, "")
+    .replace(/\b[A-Za-z][\w]*_night_partner\b/gi, "")
+    .replace(/\b(?:nini|meteor|pepsi|jupiter|mars)\b/g, "")
+    .replace(/\s*=\s*/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 }
