@@ -19,6 +19,7 @@ function renderEntry() {
   } else if (info.status === "finished") {
     main = `
       <a class="primary" href="${playHref}">查看本局結果</a>
+      <a href="${playHref}?continue=1">繼續這個戀愛八點檔</a>
       <a href="${replayHref}">重新遊玩</a>`;
   } else {
     main = `

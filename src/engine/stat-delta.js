@@ -1,5 +1,6 @@
 import { CHARACTERS, STAT_LABELS } from "../../data/characters.js";
 import { audienceStatus, characterDanger, computeDerived } from "./derived.js";
+import { diffVisibleFlags } from "./narration.js";
 
 const INTERNAL_LEAK =
   /\b(?:EVENT_|FLAG_|IV_|scene_|trigger_|core_|fate_rewritten_|crisis_blocked_|solo_active_|weightMods|qixi_\d{4}_|[A-Za-z][\w]*_night_partner)\b/i;
@@ -13,6 +14,7 @@ export function captureStatSnapshot(state) {
   return {
     fireIndex: derived.fireIndex,
     dangers: { ...derived.dangers },
+    flags: { ...(state.flags || {}) },
     characters: Object.fromEntries(
       CHARACTERS.map((c) => [
         c.id,
@@ -56,6 +58,10 @@ export function diffStatSnapshots(before, after) {
   return rows;
 }
 
+export function diffStatusNotes(before, after) {
+  return diffVisibleFlags(before?.flags, after?.flags);
+}
+
 export function captureTonightSnapshot(state) {
   const derived = computeDerived(state);
   return {
@@ -76,6 +82,7 @@ export function buildTonightSettlement(state) {
       return {
         id: c.id,
         name: c.name,
+        fullName: c.name,
         shortName: c.shortName,
         icon: c.icon,
         from: opening.dangers[c.id] ?? 0,

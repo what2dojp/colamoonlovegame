@@ -13,8 +13,20 @@ const FIRE_COPY = {
   extreme: { label: "失火", line: "後宮真的在燒。" },
 };
 
-export function fireCopy(level) {
-  return FIRE_COPY[level] || FIRE_COPY.low;
+export function fireMoodLabel(score) {
+  const n = Number(score) || 0;
+  if (n >= 500) return "後宮危險警報";
+  if (n >= 300) return "場面開始失控";
+  if (n >= 220) return "火藥味出現了";
+  if (n >= 160) return "開始有點熱";
+  if (n >= 90) return "氣氛微妙";
+  return "風平浪靜";
+}
+
+export function fireCopy(level, score) {
+  const mood = score == null ? "" : fireMoodLabel(score);
+  const base = FIRE_COPY[level] || FIRE_COPY.low;
+  return mood ? { ...base, line: mood, mood } : base;
 }
 
 export function eventPresentation(event) {
@@ -59,6 +71,7 @@ export function audienceText(value) {
     .replace(/\b(?:EVENT|FLAG|IV|scene|trigger|core|node)_[A-Za-z0-9_]+\b/g, "")
     .replace(/\bqixi_\d{4}_[A-Za-z0-9_]+\b/gi, "")
     .replace(/\b[A-Za-z][\w]*_night_partner\b/gi, "")
+    .replace(/\b(?:solo_active|date_broken|public_jealous|fate_rewritten|crisis_blocked|forced|secret|encounter|letter_to|letter_misread_by|jealousy_triggered)_[A-Za-z0-9_]+\b/g, "")
     .replace(/\b(?:nini|meteor|pepsi|jupiter|mars)\b/g, "")
     .replace(/\s*=\s*/g, " ")
     .replace(/\s{2,}/g, " ")

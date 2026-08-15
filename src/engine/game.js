@@ -17,11 +17,21 @@ import { clearGameSave, cloneState, createInitialState, inspectSave, lifecycleSt
 import {
   buildTonightSettlement,
   captureStatSnapshot,
+  captureTonightSnapshot,
   diffStatSnapshots,
+  diffStatusNotes,
   playerSafeLogs,
 } from "./stat-delta.js";
 import {
+  buildIntervalCopy,
+  classifyResultKind,
+  overlayTitleForKind,
+  peekRevealKind,
+  rewriteLines,
+} from "./narration.js";
+import {
   buildProgressCard,
+  createSession,
   drawPoolEvent,
   ensureSession,
   hasOccurred,
@@ -68,6 +78,83 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
       at: nowStamp(),
       ...extra,
     };
+  }
+
+  function setFeedback({ showOverlay = false, showInterval = false, intervalCopy = "" } = {}) {
+    if (!state.currentSession) ensureSession(state);
+    if (intervalCopy) state.currentSession.intervalCopy = intervalCopy;
+    state.currentSession.feedback = {
+      showOverlay: Boolean(showOverlay),
+      showInterval: Boolean(showInterval),
+      intervalCopy: intervalCopy || state.currentSession.intervalCopy || "",
+    };
+  }
+
+  function attachChoiceResult({ event, logs, before, kind }) {
+    const after = captureStatSnapshot(state);
+    const statChanges = diffStatSnapshots(before, after);
+    let statusNotes = diffStatusNotes(before, after);
+    const resultKind = kind || classifyResultKind(event);
+    const target = CHARACTER_BY_ID[state.pendingTargetId] || CHARACTER_BY_ID[event?.characters?.[0]];
+    const nextEvent = getEvent(state.currentEventId);
+    if (resultKind === "force" && nextEvent) {
+      const tags = nextEvent.tags || [];
+      if (tags.includes("shura")) {
+        statusNotes = [...statusNotes, { kind: "shura", text: "現場被重新打亂。修羅場的空氣壓了上來。" }];
+      } else if (!nextEvent.hub && !nextEvent.final) {
+        statusNotes = [...statusNotes, { kind: "crisis", text: "⚠️ 危機局勢被重新打亂" }];
+      }
+    }
+    const intervalCopy = buildIntervalCopy({
+      kind: resultKind,
+      statChanges,
+      statusNotes,
+      characterId: target?.id,
+      name: target?.name,
+    });
+    const extra = {
+      kind: resultKind,
+      overlayTitle: overlayTitleForKind(resultKind),
+      statChanges,
+      statusNotes,
+      intervalCopy,
+      characterId: target?.id || null,
+      name: target?.name || null,
+      shortName: target?.shortName || null,
+      icon: target?.icon || null,
+    };
+    if (resultKind === "peek") {
+      if (nextEvent && !nextEvent.hub && !nextEvent.final && nextEvent.id !== event?.id) {
+        extra.revealKind = peekRevealKind(nextEvent);
+        extra.revealTitle = nextEvent.title;
+        extra.revealBody = nextEvent.description;
+        extra.revealSpeaker = nextEvent.speaker;
+      } else if (logs?.length) {
+        extra.revealKind = peekRevealKind(event);
+        extra.revealTitle = event?.title || "特殊命運";
+        extra.revealBody = playerSafeLogs(logs).join("\n");
+      }
+      extra.fateCost = 100;
+    }
+    if (resultKind === "encounter") {
+      extra.fateCost = 200;
+    }
+    if (resultKind === "intervene" || resultKind === "sabotage") {
+      extra.fateCost = 300;
+    }
+    if (resultKind === "force") {
+      extra.fateCost = 500;
+      if (target) {
+        extra.dangerFrom = before.dangers?.[target.id] ?? 0;
+        extra.dangerTo = after.dangers?.[target.id] ?? 0;
+      }
+    }
+    snapshotResult(overlayTitleForKind(resultKind), logs, extra);
+    setFeedback({
+      showOverlay: true,
+      showInterval: !nextEvent?.hub && !nextEvent?.final,
+      intervalCopy,
+    });
   }
 
   function clearSoloFlags() {
@@ -187,8 +274,6 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
 
     const before = captureStatSnapshot(state);
     const logs = applyEffects(state, choice.effects);
-    const after = captureStatSnapshot(state);
-    const statChanges = diffStatSnapshots(before, after);
     const unresolved = (choice.effects || []).some(
       (effect) => effect.type === "eventStatus" && effect.status === "unresolved"
     );
@@ -208,12 +293,15 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
       eventId: event.id,
       targetId: state.pendingTargetId,
     });
-    snapshotResult(event.title, logs, {
-      kind: statChanges.length ? "stats" : "choice",
-      statChanges,
-    });
 
     if (event.id === "EVENT_007_realization") unlockDynamicPhase();
+
+    const isHubDraw = Boolean(event.hub);
+    const isFinalClose = Boolean(event.final);
+
+    if (!isHubDraw && !isFinalClose) {
+      setFeedback({ showOverlay: true, showInterval: true });
+    }
 
     if (!state.queuedEventId && !state.queuedAdvance && !state.queuedFinalize && !event.hub && !event.final) {
       if (state.currentSession.forcedNextEventId) {
@@ -224,6 +312,9 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
       }
     }
     resolveQueue();
+    if (!isHubDraw && !isFinalClose) {
+      attachChoiceResult({ event, logs, before });
+    }
     persistState();
     return { ok: true };
   }
@@ -251,11 +342,11 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
     }
     const cost = GAME_CONFIG.interventionCosts[action.costKey];
     const stage = getEvent(state.currentEventId);
-    if (action.eventId === "IV_force") {
-      state.pendingForceFollowup = pickForceFollowup(stage?.characters || [], targetId, state.flags);
-    }
     if (action.id === "rewrite" || action.id === "rewriteFate") {
       return applyRewriteFate(targetId);
+    }
+    if (action.id === "force" || action.id === "forceEvent" || action.eventId === "IV_force") {
+      return applyForceFate(targetId, stage);
     }
     state.pendingTargetId = targetId || null;
     const target = CHARACTER_BY_ID[targetId];
@@ -266,12 +357,36 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
       targetId,
       interventionId: type,
     });
-    snapshotResult(action.name, [
-      `主播操作權限 ${cost}`,
-      `對象：${target?.name || "無"}`,
-      "這會改變接下來可能發生的事件，不是加減好感。",
-    ]);
     return startEvent(action.eventId);
+  }
+
+  function applyForceFate(targetId, stage) {
+    const followupId = pickForceFollowup(stage?.characters || [], targetId, state.flags);
+    const target = CHARACTER_BY_ID[targetId];
+    const cost = GAME_CONFIG.interventionCosts.force;
+    const before = captureStatSnapshot(state);
+    state.pendingTargetId = targetId || null;
+    state.pendingForceFollowup = null;
+    const forceCard = getEvent("IV_force");
+    if (forceCard?.onEnter) applyEffects(state, forceCard.onEnter);
+    clearSoloFlags();
+    trackCharacterTouch(state, targetId, "intervention", "IV_force");
+    pushHistory(state, {
+      kind: "intervention",
+      text: `主播執行「扭轉命運」（權限 ${cost}）→ ${target?.name || "現場"}。金流在遊戲外，此處不扣款。`,
+      targetId,
+      interventionId: "force",
+    });
+    setFeedback({ showOverlay: true, showInterval: true });
+    const started = startEvent(followupId);
+    attachChoiceResult({
+      event: forceCard,
+      logs: ["主播介入了剛才的局勢。"],
+      before,
+      kind: "force",
+    });
+    persistState();
+    return started?.ok === false ? started : { ok: true };
   }
 
   function applyRewriteFate(targetId) {
@@ -286,7 +401,22 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
       state.characters[pick][key] = next;
     }
     const after = captureStatSnapshot(state);
-    const statChanges = diffStatSnapshots(before, after);
+    const changes = rewriteLines(
+      target,
+      before.characters[pick],
+      after.characters[pick],
+      before.dangers[pick],
+      after.dangers[pick]
+    );
+    const statChanges = [
+      {
+        id: pick,
+        name: target.name,
+        shortName: target.shortName,
+        icon: target.icon,
+        changes,
+      },
+    ];
     state.pendingTargetId = pick;
     trackCharacterTouch(state, pick, "intervention", "rewrite");
     pushHistory(state, {
@@ -295,14 +425,24 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
       targetId: pick,
       interventionId: "rewrite",
     });
+    const intervalCopy = buildIntervalCopy({
+      kind: "rewrite",
+      statChanges,
+      characterId: pick,
+      name: target.name,
+    });
     snapshotResult("改寫命運", ["命運已重新洗牌。"], {
       kind: "rewrite",
+      overlayTitle: "改寫命運",
+      fateCost: 1000,
       characterId: pick,
       name: target.name,
       shortName: target.shortName,
       icon: target.icon,
       statChanges,
+      intervalCopy,
     });
+    setFeedback({ showOverlay: true, showInterval: false, intervalCopy });
     return startEvent(SEASON.hubEventId);
   }
 
@@ -315,8 +455,10 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
     }
     snapshotResult("今晚先到這裡", ["今晚的命運已保存。"], {
       kind: "nightHold",
+      overlayTitle: "今晚結算",
       settlement,
     });
+    setFeedback({ showOverlay: true, showInterval: false });
     pushHistory(state, { kind: "admin", text: "先讓場面停在這裡。今晚結算已保存。" });
     persistState();
     return { ok: true };
@@ -324,8 +466,76 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
 
   function confirmTonightHold() {
     if (state.currentSession.status === "settled") return { ok: true };
-    if (state.currentEventId === SEASON.finalEventId) return { ok: true };
-    return endSession();
+    if (state.currentEventId !== SEASON.finalEventId) {
+      const ended = endSession();
+      if (ended && ended.ok === false) return ended;
+    }
+    const partnerId = state.currentSession.nightPartner;
+    const partner = CHARACTER_BY_ID[partnerId];
+    const intervalCopy = buildIntervalCopy({
+      kind: "companion",
+      characterId: partnerId,
+      name: partner?.name,
+    });
+    snapshotResult("今晚的選擇", [], {
+      kind: "companion",
+      overlayTitle: "今晚的選擇",
+      characterId: partnerId || null,
+      name: partner?.name || null,
+      shortName: partner?.shortName || null,
+      icon: partner?.icon || null,
+      intervalCopy,
+    });
+    setFeedback({ showOverlay: true, showInterval: false, intervalCopy });
+    persistState();
+    return { ok: true };
+  }
+
+  function continueDrama() {
+    if (state.currentSession.phase === "settling" && state.currentEventId !== SEASON.finalEventId) {
+      endSession();
+    }
+    if (state.currentEventId === SEASON.finalEventId && state.currentSession.status !== "settled") {
+      finalizeSettlement();
+    }
+    if (state.currentSession.status !== "settled") {
+      return { ok: true };
+    }
+    state.queuedEventId = null;
+    state.queuedAdvance = false;
+    state.queuedFinalize = false;
+    state.pendingTargetId = null;
+    state.pendingForceFollowup = null;
+    state.lastResult = null;
+    const session = createSession();
+    session.status = "active";
+    session.phase = "dynamic";
+    session.skipIntro = true;
+    session.openingSnapshot = captureTonightSnapshot(state);
+    session.intervalCopy = "新的一晚開始了。現場的空氣，還承接著上一夜。";
+    session.feedback = { showOverlay: false, showInterval: false, intervalCopy: session.intervalCopy };
+    state.currentSession = session;
+    state.flags[SEASON.unlockInterventionsFlag] = true;
+    state.flags.audience_aware = true;
+    state.flags.dynamic_pool_unlocked = true;
+    persistState();
+    return startEvent(SEASON.hubEventId, { force: true });
+  }
+
+  function dismissResult() {
+    if (state.currentSession?.feedback) {
+      state.currentSession.feedback.showOverlay = false;
+    }
+    persistState();
+    return { ok: true };
+  }
+
+  function dismissInterval() {
+    if (state.currentSession?.feedback) {
+      state.currentSession.feedback.showInterval = false;
+    }
+    persistState();
+    return { ok: true };
   }
 
   function newGame() {
@@ -578,6 +788,9 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
     pauseSession,
     holdTonight,
     confirmTonightHold,
+    continueDrama,
+    dismissResult,
+    dismissInterval,
     newGame,
     resumeSession,
     resetSession,

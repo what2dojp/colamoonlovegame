@@ -381,13 +381,55 @@ h1 { font-size: clamp(20px, 2.4vw, 28px); }
 .draw-rank { font-size: 26px; color: var(--gold); font-weight: 800; }
 .draw-title { font-size: 28px; }
 
-.result-modal .result-card {
+.interval-stage .interval-card {
   text-align: center;
-  width: min(92vw, 480px);
+  min-height: 240px;
+  display: grid;
+  align-content: center;
+  gap: 12px;
+}
+.interval-kicker {
+  color: var(--gold);
+  letter-spacing: 0.24em;
+  font-size: 12px;
+}
+.interval-copy {
+  font-size: 22px;
+  line-height: 1.7;
+  max-width: 28ch;
+  margin: 0 auto;
+}
+.interval-copy strong { color: #fff4f0; }
+.final-partner { color: var(--gold); font-size: 18px; margin-top: 8px; }
+
+.result-modal .result-card { text-align: center; width: min(92vw, 480px); }
+.result-card.fate-strong {
+  width: min(94vw, 640px);
+  padding: 28px 24px;
+  border-width: 2px;
+  box-shadow: 0 0 40px rgba(255, 180, 60, 0.18);
+}
+.result-card.companion-card,
+.result-card.rewrite-card {
+  border-color: var(--gold);
+  background: linear-gradient(180deg, rgba(80, 36, 12, 0.55), #2a1028);
+}
+.result-card.force-card { border-color: #ff8a5c; }
+.result-card.encounter-card { border-color: #7ecbff; }
+.fate-cost-tag {
+  display: inline-block;
+  margin: 4px auto 8px;
+  padding: 2px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  font-weight: 800;
+  letter-spacing: 0.12em;
 }
 .result-card h3 { font-size: 28px; margin: 4px 0 12px; }
 .result-person { margin: 12px 0; }
 .result-name { color: #ffb3c8; font-weight: 800; font-size: 20px; margin-bottom: 8px; }
+.result-empty { color: var(--muted); margin: 8px 0; }
 .stat-change {
   display: flex;
   justify-content: space-between;
@@ -397,19 +439,47 @@ h1 { font-size: clamp(20px, 2.4vw, 28px); }
 }
 .stat-change b { color: #fff4f0; font-size: 22px; }
 .stat-change i { font-style: normal; color: var(--gold); }
-.hold-card { text-align: left; }
-.hold-status { color: var(--muted); font-size: 14px; margin: 0 0 12px; line-height: 1.7; }
-.hold-chars { list-style: none; display: grid; gap: 6px; margin-bottom: 16px; }
-.hold-chars li {
-  display: flex;
-  justify-content: space-between;
-  font-size: 18px;
+.status-notes {
+  list-style: none;
+  margin: 12px 0;
+  color: #ffe0c2;
+  line-height: 1.7;
 }
-.hold-chars i, .hold-fire-num i { font-style: normal; color: var(--gold); }
+.hold-card { text-align: left; }
+.hold-grid { display: grid; gap: 12px; margin: 16px 0; }
+.hold-person {
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.18);
+}
+.hold-person h4 { font-size: 18px; margin-bottom: 4px; }
+.hold-person-status { color: var(--gold); font-weight: 800; }
+.hold-person-num { font-size: 20px; }
+.hold-person-num i, .hold-fire-num i { font-style: normal; color: var(--gold); }
 .hold-fire { color: var(--fire); font-weight: 800; }
-.hold-fire-num { font-size: 28px; margin: 4px 0 12px; }
+.hold-fire-num { font-size: 28px; margin: 4px 0 8px; }
+.hold-fire-mood { color: var(--gold); font-weight: 800; margin-bottom: 12px; }
 .hold-saved { color: var(--gold); font-weight: 800; margin: 8px 0 16px; }
 .rewrite-card { text-align: center; }
+.rewrite-lead, .encounter-line, .force-line, .companion-lead, .companion-line {
+  line-height: 1.7;
+  margin: 8px 0;
+  font-size: 18px;
+}
+.companion-name { font-size: 36px; color: var(--gold); }
+.companion-congrats { font-size: 22px; margin: 12px 0 20px; }
+.force-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  text-align: center;
+  margin: 16px 0;
+}
+.force-label { color: var(--muted); letter-spacing: 0.16em; font-size: 12px; }
+.peek-kind { color: var(--gold); letter-spacing: 0.18em; margin: 8px 0; }
+.peek-title { font-size: 22px; font-weight: 800; margin: 8px 0; }
+.peek-body { line-height: 1.8; color: #ffe8ef; margin: 8px 0 16px; text-align: left; }
 .rewrite-card .choice, .result-card .choice { text-align: center; margin-top: 8px; }
 
 .logline {

@@ -3,7 +3,7 @@ import { GAME_CONFIG } from "../src/config/game.config.js";
 import { nightScore, pickNightPartner } from "../src/engine/session.js";
 import { inspectSave, migrateSave, pairKey } from "../src/engine/save.js";
 import { EVENT_BY_ID } from "../data/seasons/qixi-2026/events.js";
-import { audienceText, eventPresentation } from "../src/ui/presentation.js";
+import { audienceText, eventPresentation, fireMoodLabel } from "../src/ui/presentation.js";
 
 const assert = (cond, message) => {
   if (!cond) throw new Error(message);
@@ -195,8 +195,11 @@ assert(letterGame.getState().currentEvent.id === "EVENT_letter_nini", "letter fo
 const forceGame = createGame({ persist: false, rng: () => 0 });
 playIntro(forceGame);
 forceGame.intervene("force", "nini", { force: true });
-forceGame.choose("center");
 assert(forceGame.getState().currentEvent.id === "EVENT_nini_lockbox_01", "force from hub sends target into crisis, not spotlight");
+assert(forceGame.getState().lastResult.kind === "force", "500 shows 局勢變化 result");
+assert(forceGame.getState().lastResult.overlayTitle === "局勢變化", "500 overlay is 局勢變化");
+assert(forceGame.getState().lastResult.name === "雪碧日日", "500 names the character in Chinese");
+assert(!JSON.stringify(forceGame.getState().lastResult.intervalCopy || "").includes("EVENT_"), "500 interval copy has no event id");
 
 const pepsiBurn = createGame({ persist: false, rng: () => 0 });
 playIntro(pepsiBurn);
@@ -772,6 +775,95 @@ assert(
   !JSON.stringify(soloUi.getState().charactersView.find((c) => c.id === "mars").audienceStatus).includes("solo_active_mars"),
   "solo UI does not expose the flag key"
 );
+
+const feedback = createGame({ persist: false, rng: () => 0 });
+playIntro(feedback);
+assert(feedback.getState().lastResult.kind === "stats", "intro last choice still has a result popup");
+assert(feedback.getState().lastResult.overlayTitle === "狀態變化", "ordinary popup is 狀態變化");
+assert(feedback.getState().currentEvent.id === "EVENT_008_office_hub", "intro still lands on hub");
+assert(
+  !String(feedback.getState().lastResult.intervalCopy || "").includes("五人正式碰面"),
+  "interval copy does not use the hub title"
+);
+assert(
+  !String(feedback.getState().currentSession.intervalCopy || "").includes("小時候那條路"),
+  "interval copy does not preview a later card title"
+);
+
+feedback.startEvent("EVENT_shura_jupiter_mars_01", { force: true });
+feedback.choose("moon_opens");
+assert(feedback.getState().lastResult, "shura choice always produces a result");
+assert(feedback.getState().lastResult.kind === "stats", "shura moon_opens uses the shared result flow");
+assert(
+  (feedback.getState().lastResult.statusNotes || []).some((note) => /開了門/.test(note.text)),
+  "shura moon_opens explains the door in human language"
+);
+assert(!JSON.stringify(feedback.getState().lastResult.statusNotes).includes("moon_opened_the_door"), "shura result hides flag keys");
+assert(feedback.getState().lastResult.overlayTitle === "狀態變化", "shura popup is 狀態變化");
+assert(feedback.getState().currentEvent.id === "EVENT_008_office_hub", "unforced shura option returns to interval hub");
+
+const peekFx = createGame({ persist: false, rng: () => 0 });
+playIntro(peekFx);
+peekFx.intervene("peek", "meteor", { force: true });
+peekFx.choose("memory");
+assert(peekFx.getState().lastResult.kind === "peek", "100 memory has a special-fate result");
+assert(peekFx.getState().lastResult.revealKind === "回憶", "100 memory is labeled 回憶");
+assert(peekFx.getState().lastResult.revealTitle, "100 memory includes the card title");
+assert(peekFx.getState().lastResult.revealBody, "100 memory includes the card body");
+assert(!String(peekFx.getState().lastResult.revealTitle).includes("EVENT_"), "100 memory title has no event id");
+
+const encFx = createGame({ persist: false, rng: () => 0 });
+playIntro(encFx);
+encFx.intervene("encounter", "meteor", { force: true });
+encFx.choose("stay");
+assert(encFx.getState().lastResult.kind === "encounter", "200 stay has 獨處成立 result");
+assert(encFx.getState().lastResult.overlayTitle === "獨處成立", "200 overlay is 獨處成立");
+assert(encFx.getState().lastResult.name === "沙士流星", "200 names 沙士流星");
+assert(
+  !String(encFx.getState().lastResult.intervalCopy || "").includes(encFx.getState().currentEvent.title),
+  "200 interval does not preview the solo card title"
+);
+
+const rewriteFx = createGame({ persist: false, rng: () => 0 });
+playIntro(rewriteFx);
+rewriteFx.setStat("meteor", "destiny", 90);
+rewriteFx.intervene("rewrite", "meteor", { force: true });
+assert(rewriteFx.getState().lastResult.kind === "rewrite", "1000 still shuffles");
+assert(rewriteFx.getState().lastResult.name === "沙士流星", "1000 shows the full name");
+assert(
+  (rewriteFx.getState().lastResult.statChanges?.[0]?.changes || []).some((row) => row.key === "destiny"),
+  "1000 lists the shuffled core stats"
+);
+assert(
+  (rewriteFx.getState().lastResult.statChanges?.[0]?.changes || []).every((row) => row.label && !/EVENT_|FLAG_/.test(row.label)),
+  "1000 stat labels are human"
+);
+
+const holdFx = createGame({ persist: false, rng: () => 0 });
+playIntro(holdFx);
+holdFx.holdTonight();
+const settledChars = holdFx.getState().lastResult.settlement.characters;
+assert(settledChars.every((c) => c.name && c.name.length >= 4), "settlement uses full names");
+assert(settledChars.find((c) => c.id === "jupiter").name === "芬達木星", "settlement names 芬達木星");
+assert(settledChars.find((c) => c.id === "mars").name === "西打火星", "settlement names 西打火星");
+assert(typeof holdFx.getState().lastResult.settlement.fireTo === "number", "settlement includes fire index");
+assert(fireMoodLabel(holdFx.getState().lastResult.settlement.fireTo), "fire index has a mood label");
+holdFx.confirmTonightHold();
+assert(holdFx.getState().lastResult.kind === "companion", "confirming settlement opens companion popup");
+assert(holdFx.getState().lastResult.name, "companion popup names the partner");
+assert(!/pepsi|nini|meteor|jupiter|mars/.test(holdFx.getState().lastResult.name), "companion popup uses full Chinese name");
+holdFx.choose("close_night");
+const keptAffection = holdFx.getState().characters.meteor.affection;
+const keptOccurred = [...holdFx.getState().occurredEventIds];
+holdFx.continueDrama();
+assert(holdFx.getState().lifecycle === "playing", "continue drama starts another night");
+assert(holdFx.getState().currentEvent.id === "EVENT_008_office_hub", "continue drama returns to the hub interval");
+assert(holdFx.getState().characters.meteor.affection === keptAffection, "continue drama keeps world stats");
+assert(keptOccurred.every((id) => holdFx.getState().occurredEventIds.includes(id)), "continue drama keeps occurred cards");
+assert(holdFx.getState().flags.nini_arrived === true, "continue drama keeps existing flags");
+holdFx.newGame();
+assert(holdFx.getState().currentEvent.id === "EVENT_001_prologue", "replay after continue still starts a new game");
+assert(holdFx.getState().characters.meteor.affection === 62, "replay restores meteor affection");
 
 console.log("mvp smoke ok", {
   event: game.getState().currentEvent.id,

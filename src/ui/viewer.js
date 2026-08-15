@@ -1,8 +1,9 @@
 import { createGame } from "../engine/game.js";
-import { audienceText, eventCastLabel, eventPresentation, FATE_COPY, fireCopy } from "./presentation.js";
+import { audienceText, eventCastLabel, eventPresentation, FATE_COPY, fireCopy, fireMoodLabel } from "./presentation.js";
 
 const game = createGame();
 const app = document.getElementById("app");
+const DEFAULT_INTERVAL = "✦ 目前看起來還算平靜，只是每個人的心思似乎都有所改變。";
 
 const ui = {
   step: null,
@@ -26,6 +27,19 @@ function closeOverlay() {
   ui.drawPhase = 0;
   ui.drawTitle = "";
   clearTimers();
+}
+
+function richText(value) {
+  return audienceText(value).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+}
+
+function intervalCopy(state) {
+  return richText(
+    state.currentSession?.intervalCopy ||
+      state.currentSession?.feedback?.intervalCopy ||
+      state.lastResult?.intervalCopy ||
+      DEFAULT_INTERVAL
+  );
 }
 
 function fateAction(state, id) {
@@ -54,7 +68,7 @@ function startDraw(action) {
     }, 700),
     setTimeout(() => {
       ui.drawPhase = 3;
-      ui.drawTitle = audienceText(game.getState().currentEvent?.title || "命運已落下");
+      ui.drawTitle = "命運已落下";
       render(game.getState());
     }, 1500),
     setTimeout(() => {
@@ -68,26 +82,25 @@ function startDraw(action) {
 function queuePopupFromResult(state) {
   const result = state.lastResult;
   if (!result || result.at === ui.seenResultAt) return;
+  if (result.kind === "pending") return;
   ui.seenResultAt = result.at;
-  if (result.kind === "nightHold" && result.settlement) {
-    ui.popup = { kind: "nightHold", settlement: result.settlement };
-    return;
-  }
-  if (result.kind === "rewrite") {
-    ui.popup = { kind: "rewrite", result };
-    return;
-  }
-  if (result.kind === "stats" && result.statChanges?.length) {
-    ui.popup = { kind: "stats", result };
-  }
+  ui.popup = { kind: result.kind || "stats", result, settlement: result.settlement };
+}
+
+function canHold(state) {
+  return (
+    state.lifecycle === "playing" &&
+    state.currentSession?.phase !== "settling" &&
+    state.currentSession?.phase !== "final" &&
+    !state.currentEvent?.final
+  );
 }
 
 function renderHeader(state) {
-  const fire = fireCopy(state.derived.fireLevel);
+  const fire = fireCopy(state.derived.fireLevel, state.derived.fireIndex);
   const solo = state.charactersView.find((c) => c.audienceStatus?.key === "solo");
-  const statusBits = [fire.label];
-  if (solo) statusBits.push(`${solo.shortName}獨處中`);
-  const playing = state.lifecycle === "playing";
+  const statusBits = [fire.mood || fire.label];
+  if (solo) statusBits.push(`${solo.name}獨處中`);
   const finished = state.lifecycle === "finished";
   return `
     <header class="top">
@@ -100,7 +113,7 @@ function renderHeader(state) {
         <div class="top-actions">
           <p class="now-status" data-fire="${state.derived.fireLevel}">${statusBits.join(" · ")}</p>
           <div class="header-btns">
-            ${playing ? `<button class="hold-btn" data-hold="1">先讓場面停在這裡</button>` : ""}
+            ${canHold(state) ? `<button class="hold-btn" data-hold="1">先讓場面停在這裡</button>` : ""}
             <button class="replay-btn" data-replay="1">重新遊玩</button>
           </div>
         </div>
@@ -108,15 +121,68 @@ function renderHeader(state) {
     </header>`;
 }
 
+function renderInterval(state, { hideCta = false, continueOnly = false } = {}) {
+  const locked =
+    state.lifecycle === "finished" ||
+    state.settlement.status === "paused" ||
+    state.currentSession?.phase === "settling" ||
+    state.currentSession?.phase === "final";
+  const cta = hideCta
+    ? ""
+    : continueOnly
+      ? `<button class="choice" data-interval-done="1">抽出下一張</button>`
+      : `<button class="choice" data-choice="watch" ${locked ? "disabled" : ""}>抽出下一張</button>`;
+  return `
+    <section class="event-stage tone-hub interval-stage" data-kind="interval">
+      <div class="event-card interval-card">
+        <p class="interval-kicker">間隔</p>
+        <p class="interval-copy">${intervalCopy(state)}</p>
+        <div class="choices">${cta}</div>
+      </div>
+    </section>`;
+}
+
+function renderFinal(state) {
+  const event = state.currentEvent;
+  const present = eventPresentation(event);
+  const partner = state.charactersView.find((c) => c.id === state.currentSession?.nightPartner);
+  return `
+    <section class="event-stage tone-${present.tone}" data-kind="final">
+      <div class="event-card">
+        <div class="event-meta">
+          <span class="cast-name">可樂月月</span>
+          <span class="type-badge type-special">今晚結算</span>
+        </div>
+        <p class="speaker">可樂月月</p>
+        <h2 class="event-title">${audienceText(event?.title || "今晚的選擇")}</h2>
+        <p class="desc">${audienceText(event?.description || "")}</p>
+        ${partner ? `<p class="final-partner">今晚陪伴者：<b>${partner.name}</b></p>` : ""}
+        <div class="choices">
+          <button class="choice" data-continue-drama="1">繼續這個戀愛八點檔</button>
+          <button class="choice replay-choice" data-replay="1">重新遊玩</button>
+        </div>
+      </div>
+    </section>`;
+}
+
 function renderEvent(state) {
   const event = state.currentEvent;
+  const feedback = state.currentSession?.feedback || {};
+  const hideStory = Boolean(ui.popup) || feedback.showOverlay;
+  if (hideStory || event?.hub) {
+    return renderInterval(state, { hideCta: Boolean(ui.popup) || Boolean(feedback.showOverlay) });
+  }
+  if (feedback.showInterval && !event?.final) {
+    return renderInterval(state, { continueOnly: true });
+  }
+  if (event?.final) return renderFinal(state);
+
   const present = eventPresentation(event);
   const disableChoices =
     state.lifecycle === "finished" ||
     state.settlement.status === "paused" ||
     (state.currentSession?.phase === "settling" && !event?.final);
   const cast = eventCastLabel(event, state.charactersView);
-  const replayOnCard = event?.final || state.lifecycle === "finished";
   return `
     <section class="event-stage tone-${present.tone}" data-kind="${present.kind}">
       <div class="event-card">
@@ -134,7 +200,6 @@ function renderEvent(state) {
                 `<button class="choice" data-choice="${choice.id}" ${disableChoices ? "disabled" : ""}>${audienceText(choice.label)}</button>`
             )
             .join("")}
-          ${replayOnCard ? `<button class="choice replay-choice" data-replay="1">重新遊玩</button>` : ""}
         </div>
       </div>
     </section>`;
@@ -160,13 +225,14 @@ function renderMoonCard(state) {
   const rows = state.charactersView
     .map((c) => `<li><span>${c.name}</span><b>${c.danger}</b></li>`)
     .join("");
+  const fire = fireCopy(state.derived.fireLevel, state.derived.fireIndex);
   return `
     <article class="char-card moon-card fire-${state.derived.fireLevel} ${open}" data-moon="1">
       <div class="portrait" aria-hidden="true">🌙</div>
       <h3>可樂月月</h3>
       <p class="moon-kicker">修羅場中心</p>
       <p class="fire-line">🔥 失火指數 <b>${state.derived.fireIndex}</b></p>
-      <p class="status-line">${fireCopy(state.derived.fireLevel).line}</p>
+      <p class="status-line">${fire.mood || fire.line}</p>
       <ul class="fire-break">${rows}</ul>
     </article>`;
 }
@@ -201,7 +267,7 @@ function renderFateButtons(state) {
       ${
         !unlocked
           ? state.lifecycle === "finished" || state.settlement.status === "settled"
-            ? `<p class="lock">今晚已結算。可以重新遊玩，開始全新的七夕。</p>`
+            ? `<p class="lock">今晚已結算。可以繼續這個戀愛八點檔，或重新遊玩。</p>`
             : state.currentSession?.phase === "settling" || state.currentSession?.phase === "final"
               ? `<p class="lock">今晚正在結算。特殊命運已停止。</p>`
               : state.settlement.status === "paused"
@@ -246,7 +312,7 @@ function renderTarget(state) {
           ${state.charactersView
             .map(
               (c) =>
-                `<button class="target-btn ${c.audienceStatus?.key === "solo" ? "is-solo" : ""}" data-target="${c.id}">${c.icon}<br>${c.shortName}${c.audienceStatus?.key === "solo" ? "<small>獨處中</small>" : ""}</button>`
+                `<button class="target-btn ${c.audienceStatus?.key === "solo" ? "is-solo" : ""}" data-target="${c.id}">${c.icon}<br>${c.name}${c.audienceStatus?.key === "solo" ? "<small>獨處中</small>" : ""}</button>`
             )
             .join("")}
         </div>
@@ -264,99 +330,212 @@ function renderDraw(state) {
       <div class="card draw-card phase-${phase}">
         ${phase <= 1 ? `<p class="draw-wait">命運抽取中……</p>` : ""}
         ${phase >= 2 ? `<p class="draw-rank">✦ ${action.cost}｜${action.name} ✦</p>` : ""}
-        ${phase >= 3 ? `<h3 class="draw-title">${ui.drawTitle || audienceText(state.currentEvent?.title || "")}</h3>` : ""}
-        ${phase >= 3 ? `<button class="choice" data-draw-done="1">進入事件</button>` : ""}
+        ${phase >= 3 ? `<h3 class="draw-title">${ui.drawTitle || "命運已落下"}</h3>` : ""}
+        ${phase >= 3 ? `<button class="choice" data-draw-done="1">進入結果</button>` : ""}
       </div>
     </div>`;
 }
 
 function renderStatRows(groups) {
-  return groups
+  return (groups || [])
     .map((row) => {
-      const changes = row.changes
+      const changes = (row.changes || [])
         .map(
           (change) => `
             <div class="stat-change">
-              <span>${change.label}</span>
+              <span>${audienceText(change.label)}</span>
               <b>${change.from} → <i data-count-from="${change.from}" data-count-to="${change.to}">${change.from}</i></b>
             </div>`
         )
         .join("");
       return `
         <div class="result-person">
-          <p class="result-name">${row.icon || ""} ${row.name || row.shortName}</p>
-          ${changes}
+          <p class="result-name">${row.icon || ""} ${audienceText(row.name || row.shortName)}</p>
+          ${changes || `<p class="result-empty">沒有明顯的數值變動</p>`}
         </div>`;
     })
     .join("");
 }
 
-function renderPopup() {
-  const popup = ui.popup;
-  if (!popup) return "";
-  if (popup.kind === "nightHold") {
-    const s = popup.settlement;
-    const rows = (s.characters || [])
-      .map(
-        (c) => `
-          <li>
-            <span>${c.shortName}</span>
-            <b>${c.from} → <i data-count-from="${c.from}" data-count-to="${c.to}">${c.from}</i></b>
-          </li>`
-      )
-      .join("");
-    return `
-      <div class="modal result-modal" data-overlay="popup">
-        <div class="backdrop" data-hold-confirm="1"></div>
-        <div class="card result-card hold-card">
-          <p class="kicker">今晚結算</p>
-          <h3>🌙 今晚先到這裡</h3>
-          <p class="hold-count">今晚事件：${s.eventCount} 張</p>
-          <ul class="hold-chars">${rows}</ul>
-          <p class="hold-status">${(s.characters || [])
-            .map((c) => `${c.shortName}　${c.statusLabel || "平靜"}`)
-            .join("　")}</p>
-          <p class="hold-fire">🔥 月月失火指數</p>
-          <p class="hold-fire-num">
-            ${s.fireFrom} → <b><i data-count-from="${s.fireFrom}" data-count-to="${s.fireTo}">${s.fireFrom}</i></b>
-          </p>
-          <p class="hold-saved">今晚的命運已保存。</p>
-          <button class="choice" data-hold-confirm="1">確認今晚結算</button>
-        </div>
-      </div>`;
-  }
-  if (popup.kind === "rewrite") {
-    const result = popup.result;
-    const preferred = ["affection", "danger"];
-    const groups = (result.statChanges || []).map((row) => ({
-      ...row,
-      changes: [
-        ...row.changes.filter((change) => preferred.includes(change.key)),
-        ...row.changes.filter((change) => !preferred.includes(change.key)).slice(0, 1),
-      ],
-    }));
-    return `
-      <div class="modal result-modal" data-overlay="popup">
-        <div class="backdrop" data-popup-done="1"></div>
-        <div class="card result-card rewrite-card">
-          <p class="kicker">✦ 改寫命運 ✦</p>
-          <h3>${result.icon || ""} ${result.name || groups[0]?.name || ""}</h3>
-          ${renderStatRows(groups)}
-          <p class="hold-saved">命運已重新洗牌。</p>
-          <button class="choice" data-popup-done="1">繼續</button>
-        </div>
-      </div>`;
-  }
-  const result = popup.result;
+function renderStatusNotes(notes) {
+  if (!notes?.length) return "";
+  return `<ul class="status-notes">${notes
+    .map((note) => `<li>${richText(note.text || note)}</li>`)
+    .join("")}</ul>`;
+}
+
+function popupShell(inner, extraClass = "") {
   return `
     <div class="modal result-modal" data-overlay="popup">
       <div class="backdrop" data-popup-done="1"></div>
-      <div class="card result-card">
-        <p class="kicker">✦ 命運變化</p>
-        ${renderStatRows(result.statChanges || [])}
-        <button class="choice" data-popup-done="1">繼續</button>
+      <div class="card result-card ${extraClass}">
+        ${inner}
       </div>
     </div>`;
+}
+
+function renderHoldPopup(settlement) {
+  const s = settlement || {};
+  const rows = (s.characters || [])
+    .map(
+      (c) => `
+        <article class="hold-person">
+          <h4>${c.icon || ""} ${audienceText(c.name || c.fullName || c.shortName)}</h4>
+          <p class="hold-person-status">${audienceText(c.statusLabel || "平靜")}</p>
+          <p class="hold-person-num">${c.from} → <b><i data-count-from="${c.from}" data-count-to="${c.to}">${c.from}</i></b></p>
+        </article>`
+    )
+    .join("");
+  return popupShell(
+    `
+      <p class="kicker">今晚結算</p>
+      <h3>🌙 今晚先到這裡</h3>
+      <p class="hold-count">今晚事件：${s.eventCount || 0} 張</p>
+      <div class="hold-grid">${rows}</div>
+      <p class="hold-fire">🔥 可樂月月失火指數</p>
+      <p class="hold-fire-num">
+        ${s.fireFrom} → <b><i data-count-from="${s.fireFrom}" data-count-to="${s.fireTo}">${s.fireFrom}</i></b>
+      </p>
+      <p class="hold-fire-mood">${fireMoodLabel(s.fireTo)}</p>
+      <p class="hold-saved">今晚的命運已保存。</p>
+      <button class="choice" data-hold-confirm="1">確認今晚結算</button>
+    `,
+    "hold-card"
+  );
+}
+
+function renderPopup() {
+  const popup = ui.popup;
+  if (!popup) return "";
+  if (popup.kind === "nightHold") return renderHoldPopup(popup.settlement || popup.result?.settlement);
+
+  const result = popup.result || {};
+  const name = audienceText(result.name || result.statChanges?.[0]?.name || "");
+  const notes = renderStatusNotes(result.statusNotes);
+  const stats = renderStatRows(result.statChanges || []);
+
+  if (popup.kind === "companion") {
+    return popupShell(
+      `
+        <p class="kicker">🌙 今晚的選擇</p>
+        <p class="companion-lead">可樂月月今晚決定和……</p>
+        <h3 class="companion-name">${result.icon || ""} ${name}</h3>
+        <p class="companion-line">一起度過七夕夜！</p>
+        <p class="companion-congrats">🎉 恭喜${name}！</p>
+        <button class="choice" data-popup-done="1">看最終結果</button>
+      `,
+      "companion-card fate-strong"
+    );
+  }
+
+  if (popup.kind === "rewrite") {
+    return popupShell(
+      `
+        <p class="kicker">✦✦✦ 改寫命運 ✦✦✦</p>
+        <p class="fate-cost-tag">1000</p>
+        <p class="rewrite-lead">神使開始重新洗牌今晚的命運……</p>
+        <h3>${result.icon || ""} ${name}</h3>
+        ${stats}
+        <p class="hold-saved">${richText(result.intervalCopy || `${name} 的狀態已經完全不同了。`)}</p>
+        <button class="choice" data-popup-done="1">接受改寫</button>
+      `,
+      "rewrite-card fate-strong"
+    );
+  }
+
+  if (popup.kind === "force") {
+    const from = result.dangerFrom;
+    const to = result.dangerTo;
+    const dangerBlock =
+      from != null && to != null
+        ? `
+          <div class="force-compare">
+            <div>
+              <p class="force-label">原本</p>
+              <p>${name}</p>
+              <p>危險度 ${from}</p>
+            </div>
+            <div>
+              <p class="force-label">現在</p>
+              <p>${name}</p>
+              <p>危險度 <b><i data-count-from="${from}" data-count-to="${to}">${from}</i></b></p>
+            </div>
+          </div>`
+        : stats;
+    return popupShell(
+      `
+        <p class="kicker">✦ 局勢變化</p>
+        <p class="fate-cost-tag">500</p>
+        ${dangerBlock}
+        ${stats && from == null ? stats : ""}
+        ${notes}
+        <p class="force-line">${richText(result.intervalCopy || "主播介入了剛才的局勢。")}</p>
+        <button class="choice" data-popup-done="1">繼續</button>
+      `,
+      "force-card fate-strong"
+    );
+  }
+
+  if (popup.kind === "encounter") {
+    return popupShell(
+      `
+        <p class="kicker">🌙 獨處成立</p>
+        <p class="fate-cost-tag">200</p>
+        <h3>${name} × 可樂月月</h3>
+        <p class="encounter-line">其他人暫時被留在場外。</p>
+        <p class="encounter-line">今晚的兩人時間開始了。</p>
+        ${stats}
+        ${notes}
+        <button class="choice" data-popup-done="1">進入兩人時間</button>
+      `,
+      "encounter-card fate-strong"
+    );
+  }
+
+  if (popup.kind === "sabotage" || popup.kind === "intervene") {
+    return popupShell(
+      `
+        <p class="kicker">✦ 特殊命運介入</p>
+        <p class="fate-cost-tag">300</p>
+        <p class="force-line">${richText(result.intervalCopy || "主播介入了剛才的局勢。")}</p>
+        ${notes}
+        ${stats}
+        <button class="choice" data-popup-done="1">繼續</button>
+      `,
+      "intervene-card fate-strong"
+    );
+  }
+
+  if (popup.kind === "peek") {
+    const kind = audienceText(result.revealKind || "特殊命運");
+    const accept =
+      kind === "回憶" ? "收下這段回憶" : kind === "情書" ? "收下這封信" : "收下這段秘密";
+    return popupShell(
+      `
+        <p class="kicker">✦ 特殊命運</p>
+        <p class="fate-cost-tag">100</p>
+        <p class="peek-kind">【${kind}】</p>
+        <h3>${name}</h3>
+        <p class="peek-title">${audienceText(result.revealTitle || "")}</p>
+        <p class="peek-body">${audienceText(result.revealBody || result.logs?.join("\n") || "這段記憶被重新看見了。")}</p>
+        <p class="hold-saved">這段記憶被重新看見了。</p>
+        ${notes}
+        ${stats}
+        <button class="choice" data-popup-done="1">${accept}</button>
+      `,
+      "peek-card fate-strong"
+    );
+  }
+
+  return popupShell(
+    `
+      <p class="kicker">✦ 狀態變化</p>
+      ${stats || `<p class="result-empty">這次選擇沒有立刻改變數值，但現場的空氣已經不一樣了。</p>`}
+      ${notes}
+      <button class="choice" data-popup-done="1">繼續</button>
+    `,
+    "stats-card"
+  );
 }
 
 function animateValue(el, from, to, ms = 900) {
@@ -407,13 +586,25 @@ function onState(state) {
   render(state);
 }
 
+function replayGame() {
+  if (!confirm("確定要清除本局、開始全新的七夕遊戲？上一局進度不會保留。")) return;
+  closeOverlay();
+  ui.popup = null;
+  ui.seenResultAt = 0;
+  game.newGame();
+}
+
 app.addEventListener("click", (event) => {
   if (event.target.closest("[data-replay]")) {
-    if (!confirm("確定要清除本局、開始全新的七夕遊戲？上一局進度不會保留。")) return;
+    replayGame();
+    return;
+  }
+  if (event.target.closest("[data-continue-drama]")) {
     closeOverlay();
     ui.popup = null;
     ui.seenResultAt = 0;
-    game.newGame();
+    const result = game.continueDrama();
+    if (result && result.ok === false) alert(result.error);
     return;
   }
   if (event.target.closest("[data-hold-confirm]")) {
@@ -423,7 +614,11 @@ app.addEventListener("click", (event) => {
   }
   if (event.target.closest("[data-popup-done]")) {
     ui.popup = null;
-    render(game.getState());
+    game.dismissResult();
+    return;
+  }
+  if (event.target.closest("[data-interval-done]")) {
+    game.dismissInterval();
     return;
   }
   if (event.target.closest("[data-hold]")) {
@@ -480,6 +675,11 @@ app.addEventListener("click", (event) => {
       alert(result.error);
       return;
     }
+    if (type === "force") {
+      closeOverlay();
+      render(game.getState());
+      return;
+    }
     startDraw(fateAction(game.getState(), type));
     return;
   }
@@ -498,7 +698,7 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && ui.step !== "draw") {
     if (ui.popup) {
       ui.popup = null;
-      render(game.getState());
+      game.dismissResult();
       return;
     }
     closeOverlay();
@@ -509,6 +709,9 @@ document.addEventListener("keydown", (event) => {
 const params = new URLSearchParams(location.search);
 if (params.get("replay") === "1") {
   game.newGame();
+  history.replaceState({}, "", location.pathname);
+} else if (params.get("continue") === "1") {
+  game.continueDrama();
   history.replaceState({}, "", location.pathname);
 } else if (game.getState().settlement.status === "paused") {
   game.resumeSession();

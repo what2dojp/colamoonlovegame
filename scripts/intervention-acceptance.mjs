@@ -361,9 +361,9 @@ function peekSecret(targetId, choiceId) {
     const primaryBefore = game.getState().characters[id][primary];
     const fate = game.getState().fate;
     must(game.intervene("force", id).ok, `force ${id} from hub`);
-    must(game.getState().currentEvent.id === "IV_force", "500 opens IV_force not spotlight");
+    must(game.getState().lastResult.kind === "force", "500 shows 局勢變化 immediately");
+    must(game.getState().lastResult.overlayTitle === "局勢變化", "500 overlay title is 局勢變化");
     must(game.getState().flags[`forced_${id}`], `forced_${id}`);
-    game.choose("center");
     must(game.getState().fate === fate, "500 does not deduct fate");
     must(game.getState().currentEvent.id === CRISIS_BY_ID[id], `hub 500 ${id} → ${CRISIS_BY_ID[id]}`);
     must(game.getState().currentEvent.id !== "EVENT_forced_spotlight", "spotlight leftover is not used");
@@ -383,8 +383,8 @@ function peekSecret(targetId, choiceId) {
     const game = fresh();
     game.startEvent(stage, { force: true });
     game.intervene("force", target);
-    game.choose("center");
     must(game.getState().currentEvent.id === expected, `${stage} + 500 ${target} → ${expected}`);
+    must(game.getState().lastResult.kind === "force", `${stage} 500 has 局勢變化`);
   }
 
   addRow({
@@ -431,7 +431,6 @@ function peekSecret(targetId, choiceId) {
   must(override.getState().flags.crisis_blocked_nini, "rewrite scene wait still can block crisis");
   must(!inPool(override, "EVENT_nini_lockbox_01"), "blocked lockbox not in pool");
   override.intervene("force", "nini");
-  override.choose("center");
   must(override.getState().currentEvent.id !== "EVENT_nini_lockbox_01", "500 cannot pierce crisis_blocked_nini");
   must(override.getState().currentEvent.id === "EVENT_008_office_hub", "500 blocked crisis redirects to hub");
 
