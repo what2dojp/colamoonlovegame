@@ -1,5 +1,6 @@
 import { createGame } from "../engine/game.js";
 import { audienceText, eventCastLabel, eventPresentation, FATE_COPY, fireCopy, fireMoodLabel } from "./presentation.js";
+import { statMeta } from "../../data/characters.js";
 
 const game = createGame();
 const app = document.getElementById("app");
@@ -208,12 +209,19 @@ function renderEvent(state) {
 function renderCastCard(c, soloId) {
   const status = c.audienceStatus || { key: "calm", label: "平靜", hint: "" };
   const live = soloId === c.id;
+  const primary = (c.audienceStats || ["affection", c.uniquePrimary])
+    .filter((key) => c.values?.[key] != null)
+    .map((key) => {
+      const meta = statMeta(key);
+      return `<p class="aff-line">${meta.icon} ${meta.audienceLabel} ${c.values[key]}</p>`;
+    })
+    .join("");
   return `
     <article class="char-card status-${status.key} ${live ? "is-solo" : ""}" style="--accent:${c.accent}" data-char="${c.id}">
       <div class="portrait" aria-hidden="true">${c.icon}</div>
       <h3>${c.name}</h3>
       <p class="danger-line">危險度 <b>${c.danger}</b></p>
-      <p class="aff-line">親密度 ${c.values.affection}</p>
+      ${primary}
       <p class="status-line">${status.label}</p>
             ${live || status.hint ? `<p class="status-hint">${live ? "🌙 與可樂月月獨處中" : status.hint}</p>` : ""}
       <div class="danger-bar"><i style="width:${c.danger}%"></i></div>

@@ -56,6 +56,12 @@ export function migrateCharacterStats(id, raw = {}) {
   for (const key of def.stats) {
     if (renamed[key] != null) next[key] = renamed[key];
   }
+  delete next.destinyBelief;
+  delete next.soulResonance;
+  delete next.understanding;
+  delete next.restraint;
+  delete next.tension;
+  if (id === "pepsi") delete next.jealousy;
   return next;
 }
 

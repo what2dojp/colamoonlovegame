@@ -9,6 +9,9 @@ export const CHARACTERS = [
     role: "黃金獵犬／病嬌／佔有",
     philosophy: "愛是想永遠擁有妳。",
     uniquePrimary: "obsession",
+    coreStats: ["affection", "obsession", "jealousy"],
+    auxiliaryStats: ["trust", "dependence"],
+    audienceStats: ["affection", "obsession"],
     stats: ["affection", "obsession", "jealousy", "trust", "dependence"],
     summary:
       "月月養的黃金獵犬。曾經非常乖巧，帶著娃娃「晶晶」。被一句「那就來住這裡啊」留下之後，把依賴活成了永遠。",
@@ -39,6 +42,9 @@ export const CHARACTERS = [
     role: "青梅竹馬／舊愛／嘴硬",
     philosophy: "我們本來就注定會在一起。",
     uniquePrimary: "destiny",
+    coreStats: ["affection", "destiny", "nostalgia", "jealousy"],
+    auxiliaryStats: ["pride"],
+    audienceStats: ["affection", "destiny"],
     stats: ["affection", "destiny", "nostalgia", "jealousy", "pride"],
     summary:
       "小時候最喜歡的沙士，也是沒有正式告白、卻彼此默認的那個人。打鬧還在，約定也還在。",
@@ -69,7 +75,10 @@ export const CHARACTERS = [
     role: "平行世界的自己／靈魂共鳴",
     philosophy: "靈魂會認出彼此。",
     uniquePrimary: "resonance",
-    stats: ["affection", "resonance", "similarity", "destiny", "understanding"],
+    coreStats: ["affection", "resonance", "similarity", "destiny"],
+    auxiliaryStats: [],
+    audienceStats: ["affection", "resonance"],
+    stats: ["affection", "resonance", "similarity", "destiny"],
     summary:
       "另一個世界的月月。深棕色頭髮。她不搶，因為她相信真正命中注定的人不需要搶。",
     lore: [
@@ -78,7 +87,7 @@ export const CHARACTERS = [
       "她知道月月為什麼逃避、嘴硬、猶豫，兩人不需要過度解釋。",
       "她不是病嬌，也不是佔有型。相遇本身，對她來說已經是答案。",
     ],
-    initial: { affection: 0, resonance: 0, similarity: 0, destiny: 0, understanding: 0 },
+    initial: { affection: 0, resonance: 0, similarity: 0, destiny: 0 },
     rivalId: "meteor",
     soloEventId: "EVENT_pepsi_solo_01",
     letterEventId: "EVENT_letter_pepsi",
@@ -99,6 +108,9 @@ export const CHARACTERS = [
     role: "長期暗戀／深情／克制",
     philosophy: "我想要妳，但我不會要求妳選我。",
     uniquePrimary: "devotion",
+    coreStats: ["affection", "devotion", "patience", "jealousy"],
+    auxiliaryStats: ["hope"],
+    audienceStats: ["affection", "devotion"],
     stats: ["affection", "devotion", "patience", "jealousy", "hope"],
     summary:
       "一直在追月月，只是追法很安靜。她不是朋友線。她想被選，但認為月月不欠她一個答案。",
@@ -129,6 +141,9 @@ export const CHARACTERS = [
     role: "死對頭／互相傷害／棋逢對手",
     philosophy: "我不知道為什麼，但我就是喜歡妳。",
     uniquePrimary: "chemistry",
+    coreStats: ["affection", "chemistry", "provocation"],
+    auxiliaryStats: ["pride"],
+    audienceStats: ["affection", "chemistry"],
     stats: ["affection", "chemistry", "provocation", "pride"],
     summary:
       "第一眼就討厭的類型。本該自動避開，卻總被事件撞在一起。互嗆、互坑、又偷偷關心。",
@@ -153,36 +168,58 @@ export const CHARACTERS = [
 
 export const CHARACTER_BY_ID = Object.fromEntries(CHARACTERS.map((c) => [c.id, c]));
 
-export const STAT_LABELS = {
-  affection: "親密度",
-  obsession: "執著",
-  jealousy: "嫉妒",
-  trust: "信任",
-  dependence: "依賴",
-  destiny: "命定",
-  nostalgia: "懷舊",
-  pride: "傲氣",
-  resonance: "靈魂共鳴",
-  similarity: "自我映照",
-  understanding: "理解",
-  devotion: "傾心",
-  patience: "等待",
-  hope: "希望",
-  chemistry: "化學反應",
-  provocation: "挑釁",
+export const CONFLICT_STAT_KEYS = new Set(["jealousy", "provocation"]);
+
+export const STAT_META = {
+  affection: { icon: "❤️", label: "好感度", audienceLabel: "親密度", layer: "core", role: "love" },
+  obsession: { icon: "🩸", label: "執著度", audienceLabel: "執著度", layer: "core", role: "love" },
+  jealousy: { icon: "💢", label: "嫉妒度", audienceLabel: "嫉妒度", layer: "core", role: "conflict" },
+  destiny: { icon: "✨", label: "命定感", audienceLabel: "命定感", layer: "core", role: "love" },
+  nostalgia: { icon: "🌙", label: "懷舊度", audienceLabel: "懷舊度", layer: "core", role: "love" },
+  resonance: { icon: "🌌", label: "靈魂共鳴", audienceLabel: "靈魂共鳴", layer: "core", role: "love" },
+  similarity: { icon: "🪞", label: "自我映照", audienceLabel: "自我映照", layer: "core", role: "love" },
+  devotion: { icon: "🌙", label: "守護度", audienceLabel: "守護度", layer: "core", role: "love" },
+  patience: { icon: "⏳", label: "等待度", audienceLabel: "等待度", layer: "core", role: "love" },
+  chemistry: { icon: "🔥", label: "化學反應", audienceLabel: "化學反應", layer: "core", role: "love" },
+  provocation: { icon: "💥", label: "挑釁度", audienceLabel: "挑釁度", layer: "core", role: "conflict" },
+  trust: { icon: "", label: "信任度", audienceLabel: "信任度", layer: "auxiliary", role: "plot" },
+  dependence: { icon: "", label: "依賴度", audienceLabel: "依賴度", layer: "auxiliary", role: "plot" },
+  pride: { icon: "", label: "傲氣", audienceLabel: "傲氣", layer: "auxiliary", role: "plot" },
+  hope: { icon: "", label: "希望", audienceLabel: "希望", layer: "auxiliary", role: "plot" },
 };
+
+export const STAT_LABELS = Object.fromEntries(
+  Object.entries(STAT_META).map(([key, meta]) => [key, meta.audienceLabel || meta.label])
+);
 
 export const STAT_KEY_ALIASES = {
   destinyBelief: "destiny",
   soulResonance: "resonance",
+  understanding: "similarity",
   restraint: "patience",
 };
 
 /** Unofficial leftover keys that still need a story effect when events/interventions write them. */
 export const UNOFFICIAL_STAT_REDIRECTS = {
-  pepsi: { jealousy: "understanding" },
-  mars: { jealousy: "provocation" },
+  mars: { jealousy: "provocation", tension: null },
 };
+
+export function characterCoreStats(def) {
+  return def?.coreStats || def?.stats || [];
+}
+
+export function characterAuxiliaryStats(def) {
+  return def?.auxiliaryStats || [];
+}
+
+export function characterAudienceStats(def) {
+  if (def?.audienceStats?.length) return def.audienceStats;
+  return def?.uniquePrimary ? ["affection", def.uniquePrimary] : ["affection"];
+}
+
+export function statMeta(key) {
+  return STAT_META[key] || { icon: "", label: STAT_LABELS[key] || key, audienceLabel: STAT_LABELS[key] || key, layer: "core", role: "love" };
+}
 
 export function resolveCharacterStatKey(characterId, key) {
   const def = CHARACTER_BY_ID[characterId];

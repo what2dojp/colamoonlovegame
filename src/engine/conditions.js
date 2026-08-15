@@ -1,3 +1,5 @@
+import { resolveCharacterStatKey } from "../../data/characters.js";
+
 export function getByPath(obj, path) {
   if (!path) return undefined;
   return path.split(".").reduce((current, key) => current?.[key], obj);
@@ -56,7 +58,13 @@ export function evalCondition(cond, ctx) {
     return (ctx.currentSession?.unresolvedEventIds || []).includes(cond.unresolved);
   }
   if (cond.path) {
-    const path = interpolate(cond.path, ctx);
+    let path = interpolate(cond.path, ctx);
+    const match = /^characters\.([^.]+)\.([^.]+)$/.exec(path);
+    if (match) {
+      const officialKey = resolveCharacterStatKey(match[1], match[2]);
+      if (!officialKey) return false;
+      path = `characters.${match[1]}.${officialKey}`;
+    }
     return evalOp(getByPath(ctx, path), cond.op || "eq", interpolate(cond.value, ctx));
   }
   return true;

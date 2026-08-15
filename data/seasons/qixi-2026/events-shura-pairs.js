@@ -200,7 +200,7 @@ export const EXTRA_SHURA_EVENTS = [
     onEnter: [
       { type: "flag", key: "shura_pepsi_jupiter_started", value: true },
       { type: "stat", path: "characters.pepsi.resonance", op: "add", value: 7 },
-      { type: "stat", path: "characters.pepsi.understanding", op: "add", value: 5 },
+      { type: "stat", path: "characters.pepsi.similarity", op: "add", value: 5 },
       { type: "stat", path: "characters.jupiter.devotion", op: "add", value: 7 },
       { type: "stat", path: "characters.jupiter.hope", op: "add", value: -4 },
       { type: "tension", pair: "pepsi-jupiter", op: "add", value: 9 },

@@ -1,5 +1,5 @@
 import { GAME_CONFIG } from "../config/game.config.js";
-import { CHARACTER_BY_ID } from "../../data/characters.js";
+import { CHARACTER_BY_ID, resolveCharacterStatKey } from "../../data/characters.js";
 import { SEASONS } from "../../data/seasons/index.js";
 import { EVENTS } from "../../data/seasons/qixi-2026/events.js";
 import { extraChoiceEffects } from "../../data/seasons/qixi-2026/choice-extras.js";
@@ -14,7 +14,7 @@ import {
   interpolateEvent,
 } from "./event-engine.js";
 import { audienceStatus, characterDanger, characterStatus, clampStat, computeDerived } from "./derived.js";
-import { clearGameSave, cloneState, createInitialState, inspectSave, lifecycleStatus, loadSave, migrateSave, writeSave } from "./save.js";
+import { clearGameSave, cloneState, createInitialState, inspectSave, lifecycleStatus, loadSave, migrateSave, pairKey, writeSave } from "./save.js";
 import {
   buildTonightSettlement,
   captureStatSnapshot,
@@ -766,10 +766,11 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
 
   function setStat(characterId, key, value) {
     const def = CHARACTER_BY_ID[characterId];
-    if (!def?.stats.includes(key)) return;
+    const officialKey = resolveCharacterStatKey(characterId, key);
+    if (!def || !officialKey) return;
     const num = Number(value);
     if (Number.isNaN(num)) return;
-    state.characters[characterId][key] = Math.max(
+    state.characters[characterId][officialKey] = Math.max(
       GAME_CONFIG.statMin,
       Math.min(GAME_CONFIG.statMax, num)
     );
@@ -939,7 +940,7 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
       soloActive: activeSoloId(state),
       eventLeadId: eventLeadCharacter(rawEvent),
       nightScores: Object.fromEntries(
-        Object.values(CHARACTER_BY_ID).map((c) => [c.id, Number(nightScore(state, c.id).toFixed(2))])
+        Object.values(CHARACTER_BY_ID).map((c) => [c.id, nightScore(state, c.id)])
       ),
       charactersView: Object.values(CHARACTER_BY_ID).map((c) => ({
         ...c,
@@ -947,7 +948,8 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
         status: characterStatus(state, c.id),
         audienceStatus: audienceStatus(state, c.id),
         danger: characterDanger(state, c.id),
-        nightScore: Number(nightScore(state, c.id).toFixed(2)),
+        nightScore: nightScore(state, c.id),
+        moonTension: Number(state.relationships?.[pairKey("moon", c.id)]?.tension) || 0,
       })),
       interventions: INTERVENTIONS.filter((item) => item.host).map((item) => ({
         ...item,

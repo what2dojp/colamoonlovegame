@@ -5,7 +5,7 @@ import { shuraIdsForPair } from "../../data/seasons/qixi-2026/interventions.js";
 import { GAME_CONFIG } from "../config/game.config.js";
 import { SEASONS } from "../../data/seasons/index.js";
 import { evalCondition } from "./conditions.js";
-import { computeDerived } from "./derived.js";
+import { clampStat, computeDerived } from "./derived.js";
 import { eventContext } from "./event-engine.js";
 import { captureTonightSnapshot } from "./stat-delta.js";
 
@@ -189,14 +189,14 @@ export function nightScore(state, id) {
   const stats = state.characters[id] || {};
   let score = 0;
   for (const [key, weight] of Object.entries(weights)) {
-    if (key === "moonTension") {
+    if (key === "relationshipTension" || key === "moonTension") {
       const rel = state.relationships?.[pairKey("moon", id)];
       score += (Number(rel?.tension) || 0) * weight;
       continue;
     }
     score += (Number(stats[key]) || 0) * weight;
   }
-  return score;
+  return clampStat(Math.round(score));
 }
 
 export function pickNightPartner(state) {
@@ -275,8 +275,7 @@ export function buildProgressCard(state) {
       uniqueKey: c.uniquePrimary,
       uniqueLabel: STAT_LABELS[c.uniquePrimary],
       uniqueValue: state.characters[c.id][c.uniquePrimary],
-      jealousy: state.characters[c.id].jealousy,
-      nightScore: Number(nightScore(state, c.id).toFixed(2)),
+      nightScore: nightScore(state, c.id),
     })),
     importantEvents: important,
     unresolved,

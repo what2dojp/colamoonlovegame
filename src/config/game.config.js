@@ -34,10 +34,10 @@ export const GAME_CONFIG = {
     fireHot: 90,
   },
   nightScoreWeights: {
-    nini: { affection: 0.35, obsession: 0.3, jealousy: 0.15, trust: 0.1, dependence: 0.1 },
-    meteor: { affection: 0.35, destiny: 0.25, nostalgia: 0.2, jealousy: 0.1, pride: 0.1 },
-    pepsi: { affection: 0.35, resonance: 0.3, similarity: 0.15, destiny: 0.1, understanding: 0.1 },
-    jupiter: { affection: 0.35, devotion: 0.25, patience: 0.2, jealousy: 0.1, hope: 0.1 },
-    mars: { affection: 0.35, chemistry: 0.3, provocation: 0.15, pride: 0.1, moonTension: 0.1 },
+    nini: { affection: 0.45, obsession: 0.35, jealousy: 0.2 },
+    meteor: { affection: 0.45, destiny: 0.3, nostalgia: 0.15, jealousy: 0.1 },
+    pepsi: { affection: 0.4, resonance: 0.35, similarity: 0.15, destiny: 0.1 },
+    jupiter: { affection: 0.45, devotion: 0.3, patience: 0.15, jealousy: 0.1 },
+    mars: { affection: 0.4, chemistry: 0.35, provocation: 0.15, relationshipTension: 0.1 },
   },
 };
