@@ -115,19 +115,22 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
         ...statusNotes.filter((note) => note.kind !== "solo-off" && note.kind !== "broken"),
       ];
     }
-    const intervalCopy = buildIntervalCopy({
+    const generated = buildIntervalCopy({
       kind: resultKind,
       statChanges,
       statusNotes,
       characterId: target?.id,
       name: target?.name,
     });
+    const intervalCopy =
+      resultKind === "stats" && event?.intervalCopy ? event.intervalCopy : generated;
     const extra = {
       kind: resultKind,
       overlayTitle: overlayTitleForKind(resultKind),
       statChanges,
       statusNotes,
       intervalCopy,
+      resultCopy: resultKind === "stats" ? event?.resultCopy || "" : "",
       characterId: target?.id || null,
       name: target?.name || null,
       shortName: target?.shortName || null,

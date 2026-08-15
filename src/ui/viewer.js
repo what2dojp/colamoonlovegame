@@ -561,6 +561,7 @@ function renderPopup() {
   return popupShell(
     `
       <p class="kicker">✦ 狀態變化</p>
+      ${result.resultCopy ? `<p class="result-lead">${richText(result.resultCopy)}</p>` : ""}
       ${stats || `<p class="result-empty">這次選擇沒有立刻改變數值，但現場的空氣已經不一樣了。</p>`}
       ${notes}
       <button class="choice" data-popup-done="1">繼續</button>

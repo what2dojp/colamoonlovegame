@@ -3,7 +3,7 @@ import { GAME_CONFIG } from "../src/config/game.config.js";
 import { nightScore, pickNightPartner } from "../src/engine/session.js";
 import { inspectSave, migrateSave, pairKey } from "../src/engine/save.js";
 import { EVENT_BY_ID, EVENTS } from "../data/seasons/qixi-2026/events.js";
-import { CHARACTERS, CHARACTER_BY_ID } from "../data/characters.js";
+import { CHARACTERS, CHARACTER_BY_ID, resolveCharacterStatKey } from "../data/characters.js";
 import { audienceText, eventPresentation, fireMoodLabel } from "../src/ui/presentation.js";
 
 const assert = (cond, message) => {
@@ -707,7 +707,7 @@ for (const id of CHAR_IDS) {
 
 const foreshadowOnly = createGame({ persist: false, rng: () => 0 });
 playIntro(foreshadowOnly);
-playForced(foreshadowOnly, "EVENT_nini_foreshadow_01", "wonder");
+playForced(foreshadowOnly, "EVENT_nini_foreshadow_01", "a");
 assert(foreshadowOnly.getState().flags.foreshadow_nini_missing, "foreshadow writes foreshadow_nini_missing");
 assert(
   !foreshadowOnly.getState().pool.some((item) => CRISIS_IDS.includes(item.id)),
@@ -1002,6 +1002,88 @@ assert(
   "300 interrupt also shows 西打火星"
 );
 assert(saboFx.getState().currentEvent.characters.includes("mars"), "300 next event is 西打火星's");
+
+const ORDINARY_COUNTS = { sweet: 4, nature: 3, overstep: 3, foreshadow: 3, solo: 3 };
+const ordinaryIds = [];
+for (const id of CHAR_IDS) {
+  for (const [kind, count] of Object.entries(ORDINARY_COUNTS)) {
+    for (let n = 1; n <= count; n += 1) {
+      const num = String(n).padStart(2, "0");
+      const eventId =
+        id === "jupiter" && kind === "solo" && num === "01"
+          ? "EVENT_jupiter_quiet_date"
+          : `EVENT_${id}_${kind}_${num}`;
+      ordinaryIds.push(eventId);
+    }
+  }
+}
+assert(ordinaryIds.length === 80, "ordinary card catalog is 80");
+assert(!EVENT_BY_ID.EVENT_jupiter_solo_01, "jupiter solo_01 is not a live id");
+assert(EVENT_BY_ID.EVENT_jupiter_quiet_date, "jupiter solo keeps EVENT_jupiter_quiet_date");
+assert(EVENT_BY_ID.EVENT_jupiter_quiet_date.choices.length === 4, "quiet date now has four choices");
+assert((EVENT_BY_ID.EVENT_jupiter_quiet_date.tags || []).includes("date"), "quiet date keeps the date tag");
+assert((EVENT_BY_ID.EVENT_jupiter_quiet_date.tags || []).includes("solo"), "quiet date stays a solo card");
+for (const eventId of ordinaryIds) {
+  const event = EVENT_BY_ID[eventId];
+  assert(event, `${eventId} exists`);
+  assert((event.choices || []).length === 4, `${eventId} has four choices`);
+  assert(event.weight > 0, `${eventId} keeps a draw weight`);
+  assert(event.resultCopy, `${eventId} has popup copy`);
+  assert(event.intervalCopy, `${eventId} has interval copy`);
+  const ids = event.choices.map((choice) => choice.id);
+  assert(ids.join(",") === "a,b,c,d", `${eventId} uses a/b/c/d`);
+  for (const choice of event.choices) {
+    const stats = (choice.effects || []).filter((effect) => effect.type === "stat");
+    assert(stats.length > 0, `${eventId}:${choice.id} writes stats`);
+    for (const effect of stats) {
+      const match = /^characters\.([^.]+)\.([^.]+)$/.exec(effect.path);
+      assert(match, `${eventId}:${choice.id} uses a character stat path`);
+      assert(resolveCharacterStatKey(match[1], match[2]), `${eventId}:${choice.id} writes official ${match[1]}.${match[2]}`);
+    }
+  }
+}
+assert(
+  EVENT_BY_ID.EVENT_nini_sweet_01.weight === 28 &&
+    EVENT_BY_ID.EVENT_nini_nature_01.weight === 20 &&
+    EVENT_BY_ID.EVENT_nini_overstep_01.weight === 10 &&
+    EVENT_BY_ID.EVENT_nini_foreshadow_01.weight === 8 &&
+    EVENT_BY_ID.EVENT_nini_solo_01.weight === 18 &&
+    EVENT_BY_ID.EVENT_jupiter_quiet_date.weight === 18,
+  "ordinary weights stay 28/20/10/8/18"
+);
+for (const id of [
+  "EVENT_nini_jealousy_01",
+  "EVENT_nini_lockbox_01",
+  "EVENT_nini_dependence_01",
+  "EVENT_meteor_jealousy_01",
+  "EVENT_meteor_never_broke_up_01",
+  "EVENT_pepsi_jealousy_01",
+  "EVENT_pepsi_identity_01",
+  "EVENT_pepsi_soul_01",
+  "EVENT_jupiter_jealousy_01",
+  "EVENT_jupiter_packing_01",
+  "EVENT_jupiter_hope_low_01",
+  "EVENT_mars_jealousy_01",
+  "EVENT_mars_too_close_01",
+  "EVENT_mars_kings_01",
+]) {
+  assert(EVENT_BY_ID[id], `special ${id} is still present`);
+}
+
+const ordinaryCopy = createGame({ persist: false, rng: () => 0 });
+playIntro(ordinaryCopy);
+ordinaryCopy.setStat("nini", "affection", 10);
+playForced(ordinaryCopy, "EVENT_nini_sweet_01", "d");
+assert(ordinaryCopy.getState().lastResult.resultCopy.includes("滿足"), "ordinary popup uses the card result copy");
+assert(ordinaryCopy.getState().lastResult.intervalCopy.includes("回到她身邊"), "ordinary interval uses the card interval copy");
+assert(ordinaryCopy.getState().characters.nini.affection === 8, "ordinary choices can lower stats");
+assert(ordinaryCopy.getState().characters.nini.obsession > 0, "ordinary choices can still raise other stats");
+assert(ordinaryCopy.getState().flags.foreshadow_nini_missing !== true, "unrelated foreshadow flags stay off");
+
+const overstepFlag = createGame({ persist: false, rng: () => 0 });
+playIntro(overstepFlag);
+playForced(overstepFlag, "EVENT_nini_overstep_01", "c");
+assert(overstepFlag.getState().flags.foreshadow_nini_hair, "overstep_01 still writes foreshadow_nini_hair");
 
 console.log("mvp smoke ok", {
   event: game.getState().currentEvent.id,
