@@ -3,7 +3,7 @@ import { CHARACTER_BY_ID } from "../../data/characters.js";
 import { SEASONS } from "../../data/seasons/index.js";
 import { EVENTS } from "../../data/seasons/qixi-2026/events.js";
 import { extraChoiceEffects } from "../../data/seasons/qixi-2026/choice-extras.js";
-import { INTERVENTIONS, activeSoloId, pickInterruptLine, SOLO_FLAG_IDS, soloFlag } from "../../data/seasons/qixi-2026/interventions.js";
+import { INTERVENTIONS, activeSoloId, eventLeadCharacter, pickInterruptLine, SOLO_FLAG_IDS, soloFlag } from "../../data/seasons/qixi-2026/interventions.js";
 import { SEASON } from "../../data/seasons/qixi-2026/season.js";
 import { createMockDonationProvider, fateFromDonation } from "./donation.js";
 import {
@@ -366,10 +366,12 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
 
   function rememberPair(originalSoloCharacter, joiningCharacter = null, interruptingCharacter = null) {
     state.originalSoloCharacter = originalSoloCharacter;
+    state.originalCharacter = originalSoloCharacter;
     state.joiningCharacter = joiningCharacter;
     state.interruptingCharacter = interruptingCharacter;
     if (!state.currentSession) ensureSession(state);
     state.currentSession.originalSoloCharacter = originalSoloCharacter;
+    state.currentSession.originalCharacter = originalSoloCharacter;
     state.currentSession.joiningCharacter = joiningCharacter;
     state.currentSession.interruptingCharacter = interruptingCharacter;
   }
@@ -379,7 +381,15 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
     const effects = [];
     if (!def) return effects;
     if (unique) effects.push({ type: "stat", path: `characters.${id}.${def.uniquePrimary}`, op: "add", value: unique });
-    if (jealous) effects.push({ type: "stat", path: `characters.${id}.jealousy`, op: "add", value: jealous });
+    if (jealous) {
+      if (def.stats.includes("jealousy")) {
+        effects.push({ type: "stat", path: `characters.${id}.jealousy`, op: "add", value: jealous });
+      } else if (def.stats.includes("provocation")) {
+        effects.push({ type: "stat", path: `characters.${id}.provocation`, op: "add", value: jealous });
+      } else {
+        effects.push({ type: "stat", path: `characters.${id}.${def.uniquePrimary}`, op: "add", value: jealous });
+      }
+    }
     if (affection) effects.push({ type: "stat", path: `characters.${id}.affection`, op: "add", value: affection });
     return effects;
   }
@@ -483,45 +493,57 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
   }
 
   function applyForceFate(joiningId) {
-    const originalSolo = activeSoloId(state);
+    const current = getEvent(state.currentEventId);
+    const originalId = eventLeadCharacter(current);
     const joiner = CHARACTER_BY_ID[joiningId];
-    const host = CHARACTER_BY_ID[originalSolo];
-    if (!originalSolo || !host) {
-      return { ok: false, error: "目前沒有正在發生的獨處，無法把人叫進來。" };
+    const host = CHARACTER_BY_ID[originalId];
+    if (!originalId || !host) {
+      return { ok: false, error: "目前這張不是角色事件，無法把人拉進來。" };
     }
     if (!joiner) return { ok: false, error: "請選擇加入戰場的人。" };
-    if (joiningId === originalSolo) {
-      return { ok: false, error: "請選另一個人加入戰場。正在獨處的人已經在場內。" };
+    if (joiningId === originalId) {
+      return { ok: false, error: "請選另一個人加入。目前卡片上的人已經在場內。" };
     }
     const cost = GAME_CONFIG.interventionCosts.force;
     const before = captureStatSnapshot(state);
-    rememberPair(originalSolo, joiningId, null);
+    if (!current.hub && !current.intervention && !current.final) {
+      completeEvent(state, current.id);
+    }
+    rememberPair(originalId, joiningId, null);
     state.pendingTargetId = joiningId;
+    const pairFlag = `shura_pull_${[originalId, joiningId].sort().join("-")}`;
     applyEffects(state, [
-      ...paidStatEffects(originalSolo, { unique: 16, jealous: 12 }),
+      ...paidStatEffects(originalId, { unique: 16, jealous: 12 }),
       ...paidStatEffects(joiningId, { unique: 16, jealous: 12 }),
-      { type: "flag", key: `date_broken_${originalSolo}`, value: true },
-      { type: "flag", key: `solo_active_${originalSolo}`, value: false },
-      { type: "flag", key: `forced_${originalSolo}`, value: true },
+      { type: "flag", key: pairFlag, value: true },
+      { type: "flag", key: `forced_${originalId}`, value: true },
       { type: "flag", key: `forced_${joiningId}`, value: true },
-      { type: "tension", pair: `${originalSolo}-${joiningId}`, op: "add", value: 10 },
+      { type: "tension", pair: `${originalId}-${joiningId}`, op: "add", value: 10 },
+      ...(activeSoloId(state) === originalId
+        ? [
+            { type: "flag", key: `date_broken_${originalId}`, value: true },
+            { type: "flag", key: `solo_active_${originalId}`, value: false },
+          ]
+        : []),
     ]);
-    clearSoloFlags();
+    if (activeSoloId(state) === originalId) clearSoloFlags();
+    else if (state.flags[soloFlag(originalId)]) state.flags[soloFlag(originalId)] = false;
     const after = captureStatSnapshot(state);
     const statChanges = diffStatSnapshots(before, after);
     trackCharacterTouch(state, joiningId, "intervention", "IV_force");
     pushHistory(state, {
       kind: "intervention",
-      text: `主播執行「扭轉命運」（權限 ${cost}）→ ${joiner.name} 加入 ${host.name} 的獨處。金流在遊戲外，此處不扣款。`,
+      text: `主播執行「扭轉命運」（權限 ${cost}）→ ${joiner.name} 加入 ${host.name} 正在發生的故事。金流在遊戲外，此處不扣款。`,
       targetId: joiningId,
       interventionId: "force",
     });
-    const picked = pickShuraForPair(state, originalSolo, joiningId, rng);
+    const picked = pickShuraForPair(state, originalId, joiningId, rng);
     const missingShura = !picked.eventId;
     const started = startEvent(picked.eventId || SEASON.hubEventId);
     const statusNotes = [
-      { kind: "join", text: `${joiner.name} 決定加入戰局。` },
-      { kind: "broken", text: `她直接打破了${host.name}與可樂月月原本的獨處時光。` },
+      { kind: "join", text: `${joiner.name} 決定加入這段時間。` },
+      { kind: "host", text: `${host.name}原本正與可樂月月共度這段時間。` },
+      { kind: "broken", text: `${joiner.name}的出現，直接打破了原本的氣氛。` },
       ...diffStatusNotes(before, after).filter((note) => note.kind !== "solo-off" && note.kind !== "broken"),
     ];
     if (missingShura) {
@@ -542,13 +564,15 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
       before,
       extra: {
         fateCost: 500,
-        overlayTitle: "局勢變化",
+        overlayTitle: "局勢突然改變",
         intervalCopy,
         statusNotes,
         statChanges,
-        originalSoloId: originalSolo,
+        originalSoloId: originalId,
         originalSoloName: host.name,
-        originalSoloCharacter: originalSolo,
+        originalSoloCharacter: originalId,
+        originalCharacter: originalId,
+        originalCharacterName: host.name,
         joiningId,
         joiningName: joiner.name,
         joiningCharacter: joiningId,
@@ -913,6 +937,7 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
       interventionsUnlocked: Boolean(state.flags[SEASON.unlockInterventionsFlag]),
       pool: listPoolCandidates(state),
       soloActive: activeSoloId(state),
+      eventLeadId: eventLeadCharacter(rawEvent),
       nightScores: Object.fromEntries(
         Object.values(CHARACTER_BY_ID).map((c) => [c.id, Number(nightScore(state, c.id).toFixed(2))])
       ),
@@ -927,7 +952,11 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
       interventions: INTERVENTIONS.filter((item) => item.host).map((item) => ({
         ...item,
         cost: GAME_CONFIG.interventionCosts[item.costKey],
-        available: item.requiresSolo ? Boolean(activeSoloId(state)) : true,
+        available: item.requiresSolo
+          ? Boolean(activeSoloId(state))
+          : item.id === "force" || item.id === "forceEvent"
+            ? Boolean(eventLeadCharacter(rawEvent))
+            : true,
       })),
       config: {
         costs: GAME_CONFIG.interventionCosts,

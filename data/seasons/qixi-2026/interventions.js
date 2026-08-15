@@ -8,11 +8,45 @@ export function activeSoloId(state) {
   return SOLO_FLAG_IDS.find((id) => state.flags?.[soloFlag(id)] === true) || null;
 }
 
+const BLOCKED_LEAD_TAGS = new Set([
+  "shura",
+  "rewrite",
+  "letter",
+  "memory",
+  "peek",
+  "intervention",
+  "intro",
+  "prologue",
+  "five-person",
+  "five",
+  "observation",
+  "hub",
+  "final",
+  "legacy",
+]);
+
+export function eventLeadCharacter(event) {
+  if (!event || event.hub || event.final || event.intervention) return null;
+  const tags = event.tags || [];
+  if (tags.some((tag) => BLOCKED_LEAD_TAGS.has(tag))) return null;
+  const eventId = String(event.id || "");
+  if (eventId.includes("shura") || eventId.startsWith("IV_") || eventId.startsWith("EVENT_rewrite_")) return null;
+  const ids = (event.characters || []).filter((id) => SOLO_FLAG_IDS.includes(id));
+  if (ids.length !== 1) return null;
+  return ids[0];
+}
+
 export const SHURA_BY_PAIR = {
   "meteor|nini": ["EVENT_shura_nini_meteor_01", "EVENT_shura_nini_meteor_02"],
   "meteor|pepsi": ["EVENT_shura_pepsi_meteor_01", "EVENT_shura_pepsi_meteor_02"],
   "nini|pepsi": ["EVENT_shura_nini_pepsi_01", "EVENT_shura_nini_pepsi_02"],
   "jupiter|mars": ["EVENT_shura_jupiter_mars_01", "EVENT_shura_jupiter_mars_02"],
+  "jupiter|nini": ["EVENT_shura_nini_jupiter_01"],
+  "mars|nini": ["EVENT_shura_nini_mars_01"],
+  "jupiter|meteor": ["EVENT_shura_meteor_jupiter_01"],
+  "mars|meteor": ["EVENT_shura_meteor_mars_01"],
+  "jupiter|pepsi": ["EVENT_shura_pepsi_jupiter_01"],
+  "mars|pepsi": ["EVENT_shura_pepsi_mars_01"],
 };
 
 export function pairShuraKey(a, b) {
@@ -88,8 +122,7 @@ export const INTERVENTIONS = [
     eventId: "IV_force",
     needsTarget: true,
     host: true,
-    requiresSolo: true,
-    blurb: "指定一個人加入正在發生的獨處，直接把局面炸成修羅場。",
+    blurb: "指定一個人加入目前這張角色事件，直接把局面炸成修羅場。",
   },
   {
     id: "rewrite",
@@ -135,8 +168,7 @@ export const INTERVENTIONS = [
     eventId: "IV_force",
     needsTarget: true,
     host: false,
-    requiresSolo: true,
-    blurb: "指定一個人加入獨處，強制進入兩人修羅場。",
+    blurb: "指定一個人加入目前事件，強制進入兩人修羅場。",
   },
   {
     id: "rewriteFate",

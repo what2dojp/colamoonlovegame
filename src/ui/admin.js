@@ -59,7 +59,7 @@ function render(state) {
               )
               .join("")}
           </div>
-          <p class="muted">300 支開獨處：指定 A 把正在獨處的 B 支開，下一張抽 A 的事件。500 拉人：指定 B 加入 A 的獨處，下一張強制 A × B 修羅場。</p>
+          <p class="muted">300 支開獨處：指定 A 把正在獨處的 B 支開，下一張抽 A 的事件。500 拉人：目前卡片角色是 A 時，指定 B 加入，下一張強制 A × B 修羅場。</p>
         </section>
         <section class="box">
           <h2>目前 Dynamic Event Pool</h2>

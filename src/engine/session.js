@@ -166,8 +166,7 @@ export function pickShuraForPair(state, a, b, rng = Math.random) {
   if (!unused.length) {
     return { eventId: null, reason: "exhausted", ids };
   }
-  const index = Math.min(unused.length - 1, Math.max(0, Math.floor(rng() * unused.length)));
-  return { eventId: unused[index], reason: null, ids };
+  return { eventId: unused[0], reason: null, ids };
 }
 
 export function trackCharacterTouch(state, characterId, kind, eventId) {

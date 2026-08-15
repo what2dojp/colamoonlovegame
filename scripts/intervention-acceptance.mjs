@@ -345,77 +345,112 @@ function peekSecret(targetId, choiceId) {
 {
   const hubDenied = fresh();
   const hubForce = hubDenied.intervene("force", "mars");
-  must(hubForce.ok === false, "500 refused without solo");
+  must(hubForce.ok === false, "500 refused on hub with no single lead character");
   must(hubDenied.getState().currentEvent.id === "EVENT_008_office_hub", "failed 500 stays on hub");
+
+  const sweetJoin = fresh();
+  sweetJoin.startEvent("EVENT_jupiter_sweet_01", { force: true });
+  must(sweetJoin.getState().eventLeadId === "jupiter", "sweet card lead is 芬達木星");
+  const affection = sweetJoin.getState().characters.jupiter.affection;
+  must(sweetJoin.intervene("force", "mars").ok, "500 works on a sweet card without solo");
+  const joinedSweet = sweetJoin.getState();
+  must(joinedSweet.lastResult.kind === "force", "500 shows 局勢變化 immediately");
+  must(joinedSweet.lastResult.overlayTitle === "局勢突然改變", "500 overlay title is 局勢突然改變");
+  must(joinedSweet.lastResult.originalCharacter === "jupiter", "500 stores A as current card character");
+  must(joinedSweet.lastResult.joiningCharacter === "mars", "500 stores B as the joiner");
+  must(joinedSweet.currentEvent.id === "EVENT_shura_jupiter_mars_01", "jupiter sweet + mars join → 木星×火星修羅場");
+  must(joinedSweet.characters.jupiter.affection === affection, "500 is not affection");
+  must(
+    joinedSweet.lastResult.statChanges.some((row) => row.id === "jupiter" && row.changes.some((c) => c.key === "danger" && c.to > c.from)),
+    "A danger rises"
+  );
+  must(
+    joinedSweet.lastResult.statChanges.some((row) => row.id === "mars" && row.changes.some((c) => c.key === "danger" && c.to > c.from)),
+    "B danger rises"
+  );
+  must(/歡迎來到戀愛修羅場/.test(joinedSweet.lastResult.intervalCopy), "500 interval uses the shura welcome");
+  must(/芬達木星/.test(joinedSweet.lastResult.intervalCopy) && /西打火星/.test(joinedSweet.lastResult.intervalCopy), "500 interval names A and B");
 
   const jupiterMars = fresh();
   jupiterMars.intervene("encounter", "jupiter");
   jupiterMars.choose("stay");
   must(jupiterMars.getState().soloActive === "jupiter", "A is 芬達木星");
-  const affection = jupiterMars.getState().characters.jupiter.affection;
-  must(jupiterMars.intervene("force", "mars").ok, "500 mars joins jupiter solo");
+  must(jupiterMars.intervene("force", "mars").ok, "500 mars still joins jupiter solo");
   const joined = jupiterMars.getState();
-  must(joined.lastResult.kind === "force", "500 shows 局勢變化 immediately");
-  must(joined.lastResult.overlayTitle === "局勢變化", "500 overlay title is 局勢變化");
-  must(joined.lastResult.originalSoloCharacter === "jupiter", "500 stores A as original solo");
+  must(joined.lastResult.originalSoloCharacter === "jupiter", "500 stores A as original character");
   must(joined.lastResult.joiningCharacter === "mars", "500 stores B as the joiner");
   must(joined.currentSession.originalSoloCharacter === "jupiter", "session keeps A");
   must(joined.currentSession.joiningCharacter === "mars", "session keeps B");
   must(joined.currentEvent.id === "EVENT_shura_jupiter_mars_01", "jupiter solo + mars join → 木星×火星修羅場");
   must(joined.currentEvent.characters.includes("jupiter") && joined.currentEvent.characters.includes("mars"), "shura cast is A×B");
-  must(joined.characters.jupiter.affection === affection, "500 is not affection");
-  must(
-    joined.lastResult.statChanges.some((row) => row.id === "jupiter" && row.changes.some((c) => c.key === "danger" && c.to > c.from)),
-    "A danger rises"
-  );
-  must(
-    joined.lastResult.statChanges.some((row) => row.id === "mars" && row.changes.some((c) => c.key === "danger" && c.to > c.from)),
-    "B danger rises"
-  );
   must(/歡迎來到戀愛修羅場/.test(joined.lastResult.intervalCopy), "500 interval uses the shura welcome");
-  must(/芬達木星/.test(joined.lastResult.intervalCopy) && /西打火星/.test(joined.lastResult.intervalCopy), "500 interval names A and B");
   must(!joined.lastResult.intervalCopy.includes("EVENT_"), "500 interval copy has no event id");
 
-  const marsJoinsWrong = fresh();
-  marsJoinsWrong.intervene("encounter", "nini");
-  marsJoinsWrong.choose("stay");
-  marsJoinsWrong.intervene("force", "mars");
-  must(marsJoinsWrong.getState().lastResult.joiningCharacter === "mars", "selected joiner stays mars");
-  must(marsJoinsWrong.getState().lastResult.originalSoloCharacter === "nini", "solo host stays nini");
-  must(marsJoinsWrong.getState().currentEvent.id !== "EVENT_shura_jupiter_mars_01", "selecting 西打火星 does not spawn 芬達木星's default shura");
-  must(marsJoinsWrong.getState().lastResult.missingShura === true, "nini × mars missing shura is reported");
-  must(marsJoinsWrong.getState().currentEvent.id === "EVENT_008_office_hub", "missing pair returns to hub instead of swapping characters");
+  const marsJoinsNini = fresh();
+  marsJoinsNini.startEvent("EVENT_nini_sweet_01", { force: true });
+  marsJoinsNini.intervene("force", "mars");
+  must(marsJoinsNini.getState().lastResult.joiningCharacter === "mars", "selected joiner stays mars");
+  must(marsJoinsNini.getState().lastResult.originalCharacter === "nini", "card host stays nini");
+  must(marsJoinsNini.getState().currentEvent.id === "EVENT_shura_nini_mars_01", "nini card + mars join → 日日×火星修羅場");
+  must(marsJoinsNini.getState().currentEvent.id !== "EVENT_shura_jupiter_mars_01", "selecting 西打火星 does not spawn 芬達木星's default shura");
 
-  const pairCases = [
+  const ALL_PAIRS = [
     ["meteor", "nini", "EVENT_shura_nini_meteor_01"],
     ["nini", "meteor", "EVENT_shura_nini_meteor_01"],
     ["pepsi", "meteor", "EVENT_shura_pepsi_meteor_01"],
     ["nini", "pepsi", "EVENT_shura_nini_pepsi_01"],
     ["mars", "jupiter", "EVENT_shura_jupiter_mars_01"],
+    ["jupiter", "mars", "EVENT_shura_jupiter_mars_01"],
+    ["nini", "jupiter", "EVENT_shura_nini_jupiter_01"],
+    ["nini", "mars", "EVENT_shura_nini_mars_01"],
+    ["meteor", "jupiter", "EVENT_shura_meteor_jupiter_01"],
+    ["meteor", "mars", "EVENT_shura_meteor_mars_01"],
+    ["pepsi", "jupiter", "EVENT_shura_pepsi_jupiter_01"],
+    ["pepsi", "mars", "EVENT_shura_pepsi_mars_01"],
   ];
-  for (const [soloId, joinId, expected] of pairCases) {
+  for (const [soloId, joinId, expected] of ALL_PAIRS) {
     const game = fresh();
-    game.intervene("encounter", soloId);
-    game.choose("stay");
+    game.startEvent(CHARACTER_BY_ID[soloId].soloEventId, { force: true });
     game.intervene("force", joinId);
-    must(game.getState().currentEvent.id === expected, `${soloId} solo + 500 ${joinId} → ${expected}`);
+    must(game.getState().currentEvent.id === expected, `${soloId} card + 500 ${joinId} → ${expected}`);
     must(shuraIdsForPair(soloId, joinId).includes(game.getState().currentEvent.id), "followup is an A×B shura id");
-    must(game.getState().lastResult.originalSoloCharacter === soloId, `${expected} keeps A`);
+    must(game.getState().lastResult.originalCharacter === soloId, `${expected} keeps A`);
     must(game.getState().lastResult.joiningCharacter === joinId, `${expected} keeps B`);
   }
 
   const selfJoin = fresh();
-  selfJoin.intervene("encounter", "jupiter");
-  selfJoin.choose("stay");
-  must(selfJoin.intervene("force", "jupiter").ok === false, "500 cannot join your own solo");
+  selfJoin.startEvent("EVENT_jupiter_sweet_01", { force: true });
+  must(selfJoin.intervene("force", "jupiter").ok === false, "500 cannot join your own card");
+
+  const crisisJoin = fresh();
+  crisisJoin.startEvent("EVENT_nini_lockbox_01", { force: true });
+  must(crisisJoin.getState().eventLeadId === "nini", "crisis card lead is 雪碧日日");
+  must(crisisJoin.intervene("force", "mars").ok, "500 works on a crisis card");
+  must(crisisJoin.getState().currentEvent.id === "EVENT_shura_nini_mars_01", "crisis 日日 + 火星 → 日日×火星修羅場");
+
+  const natureJoin = fresh();
+  natureJoin.startEvent("EVENT_meteor_nature_01", { force: true });
+  must(natureJoin.intervene("force", "nini").ok, "500 works on a personality card");
+  must(natureJoin.getState().currentEvent.id === "EVENT_shura_nini_meteor_01", "性格 流星 + 日日 → 日日×流星修羅場");
+
+  const onShura = fresh();
+  onShura.startEvent("EVENT_shura_jupiter_mars_01", { force: true });
+  must(onShura.intervene("force", "nini").ok === false, "500 refused on an existing shura card");
+
+  const dual = fresh();
+  dual.startEvent("EVENT_shura_nini_mars_01", { force: true });
+  dual.choose("help_nini");
+  const dualRows = dual.getState().lastResult.statChanges || [];
+  must(dualRows.some((row) => row.id === "nini"), "new shura option shows 雪碧日日");
+  must(dualRows.some((row) => row.id === "mars"), "new shura option also shows 西打火星");
 
   addRow({
     cost: 500,
     name: "扭轉命運",
-    effect: "指定 B 加入 A 的獨處，A/B 危險度上升，下一張強制 A×B 修羅場。沒有對應卡就回報，不改抽",
+    effect: "目前卡片角色 A 可把 B 拉進來，A/B 危險度上升，下一張強制 A×B 修羅場。十組組合都有卡",
     next: "是（A×B 修羅場，不是單人或隨機五人）",
     later: "是（date_broken_*、forced_* 被修羅場讀取）",
-    fake: "無獨處或選自己：拒絕",
+    fake: "現場卡或選自己：拒絕",
     invalid: "無",
     result: "通過",
   });
@@ -453,7 +488,12 @@ function peekSecret(targetId, choiceId) {
   must(override.getState().flags.crisis_blocked_nini, "rewrite scene wait still can block crisis");
   must(!inPool(override, "EVENT_nini_lockbox_01"), "blocked lockbox not in pool");
   const blockedForce = override.intervene("force", "meteor");
-  must(blockedForce.ok === false, "500 without a live solo is refused even after rewrite");
+  must(blockedForce.ok === false, "500 on hub after rewrite wait is refused");
+
+  const rewriteCard = fresh();
+  rewriteCard.startEvent("EVENT_rewrite_nini", { force: true });
+  must(rewriteCard.intervene("force", "meteor").ok === false, "500 refused on rewrite scene");
+  must(rewriteCard.getState().currentEvent.id === "EVENT_rewrite_nini", "failed 500 stays on rewrite scene");
 
   const jupiterStay = fresh();
   jupiterStay.startEvent("EVENT_rewrite_jupiter", { force: true });

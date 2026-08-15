@@ -1,6 +1,7 @@
 import { DAILY_EVENTS, MEMORY_EVENTS } from "./events-daily.js";
 import { PHASE1_EVENTS } from "./events-phase1.js";
 import { PHASE2_EVENTS } from "./events-phase2.js";
+import { EXTRA_SHURA_EVENTS } from "./events-shura-pairs.js";
 
 const CLEAR_SOLOS = [
   { type: "flag", key: "solo_active_nini", value: false },
@@ -642,7 +643,7 @@ export const EVENTS = [
     id: "IV_force",
     title: "干預：扭轉命運",
     description:
-      "主播扭轉現場。不是給 {{target.name}} 加一點好感，而是讓第三人入場，或把指定角色推上危機。",
+      "主播指定一個人加入目前這張角色事件。原本屬於可樂月月與現場主角的氣氛被直接打破，下一張強制進入兩人修羅場。",
     characters: [],
     speaker: "七夕神使",
     tags: ["intervention", "force"],
@@ -1297,6 +1298,7 @@ export const EVENTS = [
   ...MEMORY_EVENTS,
   ...PHASE1_EVENTS,
   ...PHASE2_EVENTS,
+  ...EXTRA_SHURA_EVENTS,
 ];
 
 export const EVENT_BY_ID = Object.fromEntries(EVENTS.map((e) => [e.id, e]));
