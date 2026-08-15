@@ -465,6 +465,7 @@ h1 { font-size: clamp(20px, 2.4vw, 28px); }
 .result-person { margin: 12px 0; }
 .result-name { color: #ffb3c8; font-weight: 800; font-size: 20px; margin-bottom: 8px; }
 .result-empty { color: var(--muted); margin: 8px 0; }
+.result-lead { color: #fff4f0; margin: 8px 0 12px; line-height: 1.7; }
 .stat-change {
   display: flex;
   justify-content: space-between;

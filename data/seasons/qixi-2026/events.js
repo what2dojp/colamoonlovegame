@@ -935,45 +935,6 @@ export const EVENTS = [
     ],
   },
   {
-    id: "EVENT_jupiter_quiet_date",
-    title: "木星的獨處：讓我照顧妳",
-    description:
-      "走廊只剩木星。她把月月上周想喝的飲料放好，沒有要月月只看她。「我只希望妳讓我照顧妳。不要拒絕我的幫助。我一點都不覺得麻煩。」",
-    characters: ["jupiter"],
-    speaker: "芬達木星",
-    pool: true,
-    weight: 18,
-    tags: ["jupiter", "date", "solo", "romance"],
-    onEnter: [{ type: "flag", key: "solo_active_jupiter", value: true }],
-    conditions: {
-      all: [
-        { flag: "dynamic_pool_unlocked" },
-        { not: { completed: "EVENT_jupiter_quiet_date" } },
-      ],
-    },
-    choices: [
-      {
-        id: "stay",
-        label: "讓這段照顧完整發生",
-        effects: [
-          { type: "flag", key: "solo_active_jupiter", value: false },
-          { type: "stat", path: "characters.jupiter.affection", op: "add", value: 8 },
-          { type: "stat", path: "characters.jupiter.hope", op: "add", value: 6 },
-          { type: "flag", key: "jupiter_quiet_date", value: true },
-        ],
-      },
-      {
-        id: "leave",
-        label: "先把這段照顧暫停一下",
-        effects: [
-          { type: "flag", key: "solo_active_jupiter", value: false },
-          { type: "stat", path: "characters.jupiter.hope", op: "add", value: -2 },
-          { type: "eventStatus", status: "unresolved" },
-        ],
-      },
-    ],
-  },
-  {
     id: "EVENT_meteor_nostalgia_01",
     title: "沙士與沒說完的結婚",
     description:

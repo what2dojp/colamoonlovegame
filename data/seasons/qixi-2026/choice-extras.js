@@ -375,33 +375,6 @@ export const CHOICE_EXTRAS = {
   ],
 
   "IV_jealousy:burn": [s("{{target.rivalId}}", "jealousy", 5)],
-
-  "EVENT_nini_sweet_01:tease": [s("nini", "obsession", -3)],
-  "EVENT_nini_nature_01:play": [s("nini", "dependence", -2)],
-  "EVENT_nini_overstep_01:ask": [s("nini", "obsession", -4), s("nini", "trust", 2)],
-  "EVENT_nini_foreshadow_01:drop": [s("nini", "trust", -3)],
-  "EVENT_meteor_sweet_01:detail": [s("meteor", "pride", -3)],
-  "EVENT_meteor_nature_01:now": [s("meteor", "destiny", -4)],
-  "EVENT_meteor_overstep_01:ask": [s("meteor", "destiny", -3), s("meteor", "affection", 2)],
-  "EVENT_meteor_foreshadow_01:hold": [s("meteor", "pride", -2)],
-  "EVENT_pepsi_sweet_01:order": [s("pepsi", "similarity", -3)],
-  "EVENT_pepsi_nature_01:private": [s("pepsi", "destiny", -2)],
-  "EVENT_pepsi_overstep_01:correct": [s("pepsi", "resonance", -4), s("pepsi", "affection", 3)],
-  "EVENT_pepsi_foreshadow_01:laugh": [s("pepsi", "similarity", -3)],
-  "EVENT_jupiter_sweet_01:keep": [s("jupiter", "hope", -3)],
-  "EVENT_jupiter_nature_01:see": [s("jupiter", "patience", -4)],
-  "EVENT_jupiter_overstep_01:ask": [s("jupiter", "devotion", -3), s("jupiter", "hope", 2)],
-  "EVENT_jupiter_foreshadow_01:stop": [s("jupiter", "patience", -5)],
-  "EVENT_mars_sweet_01:closer": [s("mars", "provocation", -4)],
-  "EVENT_mars_nature_01:win": [s("mars", "provocation", -5)],
-  "EVENT_mars_overstep_01:play": [s("mars", "pride", -3), s("mars", "affection", 3)],
-  "EVENT_mars_foreshadow_01:tease": [s("mars", "chemistry", -4)],
-
-  "EVENT_nini_solo_01:leave": [s("nini", "affection", -4), s("nini", "obsession", 3)],
-  "EVENT_meteor_solo_01:leave": [s("meteor", "affection", -4), s("meteor", "pride", 3)],
-  "EVENT_pepsi_solo_01:leave": [s("pepsi", "affection", -4), s("pepsi", "resonance", -3)],
-  "EVENT_mars_solo_01:leave": [s("mars", "affection", -3), s("mars", "provocation", 5)],
-  "EVENT_jupiter_quiet_date:leave": [s("jupiter", "hope", -6), s("jupiter", "affection", -3)],
 };
 
 export function extraChoiceEffects(eventId, choiceId) {
