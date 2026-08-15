@@ -21,12 +21,10 @@ export function characterDanger(state, id) {
   const stats = state.characters?.[id] || {};
   if (!def) return 0;
   const unique = Number(stats[def.uniquePrimary]) || 0;
-  const initial = Number(def.initial?.[def.uniquePrimary]) || 0;
-  const uniqueRise = Math.max(0, unique - initial);
   const jealousy = typeof stats.jealousy === "number" ? stats.jealousy : 0;
-  let score = 4 + jealousy * 0.4 + uniqueRise * 0.55 + unique * 0.1;
-  if (state.flags?.[`public_jealous_${id}`]) score += 22;
-  if (state.flags?.[`date_broken_${id}`]) score += 18;
+  let score = jealousy * 0.5 + unique * 0.45;
+  if (state.flags?.[`public_jealous_${id}`]) score += 18;
+  if (state.flags?.[`date_broken_${id}`]) score += 14;
   if (state.flags?.[`solo_active_${id}`]) score += 6;
   return clampStat(score);
 }
@@ -36,7 +34,7 @@ export function audienceStatus(state, id) {
   const stats = state.characters?.[id] || {};
   const evId = state.currentEventId || "";
   if (state.flags?.[`solo_active_${id}`] === true) {
-    return { key: "solo", label: "🌙 獨處中", hint: "與月月獨處中" };
+    return { key: "solo", label: "🌙 獨處中", hint: "與可樂月月獨處中" };
   }
   const inNamedCrisis =
     evId === def?.crisisEventId ||
@@ -46,12 +44,11 @@ export function audienceStatus(state, id) {
     return { key: "crisis", label: "危機", hint: "現場不穩" };
   }
   const jealousy = typeof stats.jealousy === "number" ? stats.jealousy : 0;
-  if (state.flags?.[`jealousy_triggered_${id}`] || jealousy >= 50) {
+  if (state.flags?.[`jealousy_triggered_${id}`] || jealousy >= 12) {
     return { key: "jealous", label: "嫉妒", hint: "在意距離" };
   }
   const unique = Number(stats[def?.uniquePrimary]) || 0;
-  const initial = Number(def?.initial?.[def?.uniquePrimary]) || 0;
-  if (hasForeshadow(state, id) || unique - initial >= 10) {
+  if (hasForeshadow(state, id) || unique >= 10) {
     return { key: "uneasy", label: "有些異常", hint: "還說不準" };
   }
   return { key: "calm", label: "平靜", hint: "" };
@@ -87,22 +84,24 @@ export function characterStatus(state, id) {
   const c = CHARACTER_BY_ID[id];
   const stats = state.characters[id];
   const unique = stats[c.uniquePrimary];
+  const affection = Number(stats.affection) || 0;
 
-  if (id === "nini" && unique >= 55 && stats.trust < 50) return "危險病嬌";
-  if (id === "nini" && unique >= 55) return "病嬌佔有";
-  if (id === "nini" && stats.dependence >= 70) return "不能沒有妳";
-  if (id === "nini" && stats.trust >= 70) return "忠誠依賴";
-  if (id === "meteor" && stats.destiny >= 78) return "命定確信";
-  if (id === "meteor" && stats.pride >= 60) return "嘴硬舊愛";
-  if (id === "pepsi" && stats.resonance >= 80) return "靈魂共鳴";
-  if (id === "pepsi") return "不必搶她";
-  if (id === "jupiter" && stats.devotion >= 80 && stats.hope <= 40) return "溫柔心碎";
-  if (id === "jupiter" && stats.hope < 55) return "成全但不走";
-  if (id === "jupiter" && stats.devotion >= 85) return "安靜地追求";
-  if (id === "mars" && stats.chemistry >= 55 && stats.provocation >= 70) return "互相傷害";
-  if (id === "mars" && stats.affection < 35) return "第一眼就討厭";
-  if (typeof stats.jealousy === "number" && stats.jealousy >= 55) return "醋意上升";
-  if (stats.affection >= 70) return "心動明顯";
+  if (affection < 8 && unique < 8) return "尚未靠近";
+  if (id === "nini" && unique >= 18 && stats.trust < 12) return "危險病嬌";
+  if (id === "nini" && unique >= 18) return "病嬌佔有";
+  if (id === "nini" && stats.dependence >= 20) return "不能沒有妳";
+  if (id === "nini" && stats.trust >= 18) return "忠誠依賴";
+  if (id === "meteor" && stats.destiny >= 20) return "命定確信";
+  if (id === "meteor" && stats.pride >= 16) return "嘴硬舊愛";
+  if (id === "pepsi" && stats.resonance >= 20) return "靈魂共鳴";
+  if (id === "pepsi" && affection >= 10) return "不必搶她";
+  if (id === "jupiter" && stats.devotion >= 20 && stats.hope <= 8) return "溫柔心碎";
+  if (id === "jupiter" && stats.hope < 10 && affection >= 8) return "成全但不走";
+  if (id === "jupiter" && stats.devotion >= 18) return "安靜地追求";
+  if (id === "mars" && stats.chemistry >= 16 && stats.provocation >= 18) return "互相傷害";
+  if (id === "mars" && affection < 8 && stats.provocation >= 12) return "第一眼就討厭";
+  if (typeof stats.jealousy === "number" && stats.jealousy >= 16) return "醋意上升";
+  if (affection >= 18) return "心動明顯";
   return "關係進行中";
 }
 

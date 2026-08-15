@@ -33,7 +33,7 @@ export function diffVisibleFlags(before = {}, after = {}) {
     }
   }
   if (!flagOn(before, "moon_opened_the_door") && flagOn(after, "moon_opened_the_door")) {
-    notes.push({ kind: "shura", text: "月月自己開了門。修羅場還沒結束。" });
+    notes.push({ kind: "shura", text: "可樂月月自己開了門。修羅場還沒結束。" });
   }
   return notes;
 }
@@ -133,7 +133,7 @@ export function buildIntervalCopy({
     .filter((change) => change.key === "danger" && change.to > change.from)
     .sort((a, b) => b.to - b.from - (a.to - a.from))[0];
   if (dangerUp && dangerUp.to - dangerUp.from >= 8) {
-    return `🔥 **場面的氣氛明顯變了。有人開始不只是想陪在月月身邊。**`;
+    return `🔥 **場面的氣氛明顯變了。有人開始不只是想陪在可樂月月身邊。**`;
   }
   if (dangerUp) {
     return `⚠️ **${dangerUp.name || nick} 的危險度上升了。請可樂月月注意她接下來的動向。**`;
@@ -143,7 +143,7 @@ export function buildIntervalCopy({
     .flatMap((row) => (row.changes || []).map((change) => ({ ...change, name: row.name })))
     .find((change) => change.key === "affection" && change.to > change.from);
   if (affectionUp) {
-    return `✦ **兩人的距離又近了一點。月月似乎也沒有抗拒。**`;
+    return `✦ **兩人的距離又近了一點。可樂月月似乎也沒有抗拒。**`;
   }
 
   const obsessionUp = (statChanges || [])
@@ -158,7 +158,7 @@ export function buildIntervalCopy({
     return `⚠️ **醋意正在現場蔓延。有人開始無法假裝沒看見。**`;
   }
   if (best && best.delta > 0 && /依賴/.test(best.label || "")) {
-    return `✦ **有人更不想離開月月了。這份依賴，比剛才更明顯。**`;
+    return `✦ **有人更不想離開可樂月月了。這份依賴，比剛才更明顯。**`;
   }
   if (statusNotes.length) return statusNotes[0].text;
   if (best) return `✦ **剛才這個選擇，讓現場的空氣悄悄偏了一點。**`;

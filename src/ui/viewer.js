@@ -215,7 +215,7 @@ function renderCastCard(c, soloId) {
       <p class="danger-line">危險度 <b>${c.danger}</b></p>
       <p class="aff-line">親密度 ${c.values.affection}</p>
       <p class="status-line">${status.label}</p>
-      ${live || status.hint ? `<p class="status-hint">${live ? "🌙 與月月獨處中" : status.hint}</p>` : ""}
+            ${live || status.hint ? `<p class="status-hint">${live ? "🌙 與可樂月月獨處中" : status.hint}</p>` : ""}
       <div class="danger-bar"><i style="width:${c.danger}%"></i></div>
     </article>`;
 }
@@ -274,7 +274,7 @@ function renderFateButtons(state) {
                 ? `<p class="lock">今晚的命運已保存。場面停在這裡。</p>`
                 : `<p class="lock">先看完開場。特殊命運會在認識五個人之後解鎖。</p>`
           : solo
-            ? `<p class="lock">🌙 ${soloName} 正在與月月獨處。300 可以破壞這段。</p>`
+            ? `<p class="lock">🌙 ${soloName} 正在與可樂月月獨處。300 可以破壞這段。</p>`
             : `<p class="lock">特殊命運是主播主動干涉。沒有確認，不會執行。</p>`
       }
     </section>`;

@@ -1,6 +1,6 @@
 export const FATE_COPY = {
   peek: { cost: 100, title: "偷看命運", tag: "看見不該知道的事" },
-  encounter: { cost: 200, title: "碰觸命運", tag: "讓某人靠近月月" },
+  encounter: { cost: 200, title: "碰觸命運", tag: "讓某人靠近可樂月月" },
   intervene: { cost: 300, title: "干涉命運", tag: "改變正在發生的事" },
   force: { cost: 500, title: "扭轉命運", tag: "改變現在的局勢" },
   rewrite: { cost: 1000, title: "改寫命運", tag: "重新洗牌一人的命運" },
@@ -15,11 +15,11 @@ const FIRE_COPY = {
 
 export function fireMoodLabel(score) {
   const n = Number(score) || 0;
-  if (n >= 500) return "後宮危險警報";
-  if (n >= 300) return "場面開始失控";
-  if (n >= 220) return "火藥味出現了";
-  if (n >= 160) return "開始有點熱";
-  if (n >= 90) return "氣氛微妙";
+  if (n >= 90) return "後宮危險警報";
+  if (n >= 55) return "場面開始失控";
+  if (n >= 40) return "火藥味出現了";
+  if (n >= 25) return "開始有點熱";
+  if (n >= 10) return "氣氛微妙";
   return "風平浪靜";
 }
 
@@ -46,7 +46,7 @@ export function eventPresentation(event) {
   if (tags.includes("letter")) return { kind: "letter", label: "✉ 情書", tone: "special" };
   if (tags.includes("solo") || tags.includes("date")) return { kind: "solo", label: "🌙 獨處", tone: "solo" };
   if (tags.includes("overstep")) return { kind: "overstep", label: "⚠ 越界", tone: "warn" };
-  if (tags.includes("foreshadow")) return { kind: "foreshadow", label: "👁 伏筆", tone: "quiet" };
+  if (tags.includes("foreshadow")) return { kind: "foreshadow", label: "", tone: "quiet" };
   if (tags.includes("nature")) return { kind: "nature", label: "✦ 性格", tone: "nature" };
   if (tags.includes("sweet")) return { kind: "sweet", label: "💗 甜蜜", tone: "sweet" };
   if (tags.includes("romance")) return { kind: "sweet", label: "💗 甜蜜", tone: "sweet" };
@@ -66,8 +66,17 @@ export function eventCastLabel(event, charactersView) {
   return names.join(" × ") || event?.speaker || "現場";
 }
 
-export function audienceText(value) {
+export function colaMoonText(value) {
   return String(value || "")
+    .replace(/可樂月月/g, "\u0000COLA\u0000")
+    .replace(/百事月月/g, "\u0000PEPSI\u0000")
+    .replace(/月月/g, "可樂月月")
+    .replace(/\u0000COLA\u0000/g, "可樂月月")
+    .replace(/\u0000PEPSI\u0000/g, "百事月月");
+}
+
+export function audienceText(value) {
+  return colaMoonText(value)
     .replace(/\b(?:EVENT|FLAG|IV|scene|trigger|core|node)_[A-Za-z0-9_]+\b/g, "")
     .replace(/\bqixi_\d{4}_[A-Za-z0-9_]+\b/gi, "")
     .replace(/\b[A-Za-z][\w]*_night_partner\b/gi, "")

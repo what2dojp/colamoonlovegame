@@ -2,6 +2,7 @@ import { GAME_CONFIG } from "../config/game.config.js";
 import { CHARACTER_BY_ID } from "../../data/characters.js";
 import { SEASONS } from "../../data/seasons/index.js";
 import { EVENTS } from "../../data/seasons/qixi-2026/events.js";
+import { extraChoiceEffects } from "../../data/seasons/qixi-2026/choice-extras.js";
 import { INTERVENTIONS, activeSoloId, pickForceFollowup, SOLO_FLAG_IDS, soloFlag } from "../../data/seasons/qixi-2026/interventions.js";
 import { SEASON } from "../../data/seasons/qixi-2026/season.js";
 import { createMockDonationProvider, fateFromDonation } from "./donation.js";
@@ -104,6 +105,13 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
       } else if (!nextEvent.hub && !nextEvent.final) {
         statusNotes = [...statusNotes, { kind: "crisis", text: "⚠️ 危機局勢被重新打亂" }];
       }
+    }
+    if (resultKind === "sabotage" && target) {
+      statusNotes = [
+        { kind: "solo-off", text: `🌙 ${target.name} 的獨處狀態 → 解除` },
+        { kind: "broken", text: "原本的兩人時間被打斷了。現場重新恢復多人狀態。" },
+        ...statusNotes.filter((note) => note.kind !== "solo-off" && note.kind !== "broken"),
+      ];
     }
     const intervalCopy = buildIntervalCopy({
       kind: resultKind,
@@ -273,7 +281,7 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
     if (!choice) return { ok: false, error: "找不到選項" };
 
     const before = captureStatSnapshot(state);
-    const logs = applyEffects(state, choice.effects);
+    const logs = applyEffects(state, [...(choice.effects || []), ...extraChoiceEffects(event.id, choiceId)]);
     const unresolved = (choice.effects || []).some(
       (effect) => effect.type === "eventStatus" && effect.status === "unresolved"
     );
@@ -592,7 +600,7 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
     pushHistory(state, { kind: "admin", text: `跳過事件 ${event.title}` });
     const fallback = event.choices?.[0];
     if (fallback) {
-      applyEffects(state, fallback.effects);
+      applyEffects(state, [...(fallback.effects || []), ...extraChoiceEffects(event.id, fallback.id)]);
       if (!state.queuedEventId && !state.queuedAdvance && !state.queuedFinalize) {
         goHubOrForced();
       } else {

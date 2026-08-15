@@ -32,6 +32,13 @@ assert(game.getState().fate === GAME_CONFIG.startingFate, "no in-game fate balan
 assert(game.getState().charactersView.length === 5, "five characters");
 assert(game.intervene("letter", "nini").ok === false, "interventions locked at start");
 assert(game.getState().settlement.label === "今晚尚未結算", "no story ending at start");
+assert(game.getState().derived.fireIndex === 0, "fire index starts at 0");
+assert(
+  game.getState().charactersView.every((c) => c.danger === 0 && Object.values(c.values).every((n) => n === 0)),
+  "all five start at 0"
+);
+assert(audienceText("月月看著百事月月") === "可樂月月看著百事月月", "standalone 月月 becomes 可樂月月");
+assert(audienceText("可樂月月今晚決定") === "可樂月月今晚決定", "可樂月月 is not doubled");
 
 playIntro(game);
 
@@ -240,7 +247,7 @@ const niniWeightBefore =
   jealous.getState().pool.find((item) => item.id === "EVENT_nini_jealousy_01")?.effectiveWeight || 0;
 jealous.intervene("jealousy", "nini", { force: true });
 assert(jealous.getState().flags.jealousy_triggered_nini, "jealousy flag set");
-assert(jealous.getState().characters.nini.jealousy >= 42, "jealousy +20 on enter");
+assert(jealous.getState().characters.nini.jealousy >= 20, "jealousy +20 on enter");
 assert(
   jealous.getState().currentSession.weightMods.EVENT_nini_jealousy_01 >= 40,
   "jealousy intervention boosts pool weight"
@@ -716,7 +723,7 @@ assert(!hold.getState().occurredEventIds.includes(drawnId), "replay clears occur
 assert(hold.getState().flags.nini_arrived !== true, "replay clears session flags");
 assert(!hold.getState().flags.qixi_2026_night_partner, "replay clears tonight companion");
 assert(hold.getState().currentSession.nightPartner !== finishedPartner || hold.getState().currentSession.nightPartner == null, "replay clears companion");
-assert(hold.getState().characters.nini.affection === 56, "replay restores initial affection");
+assert(hold.getState().characters.nini.affection === 0, "replay restores initial affection");
 
 const rewriteReset = createGame({ persist: false, rng: () => 0 });
 playIntro(rewriteReset);
@@ -756,7 +763,11 @@ assert(randomRewrite.getState().lastResult.kind === "rewrite", "random 1000 stil
 assert(eventPresentation(EVENT_BY_ID.EVENT_nini_sweet_01).label.includes("甜蜜"), "sweet cards are labeled 甜蜜");
 assert(eventPresentation(EVENT_BY_ID.EVENT_nini_nature_01).label.includes("性格"), "nature cards are labeled 性格");
 assert(eventPresentation(EVENT_BY_ID.EVENT_nini_overstep_01).label.includes("越界"), "overstep cards are labeled 越界");
-assert(eventPresentation(EVENT_BY_ID.EVENT_nini_foreshadow_01).label.includes("伏筆"), "foreshadow cards are labeled 伏筆");
+assert(eventPresentation(EVENT_BY_ID.EVENT_nini_foreshadow_01).kind === "foreshadow", "foreshadow keeps a distinct tone");
+assert(
+  !String(eventPresentation(EVENT_BY_ID.EVENT_nini_foreshadow_01).label || "").includes("伏筆"),
+  "foreshadow cards do not tell the audience they are 伏筆"
+);
 assert(eventPresentation(EVENT_BY_ID.EVENT_008_office_hub).label.includes("現場"), "hub cards are labeled 現場");
 assert(eventPresentation(EVENT_BY_ID.EVENT_nini_solo_01).label.includes("獨處"), "solo cards are labeled 獨處");
 assert(eventPresentation(EVENT_BY_ID.EVENT_nini_lockbox_01).kind === "crisis", "lockbox is crisis tone");
@@ -863,7 +874,52 @@ assert(keptOccurred.every((id) => holdFx.getState().occurredEventIds.includes(id
 assert(holdFx.getState().flags.nini_arrived === true, "continue drama keeps existing flags");
 holdFx.newGame();
 assert(holdFx.getState().currentEvent.id === "EVENT_001_prologue", "replay after continue still starts a new game");
-assert(holdFx.getState().characters.meteor.affection === 62, "replay restores meteor affection");
+assert(holdFx.getState().characters.meteor.affection === 0, "replay restores meteor affection");
+
+const doorFx = createGame({ persist: false, rng: () => 0 });
+playIntro(doorFx);
+doorFx.startEvent("EVENT_shura_jupiter_mars_01", { force: true });
+doorFx.choose("help_jupiter");
+const doorPeople = (doorFx.getState().lastResult.statChanges || []).map((row) => row.id);
+assert(doorPeople.includes("jupiter"), "幫木星關門 shows 芬達木星");
+assert(doorPeople.includes("mars"), "幫木星關門 shows 西打火星");
+assert(
+  doorFx.getState().lastResult.statChanges.find((row) => row.id === "jupiter").changes.some((c) => c.key === "affection" && c.to > c.from),
+  "幫木星關門 raises 芬達木星 affection"
+);
+assert(
+  doorFx.getState().lastResult.statChanges.find((row) => row.id === "mars").changes.some((c) => c.to < c.from),
+  "幫木星關門 can lower 西打火星"
+);
+
+const stopFx = createGame({ persist: false, rng: () => 0 });
+playIntro(stopFx);
+stopFx.setStat("mars", "provocation", 80);
+stopFx.setStat("jupiter", "affection", 35);
+stopFx.startEvent("EVENT_shura_jupiter_mars_02", { force: true });
+stopFx.choose("mars_stop");
+const stopRows = stopFx.getState().lastResult.statChanges || [];
+assert(stopRows.some((row) => row.id === "mars" && row.changes.some((c) => c.key === "provocation" && c.to < c.from)), "請火星停手 lowers provocation");
+assert(stopRows.some((row) => row.id === "jupiter" && row.changes.some((c) => c.key === "affection" && c.to > c.from)), "請火星停手 also raises 芬達木星");
+assert(stopRows.length >= 2, "one shura option shows every involved character");
+
+const saboFx = createGame({ persist: false, rng: () => 0 });
+playIntro(saboFx);
+saboFx.intervene("encounter", "nini", { force: true });
+saboFx.choose("stay");
+saboFx.intervene("sabotage", "nini", { force: true });
+saboFx.choose("break");
+assert(saboFx.getState().lastResult.kind === "sabotage", "300 break uses the paid overlay");
+assert(
+  /獨處|兩人時間|打斷/.test(
+    JSON.stringify(saboFx.getState().lastResult.statusNotes || []) + (saboFx.getState().lastResult.intervalCopy || "")
+  ),
+  "300 shows the solo was broken"
+);
+assert(
+  (saboFx.getState().lastResult.statChanges || []).some((row) => row.id === "nini" && row.changes.some((c) => c.key === "affection" && c.to < c.from)),
+  "300 break can lower affection"
+);
 
 console.log("mvp smoke ok", {
   event: game.getState().currentEvent.id,

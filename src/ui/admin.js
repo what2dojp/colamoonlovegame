@@ -1,6 +1,6 @@
 import { STAT_LABELS } from "../../data/characters.js";
 import { createGame } from "../engine/game.js";
-import { FATE_COPY } from "./presentation.js";
+import { colaMoonText, FATE_COPY } from "./presentation.js";
 
 const game = createGame();
 const app = document.getElementById("app");
@@ -24,7 +24,7 @@ function render(state) {
       <section class="box">
         <h2>直播操作</h2>
         <p>${state.currentEvent?.title || ""}</p>
-        <p class="muted">${state.currentEvent?.description || ""}</p>
+        <p class="muted">${colaMoonText(state.currentEvent?.description || "")}</p>
         <div class="actions">
           <button data-act="next">下一事件</button>
           <button data-act="skip">跳過事件</button>
@@ -176,7 +176,7 @@ app.addEventListener("click", (event) => {
     if (act === "end") {
       if (
         confirm(
-          "結束本次事件？\n將進入「今晚，月月決定和誰過夜？」\n這是今晚結算，不是故事結局。"
+          "結束本次事件？\n將進入「今晚，可樂月月決定和誰過夜？」\n這是今晚結算，不是故事結局。"
         )
       ) {
         const result = game.endSession();

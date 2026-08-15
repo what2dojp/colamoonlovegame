@@ -182,53 +182,61 @@ h1 { font-size: clamp(20px, 2.4vw, 28px); }
 .choice:disabled, .fate-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .tone-sweet .event-card {
-  border-color: rgba(255, 130, 160, 0.45);
+  border-color: #ff7aa2;
   background:
-    radial-gradient(circle at 90% 0%, rgba(255, 110, 150, 0.16), transparent 42%),
-    var(--panel);
+    radial-gradient(circle at 88% 0%, rgba(255, 110, 160, 0.32), transparent 48%),
+    linear-gradient(180deg, rgba(90, 18, 42, 0.55), var(--panel));
+  box-shadow: 0 0 0 1px rgba(255, 130, 160, 0.2), inset 0 0 40px rgba(255, 80, 130, 0.08);
 }
 .tone-nature .event-card {
-  border-color: rgba(180, 150, 230, 0.4);
+  border-color: #c9a6ff;
   background:
-    radial-gradient(circle at 8% 0%, rgba(150, 120, 220, 0.16), transparent 44%),
-    var(--panel);
+    radial-gradient(circle at 8% 0%, rgba(170, 120, 255, 0.3), transparent 50%),
+    linear-gradient(180deg, rgba(42, 18, 72, 0.5), var(--panel));
 }
 .tone-warn .event-card {
-  border-color: rgba(255, 211, 106, 0.55);
+  border-color: #ffd36a;
   background:
-    radial-gradient(circle at 90% 10%, rgba(255, 180, 60, 0.14), transparent 46%),
-    var(--panel);
-  box-shadow: inset 0 0 0 1px rgba(255, 211, 106, 0.08);
+    radial-gradient(circle at 90% 12%, rgba(255, 196, 70, 0.28), transparent 48%),
+    linear-gradient(180deg, rgba(72, 40, 8, 0.5), var(--panel));
+  box-shadow: inset 0 0 0 1px rgba(255, 211, 106, 0.18);
 }
 .tone-quiet .event-card {
-  border-color: rgba(170, 150, 220, 0.28);
+  border-color: rgba(140, 120, 200, 0.55);
   background:
-    radial-gradient(circle at 50% 0%, rgba(90, 70, 140, 0.22), transparent 52%),
-    var(--panel);
+    radial-gradient(circle at 50% 0%, rgba(70, 40, 120, 0.42), transparent 56%),
+    linear-gradient(180deg, rgba(18, 10, 36, 0.72), var(--panel));
+  filter: saturate(0.86);
 }
 .tone-hub .event-card {
-  border-color: rgba(255, 211, 106, 0.28);
+  border-color: rgba(255, 211, 106, 0.45);
   background:
-    radial-gradient(circle at 50% 100%, rgba(255, 211, 106, 0.08), transparent 46%),
+    radial-gradient(circle at 50% 100%, rgba(255, 211, 106, 0.16), transparent 50%),
     var(--panel);
 }
 .tone-crisis .event-card {
-  border-color: rgba(255, 90, 60, 0.55);
-  background: linear-gradient(180deg, rgba(60, 12, 18, 0.55), var(--panel));
+  border-color: #ff6a3a;
+  background: linear-gradient(180deg, rgba(90, 12, 16, 0.72), var(--panel));
+  box-shadow: 0 0 28px rgba(255, 60, 40, 0.16);
 }
 .tone-shura .event-card {
-  border-color: rgba(255, 211, 106, 0.7);
-  background: linear-gradient(180deg, rgba(72, 16, 12, 0.62), rgba(22, 8, 28, 0.88));
-  box-shadow: 0 0 28px rgba(255, 70, 40, 0.18);
+  border-color: #ffb347;
+  background:
+    linear-gradient(135deg, rgba(90, 16, 12, 0.7), rgba(72, 36, 8, 0.55)),
+    var(--panel);
+  box-shadow: 0 0 32px rgba(255, 90, 40, 0.2);
 }
 .tone-special .event-card {
-  border-color: rgba(255, 211, 106, 0.5);
+  border-color: var(--gold);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 211, 106, 0.22), transparent 46%),
+    linear-gradient(180deg, rgba(60, 32, 8, 0.55), var(--panel));
 }
 .tone-solo .event-card {
-  border-color: rgba(120, 190, 255, 0.45);
+  border-color: #7ecbff;
   background:
-    radial-gradient(circle at 10% 0%, rgba(90, 170, 255, 0.16), transparent 46%),
-    var(--panel);
+    radial-gradient(circle at 12% 0%, rgba(90, 180, 255, 0.28), transparent 46%),
+    linear-gradient(180deg, rgba(8, 28, 52, 0.55), var(--panel));
 }
 
 .result {

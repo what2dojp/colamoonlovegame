@@ -280,7 +280,7 @@ export const EVENTS = [
         { flag: "interventionsUnlocked" },
         { completed: "EVENT_007_realization" },
         { not: { completed: "EVENT_nini_obsession_01" } },
-        { path: "characters.nini.obsession", op: "gte", value: 42 },
+        { path: "characters.nini.obsession", op: "gte", value: 10 },
       ],
     },
     choices: [
@@ -326,8 +326,8 @@ export const EVENTS = [
         { flag: "interventionsUnlocked" },
         { completed: "EVENT_007_realization" },
         { not: { completed: "EVENT_mars_chemistry_01" } },
-        { path: "characters.mars.chemistry", op: "gte", value: 48 },
-        { path: "characters.mars.affection", op: "gte", value: 28 },
+        { path: "characters.mars.chemistry", op: "gte", value: 12 },
+        { path: "characters.mars.affection", op: "gte", value: 8 },
       ],
     },
     choices: [
@@ -373,7 +373,7 @@ export const EVENTS = [
         { flag: "interventionsUnlocked" },
         { completed: "EVENT_007_realization" },
         { not: { completed: "EVENT_jupiter_devotion_01" } },
-        { path: "characters.jupiter.devotion", op: "gte", value: 84 },
+        { path: "characters.jupiter.devotion", op: "gte", value: 18 },
       ],
     },
     choices: [
@@ -736,8 +736,8 @@ export const EVENTS = [
             { flag: "jealousy_triggered_nini" },
             {
               all: [
-                { path: "characters.nini.obsession", op: "gte", value: 60 },
-                { path: "characters.nini.jealousy", op: "gte", value: 50 },
+                { path: "characters.nini.obsession", op: "gte", value: 14 },
+                { path: "characters.nini.jealousy", op: "gte", value: 12 },
               ],
             },
           ],
@@ -782,7 +782,7 @@ export const EVENTS = [
         {
           any: [
             { flag: "jealousy_triggered_meteor" },
-            { path: "characters.meteor.jealousy", op: "gte", value: 45 },
+            { path: "characters.meteor.jealousy", op: "gte", value: 10 },
           ],
         },
       ],
@@ -824,7 +824,7 @@ export const EVENTS = [
         {
           any: [
             { flag: "jealousy_triggered_pepsi" },
-            { path: "characters.pepsi.understanding", op: "gte", value: 80 },
+            { path: "characters.pepsi.understanding", op: "gte", value: 16 },
           ],
         },
       ],
@@ -865,7 +865,7 @@ export const EVENTS = [
         {
           any: [
             { flag: "jealousy_triggered_jupiter" },
-            { path: "characters.jupiter.jealousy", op: "gte", value: 40 },
+            { path: "characters.jupiter.jealousy", op: "gte", value: 10 },
           ],
         },
       ],
@@ -908,7 +908,7 @@ export const EVENTS = [
         {
           any: [
             { flag: "jealousy_triggered_mars" },
-            { path: "characters.mars.provocation", op: "gte", value: 70 },
+            { path: "characters.mars.provocation", op: "gte", value: 16 },
           ],
         },
       ],
@@ -986,7 +986,7 @@ export const EVENTS = [
       all: [
         { flag: "dynamic_pool_unlocked" },
         { not: { completed: "EVENT_meteor_nostalgia_01" } },
-        { path: "characters.meteor.nostalgia", op: "gte", value: 80 },
+        { path: "characters.meteor.nostalgia", op: "gte", value: 16 },
       ],
     },
     choices: [
@@ -1023,7 +1023,7 @@ export const EVENTS = [
       all: [
         { flag: "dynamic_pool_unlocked" },
         { not: { completed: "EVENT_pepsi_soul_01" } },
-        { path: "characters.pepsi.resonance", op: "gte", value: 78 },
+        { path: "characters.pepsi.resonance", op: "gte", value: 16 },
       ],
     },
     choices: [
@@ -1109,7 +1109,7 @@ export const EVENTS = [
           any: [
             { flag: "moon_curious" },
             { completed: "EVENT_meteor_nostalgia_01" },
-            { path: "characters.meteor.pride", op: "gte", value: 60 },
+            { path: "characters.meteor.pride", op: "gte", value: 14 },
           ],
         },
       ],
@@ -1148,7 +1148,7 @@ export const EVENTS = [
       all: [
         { flag: "dynamic_pool_unlocked" },
         { not: { completed: "EVENT_pepsi_understanding_01" } },
-        { path: "characters.pepsi.understanding", op: "gte", value: 80 },
+        { path: "characters.pepsi.understanding", op: "gte", value: 16 },
       ],
     },
     choices: [
@@ -1185,7 +1185,7 @@ export const EVENTS = [
         { flag: "dynamic_pool_unlocked" },
         { not: { completed: "EVENT_jupiter_hope_low_01" } },
         { not: { flag: "crisis_blocked_jupiter" } },
-        { path: "characters.jupiter.devotion", op: "gte", value: 70 },
+        { path: "characters.jupiter.devotion", op: "gte", value: 16 },
         {
           any: [
             { completed: "EVENT_jupiter_packing_01" },
@@ -1234,7 +1234,7 @@ export const EVENTS = [
         {
           any: [
             { flag: "mars_duel_started" },
-            { path: "characters.mars.chemistry", op: "gte", value: 70 },
+            { path: "characters.mars.chemistry", op: "gte", value: 16 },
           ],
         },
       ],
