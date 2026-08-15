@@ -1,5 +1,5 @@
 import { GAME_CONFIG } from "../config/game.config.js";
-import { CHARACTER_BY_ID, resolveCharacterStatKey } from "../../data/characters.js";
+import { CHARACTER_BY_ID, characterCoreStats, resolveCharacterStatKey } from "../../data/characters.js";
 import { SEASONS } from "../../data/seasons/index.js";
 import { EVENTS } from "../../data/seasons/qixi-2026/events.js";
 import { extraChoiceEffects } from "../../data/seasons/qixi-2026/choice-extras.js";
@@ -122,15 +122,14 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
       characterId: target?.id,
       name: target?.name,
     });
-    const intervalCopy =
-      resultKind === "stats" && event?.intervalCopy ? event.intervalCopy : generated;
+    const intervalCopy = event?.intervalCopy || generated;
     const extra = {
       kind: resultKind,
       overlayTitle: overlayTitleForKind(resultKind),
       statChanges,
       statusNotes,
       intervalCopy,
-      resultCopy: resultKind === "stats" ? event?.resultCopy || "" : "",
+      resultCopy: event?.resultCopy || "",
       characterId: target?.id || null,
       name: target?.name || null,
       shortName: target?.shortName || null,
@@ -283,6 +282,9 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
     }
     const choice = (event.choices || []).find((item) => item.id === choiceId);
     if (!choice) return { ok: false, error: "找不到選項" };
+    if (choice.rewrite) {
+      return applyRewriteChoice(event, choice);
+    }
 
     const before = captureStatSnapshot(state);
     const logs = applyEffects(state, [...(choice.effects || []), ...extraChoiceEffects(event.id, choiceId)]);
@@ -453,7 +455,12 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
       targetId: interrupterId,
       interventionId: "intervene",
     });
-    const followup = pickPoolEventForCharacter(state, interrupterId, rng);
+    const displaceId = `SPECIAL_300_DISPLACE_${interrupterId}_01`;
+    const displaceEvent = getEvent(displaceId);
+    const followup =
+      displaceEvent && !hasOccurred(state, displaceId)
+        ? displaceEvent
+        : pickPoolEventForCharacter(state, interrupterId, rng);
     const missingFollowup = !followup;
     const started = startEvent(followup?.id || SEASON.hubEventId);
     const statusNotes = [
@@ -522,15 +529,7 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
       { type: "flag", key: `forced_${originalId}`, value: true },
       { type: "flag", key: `forced_${joiningId}`, value: true },
       { type: "tension", pair: `${originalId}-${joiningId}`, op: "add", value: 10 },
-      ...(activeSoloId(state) === originalId
-        ? [
-            { type: "flag", key: `date_broken_${originalId}`, value: true },
-            { type: "flag", key: `solo_active_${originalId}`, value: false },
-          ]
-        : []),
     ]);
-    if (activeSoloId(state) === originalId) clearSoloFlags();
-    else if (state.flags[soloFlag(originalId)]) state.flags[soloFlag(originalId)] = false;
     const after = captureStatSnapshot(state);
     const statChanges = diffStatSnapshots(before, after);
     trackCharacterTouch(state, joiningId, "intervention", "IV_force");
@@ -540,7 +539,16 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
       targetId: joiningId,
       interventionId: "force",
     });
-    const picked = pickShuraForPair(state, originalId, joiningId, rng);
+    const joinId = `SPECIAL_500_JOIN_${originalId}_01`;
+    const joinEvent = getEvent(joinId);
+    const joinMatches =
+      joinEvent &&
+      (joinEvent.characters || []).includes(originalId) &&
+      (joinEvent.characters || []).includes(joiningId) &&
+      !hasOccurred(state, joinId);
+    const picked = joinMatches
+      ? { eventId: joinId, reason: null }
+      : pickShuraForPair(state, originalId, joiningId, rng);
     const missingShura = !picked.eventId;
     const started = startEvent(picked.eventId || SEASON.hubEventId);
     const statusNotes = [
@@ -593,49 +601,125 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
     return started?.ok === false ? started : { ok: true };
   }
 
+  function shuffleCharacterCoreStats(targetId) {
+    const target = CHARACTER_BY_ID[targetId];
+    for (const key of characterCoreStats(target)) {
+      const current = Number(state.characters[targetId][key]) || 0;
+      let next = clampStat(Math.round(8 + rng() * 84));
+      if (next === current) next = clampStat(current >= 50 ? current - 21 : current + 21);
+      state.characters[targetId][key] = next;
+    }
+  }
+
+  function rewriteStatView(target, beforeSnap, afterSnap) {
+    return [
+      {
+        id: target.id,
+        name: target.name,
+        shortName: target.shortName,
+        icon: target.icon,
+        changes: rewriteLines(
+          { ...target, stats: characterCoreStats(target) },
+          beforeSnap.characters[target.id],
+          afterSnap.characters[target.id],
+          beforeSnap.dangers[target.id],
+          afterSnap.dangers[target.id]
+        ),
+      },
+    ];
+  }
+
+  function applyRewriteChoice(event, choice) {
+    const targetId = event.characters?.[0] || state.pendingTargetId;
+    const target = CHARACTER_BY_ID[targetId];
+    if (!target) return { ok: false, error: "找不到要改寫的角色" };
+    const before = captureStatSnapshot(state);
+    if (choice.rewrite === "preview") {
+      const statChanges = rewriteStatView(target, before, before);
+      snapshotResult("洗牌前資料", [`${target.name} 目前的核心數值。尚未改寫。`], {
+        kind: "rewrite",
+        overlayTitle: "洗牌前資料",
+        fateCost: 1000,
+        characterId: target.id,
+        name: target.name,
+        shortName: target.shortName,
+        icon: target.icon,
+        statChanges,
+        intervalCopy: "",
+      });
+      setFeedback({ showOverlay: true, showInterval: false });
+      persistState();
+      return { ok: true };
+    }
+
+    completeEvent(state, event.id, "resolved");
+    pushHistory(state, {
+      kind: "choice",
+      text: `選擇「${choice.label}」／${event.title}`,
+      eventId: event.id,
+      targetId: target.id,
+    });
+
+    if (choice.rewrite === "cancel") {
+      snapshotResult("改寫已取消", ["沒有改變任何數值。"], {
+        kind: "rewrite",
+        overlayTitle: "改寫已取消",
+        fateCost: 1000,
+        characterId: target.id,
+        name: target.name,
+        shortName: target.shortName,
+        icon: target.icon,
+        statChanges: rewriteStatView(target, before, before),
+        intervalCopy: "",
+      });
+      setFeedback({ showOverlay: true, showInterval: false });
+      startEvent(SEASON.hubEventId);
+      persistState();
+      return { ok: true };
+    }
+
+    shuffleCharacterCoreStats(target.id);
+    const after = captureStatSnapshot(state);
+    const statChanges = rewriteStatView(target, before, after);
+    const intervalCopy =
+      event.intervalCopy ||
+      buildIntervalCopy({
+        kind: "rewrite",
+        statChanges,
+        characterId: target.id,
+        name: target.name,
+      });
+    snapshotResult(event.resultCopy || "改寫命運", [event.resultCopy || "命運已重新洗牌。"], {
+      kind: "rewrite",
+      overlayTitle: "改寫命運",
+      fateCost: 1000,
+      characterId: target.id,
+      name: target.name,
+      shortName: target.shortName,
+      icon: target.icon,
+      statChanges,
+      intervalCopy,
+      resultCopy: event.resultCopy || "",
+    });
+    setFeedback({ showOverlay: true, showInterval: true, intervalCopy });
+    startEvent(SEASON.hubEventId);
+    persistState();
+    return { ok: true };
+  }
+
   function applyRewriteFate(targetId) {
     const ids = Object.keys(CHARACTER_BY_ID);
     const pick = CHARACTER_BY_ID[targetId] ? targetId : ids[Math.floor(rng() * ids.length)] || ids[0];
     const target = CHARACTER_BY_ID[pick];
-    const before = captureStatSnapshot(state);
-    for (const key of target.stats) {
-      const current = Number(state.characters[pick][key]) || 0;
-      let next = clampStat(Math.round(8 + rng() * 84));
-      if (next === current) next = clampStat(current >= 50 ? current - 21 : current + 21);
-      state.characters[pick][key] = next;
-    }
-    const after = captureStatSnapshot(state);
-    const changes = rewriteLines(
-      target,
-      before.characters[pick],
-      after.characters[pick],
-      before.dangers[pick],
-      after.dangers[pick]
-    );
-    const statChanges = [
-      {
-        id: pick,
-        name: target.name,
-        shortName: target.shortName,
-        icon: target.icon,
-        changes,
-      },
-    ];
     state.pendingTargetId = pick;
     trackCharacterTouch(state, pick, "intervention", "rewrite");
     pushHistory(state, {
       kind: "intervention",
-      text: `主播執行「改寫命運」→ ${target.name} 的核心數值被重新洗牌。`,
+      text: `主播執行「改寫命運」→ 打開 ${target.name} 的命運改寫。`,
       targetId: pick,
       interventionId: "rewrite",
     });
-    const intervalCopy = buildIntervalCopy({
-      kind: "rewrite",
-      statChanges,
-      characterId: pick,
-      name: target.name,
-    });
-    snapshotResult("改寫命運", ["命運已重新洗牌。"], {
+    snapshotResult("改寫命運", [`${target.name} 的命運準備被重新洗牌。`], {
       kind: "rewrite",
       overlayTitle: "改寫命運",
       fateCost: 1000,
@@ -643,11 +727,9 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
       name: target.name,
       shortName: target.shortName,
       icon: target.icon,
-      statChanges,
-      intervalCopy,
     });
-    setFeedback({ showOverlay: true, showInterval: false, intervalCopy });
-    return startEvent(SEASON.hubEventId);
+    persistState();
+    return startEvent(target.rewriteEventId, { force: true });
   }
 
   function holdTonight() {

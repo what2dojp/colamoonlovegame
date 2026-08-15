@@ -41,22 +41,25 @@ export function diffVisibleFlags(before = {}, after = {}) {
 export function classifyResultKind(event) {
   const tags = event?.tags || [];
   const id = event?.id || "";
-  if (id === "IV_force" || tags.includes("force")) return "force";
-  if (id === "IV_encounter" || tags.includes("encounter")) return "encounter";
-  if (id === "IV_sabotage" || tags.includes("sabotage")) return "sabotage";
-  if (id === "IV_intervene_menu" || id === "IV_jealousy" || tags.includes("intervene") || tags.includes("jealousy")) {
+  if (id === "IV_force" || (event?.intervention && tags.includes("force"))) return "force";
+  if (id === "IV_encounter" || (event?.intervention && tags.includes("encounter"))) return "encounter";
+  if (id === "IV_sabotage" || (event?.intervention && tags.includes("sabotage"))) return "sabotage";
+  if (
+    id === "IV_intervene_menu" ||
+    id === "IV_jealousy" ||
+    (event?.intervention && (tags.includes("intervene") || tags.includes("jealousy")))
+  ) {
     return "intervene";
   }
   if (
     id === "IV_peek_menu" ||
     id === "IV_peek" ||
     id === "IV_letter" ||
-    tags.includes("peek") ||
-    tags.includes("letter") ||
-    tags.includes("memory")
+    (event?.intervention && (tags.includes("peek") || tags.includes("letter") || tags.includes("memory")))
   ) {
     return "peek";
   }
+  if (tags.includes("rewrite") || id.startsWith("SPECIAL_1000")) return "rewrite";
   return "stats";
 }
 

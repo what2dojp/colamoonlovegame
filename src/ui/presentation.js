@@ -36,10 +36,13 @@ export function eventPresentation(event) {
   if (event?.intervention || tags.includes("intervention")) {
     return { kind: "fate", label: "✦ 命運", tone: "special" };
   }
-  if (tags.includes("shura") || id.includes("shura")) {
+  if (tags.includes("rewrite") || id.startsWith("SPECIAL_1000") || id.startsWith("EVENT_rewrite_")) {
+    return { kind: "rewrite", label: "🔮 改寫", tone: "special" };
+  }
+  if (tags.includes("shura") || /shura/i.test(id) || id.startsWith("SHURA_") || id.startsWith("SPECIAL_500")) {
     return { kind: "shura", label: "⚔ 修羅場", tone: "shura" };
   }
-  if (tags.includes("crisis") || /lockbox|never_broke|identity|packing|too_close|hope_low|dependence/.test(id)) {
+  if (tags.includes("crisis") || id.startsWith("CRISIS_") || /lockbox|never_broke|identity|packing|too_close|hope_low|dependence/.test(id)) {
     return { kind: "crisis", label: "🔥 危機", tone: "crisis" };
   }
   if (tags.includes("memory")) return { kind: "memory", label: "📖 回憶", tone: "special" };
@@ -77,7 +80,7 @@ export function colaMoonText(value) {
 
 export function audienceText(value) {
   return colaMoonText(value)
-    .replace(/\b(?:EVENT|FLAG|IV|scene|trigger|core|node)_[A-Za-z0-9_]+\b/g, "")
+    .replace(/\b(?:EVENT|FLAG|IV|SPECIAL|CRISIS|SHURA|scene|trigger|core|node)_[A-Za-z0-9_]+\b/g, "")
     .replace(/\bqixi_\d{4}_[A-Za-z0-9_]+\b/gi, "")
     .replace(/\b[A-Za-z][\w]*_night_partner\b/gi, "")
     .replace(/\b(?:solo_active|date_broken|public_jealous|fate_rewritten|crisis_blocked|forced|secret|encounter|letter_to|letter_misread_by|jealousy_triggered)_[A-Za-z0-9_]+\b/g, "")

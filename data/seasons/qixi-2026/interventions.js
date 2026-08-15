@@ -30,23 +30,33 @@ export function eventLeadCharacter(event) {
   const tags = event.tags || [];
   if (tags.some((tag) => BLOCKED_LEAD_TAGS.has(tag))) return null;
   const eventId = String(event.id || "");
-  if (eventId.includes("shura") || eventId.startsWith("IV_") || eventId.startsWith("EVENT_rewrite_")) return null;
+  if (
+    eventId.includes("shura") ||
+    eventId.startsWith("SHURA_") ||
+    eventId.startsWith("IV_") ||
+    eventId.startsWith("SPECIAL_1000") ||
+    eventId.startsWith("SPECIAL_500") ||
+    eventId.startsWith("SPECIAL_300") ||
+    eventId.startsWith("EVENT_rewrite_")
+  ) {
+    return null;
+  }
   const ids = (event.characters || []).filter((id) => SOLO_FLAG_IDS.includes(id));
   if (ids.length !== 1) return null;
   return ids[0];
 }
 
 export const SHURA_BY_PAIR = {
-  "meteor|nini": ["EVENT_shura_nini_meteor_01", "EVENT_shura_nini_meteor_02"],
-  "meteor|pepsi": ["EVENT_shura_pepsi_meteor_01", "EVENT_shura_pepsi_meteor_02"],
-  "nini|pepsi": ["EVENT_shura_nini_pepsi_01", "EVENT_shura_nini_pepsi_02"],
-  "jupiter|mars": ["EVENT_shura_jupiter_mars_01", "EVENT_shura_jupiter_mars_02"],
-  "jupiter|nini": ["EVENT_shura_nini_jupiter_01"],
-  "mars|nini": ["EVENT_shura_nini_mars_01"],
-  "jupiter|meteor": ["EVENT_shura_meteor_jupiter_01"],
-  "mars|meteor": ["EVENT_shura_meteor_mars_01"],
-  "jupiter|pepsi": ["EVENT_shura_pepsi_jupiter_01"],
-  "mars|pepsi": ["EVENT_shura_pepsi_mars_01"],
+  "meteor|nini": ["SHURA_nini_meteor_01", "SHURA_nini_meteor_02"],
+  "meteor|pepsi": ["SHURA_meteor_pepsi_01", "SHURA_meteor_pepsi_02"],
+  "nini|pepsi": ["SHURA_nini_pepsi_01", "SHURA_nini_pepsi_02"],
+  "jupiter|mars": ["SHURA_jupiter_mars_01", "SHURA_jupiter_mars_02"],
+  "jupiter|nini": ["SHURA_nini_jupiter_01"],
+  "mars|nini": ["SHURA_nini_mars_01"],
+  "jupiter|meteor": ["SHURA_meteor_jupiter_01"],
+  "mars|meteor": ["SHURA_meteor_mars_01"],
+  "jupiter|pepsi": ["SHURA_pepsi_jupiter_01", "SHURA_pepsi_jupiter_02"],
+  "mars|pepsi": ["SHURA_pepsi_mars_01"],
 };
 
 export function pairShuraKey(a, b) {

@@ -2,6 +2,8 @@ import { DAILY_EVENTS, MEMORY_EVENTS } from "./events-daily.js";
 import { PHASE1_EVENTS } from "./events-phase1.js";
 import { PHASE2_EVENTS } from "./events-phase2.js";
 import { EXTRA_SHURA_EVENTS } from "./events-shura-pairs.js";
+import { SPECIAL_EVENTS } from "./events-special.js";
+import { CRISIS_EVENTS } from "./events-crisis.js";
 
 const CLEAR_SOLOS = [
   { type: "flag", key: "solo_active_nini", value: false },
@@ -295,7 +297,7 @@ export const EVENTS = [
           { type: "stat", path: "characters.nini.dependence", op: "add", value: 5 },
           { type: "tension", pair: "nini-meteor", op: "add", value: 7 },
           { type: "flag", key: "nini_allowed_stay", value: true },
-          { type: "weightMod", eventId: "EVENT_nini_lockbox_01", value: 16 },
+          { type: "weightMod", eventId: "CRISIS_nini_01", value: 16 },
           { type: "weightMod", eventId: "EVENT_nini_dependence_01", value: 12 },
         ],
       },
@@ -342,7 +344,7 @@ export const EVENTS = [
           { type: "tension", pair: "meteor-mars", op: "add", value: 10 },
           { type: "stat", path: "characters.meteor.pride", op: "add", value: 5 },
           { type: "flag", key: "mars_duel_started", value: true },
-          { type: "weightMod", eventId: "EVENT_mars_too_close_01", value: 16 },
+          { type: "weightMod", eventId: "CRISIS_mars_01", value: 16 },
         ],
       },
       {
@@ -396,7 +398,7 @@ export const EVENTS = [
           { type: "stat", path: "characters.jupiter.hope", op: "add", value: -6 },
           { type: "stat", path: "characters.jupiter.jealousy", op: "add", value: 5 },
           { type: "flag", key: "jupiter_unanswered", value: true },
-          { type: "weightMod", eventId: "EVENT_jupiter_packing_01", value: 24 },
+          { type: "weightMod", eventId: "CRISIS_jupiter_01", value: 24 },
           { type: "eventStatus", status: "unresolved" },
           { type: "log", text: "木星已把喜歡說出口。月月還沒有回答。這件事還沒結束。" },
         ],
@@ -795,7 +797,7 @@ export const EVENTS = [
         effects: [
           { type: "stat", path: "characters.meteor.destiny", op: "add", value: 6 },
           { type: "stat", path: "characters.meteor.affection", op: "add", value: 5 },
-          { type: "weightMod", eventId: "EVENT_meteor_never_broke_up_01", value: 12 },
+          { type: "weightMod", eventId: "CRISIS_meteor_01", value: 12 },
         ],
       },
       {
@@ -886,7 +888,7 @@ export const EVENTS = [
         effects: [
           { type: "stat", path: "characters.jupiter.patience", op: "add", value: 4 },
           { type: "flag", key: "jupiter_unanswered", value: true },
-          { type: "weightMod", eventId: "EVENT_jupiter_packing_01", value: 18 },
+          { type: "weightMod", eventId: "CRISIS_jupiter_01", value: 18 },
           { type: "eventStatus", status: "unresolved" },
         ],
       },
@@ -958,7 +960,7 @@ export const EVENTS = [
         effects: [
           { type: "stat", path: "characters.meteor.destiny", op: "add", value: 7 },
           { type: "stat", path: "characters.meteor.affection", op: "add", value: 5 },
-          { type: "weightMod", eventId: "EVENT_meteor_never_broke_up_01", value: 18 },
+          { type: "weightMod", eventId: "CRISIS_meteor_01", value: 18 },
         ],
       },
       {
@@ -1002,7 +1004,7 @@ export const EVENTS = [
         label: "讓月月說自己還沒準備好",
         effects: [
           { type: "stat", path: "characters.pepsi.destiny", op: "add", value: 4 },
-          { type: "weightMod", eventId: "EVENT_pepsi_identity_01", value: 20 },
+          { type: "weightMod", eventId: "CRISIS_pepsi_01", value: 20 },
           { type: "eventStatus", status: "unresolved" },
         ],
       },
@@ -1150,7 +1152,7 @@ export const EVENTS = [
         { path: "characters.jupiter.devotion", op: "gte", value: 16 },
         {
           any: [
-            { completed: "EVENT_jupiter_packing_01" },
+            { completed: "CRISIS_jupiter_01" },
             { flag: "public_jealous_jupiter" },
             { flag: "date_broken_jupiter" },
             { flag: "forced_jupiter" },
@@ -1209,7 +1211,7 @@ export const EVENTS = [
           { type: "stat", path: "characters.mars.chemistry", op: "add", value: 8 },
           { type: "stat", path: "characters.mars.affection", op: "add", value: 5 },
           { type: "tension", pair: "moon-mars", op: "add", value: 8 },
-          { type: "weightMod", eventId: "EVENT_mars_too_close_01", value: 16 },
+          { type: "weightMod", eventId: "CRISIS_mars_01", value: 16 },
         ],
       },
       {
@@ -1257,9 +1259,46 @@ export const EVENTS = [
   },
   ...DAILY_EVENTS,
   ...MEMORY_EVENTS,
+  ...SPECIAL_EVENTS,
+  ...CRISIS_EVENTS,
   ...PHASE1_EVENTS,
   ...PHASE2_EVENTS,
   ...EXTRA_SHURA_EVENTS,
 ];
 
+export const EVENT_ID_ALIASES = {
+  EVENT_letter_nini: "SPECIAL_100_nini_letter_01",
+  EVENT_letter_meteor: "SPECIAL_100_meteor_letter_01",
+  EVENT_letter_pepsi: "SPECIAL_100_pepsi_letter_01",
+  EVENT_letter_jupiter: "SPECIAL_100_jupiter_letter_01",
+  EVENT_letter_mars: "SPECIAL_100_mars_letter_01",
+  EVENT_rewrite_nini: "SPECIAL_1000_REWRITE_nini_01",
+  EVENT_rewrite_meteor: "SPECIAL_1000_REWRITE_meteor_01",
+  EVENT_rewrite_pepsi: "SPECIAL_1000_REWRITE_pepsi_01",
+  EVENT_rewrite_jupiter: "SPECIAL_1000_REWRITE_jupiter_01",
+  EVENT_rewrite_mars: "SPECIAL_1000_REWRITE_mars_01",
+  EVENT_nini_lockbox_01: "CRISIS_nini_01",
+  EVENT_meteor_never_broke_up_01: "CRISIS_meteor_01",
+  EVENT_pepsi_identity_01: "CRISIS_pepsi_01",
+  EVENT_jupiter_packing_01: "CRISIS_jupiter_01",
+  EVENT_mars_too_close_01: "CRISIS_mars_01",
+  EVENT_shura_nini_meteor_01: "SHURA_nini_meteor_01",
+  EVENT_shura_nini_meteor_02: "SHURA_nini_meteor_02",
+  EVENT_shura_pepsi_meteor_01: "SHURA_meteor_pepsi_01",
+  EVENT_shura_pepsi_meteor_02: "SHURA_meteor_pepsi_02",
+  EVENT_shura_nini_pepsi_01: "SHURA_nini_pepsi_01",
+  EVENT_shura_nini_pepsi_02: "SHURA_nini_pepsi_02",
+  EVENT_shura_jupiter_mars_01: "SHURA_jupiter_mars_01",
+  EVENT_shura_jupiter_mars_02: "SHURA_jupiter_mars_02",
+  EVENT_shura_nini_jupiter_01: "SHURA_nini_jupiter_01",
+  EVENT_shura_nini_mars_01: "SHURA_nini_mars_01",
+  EVENT_shura_meteor_jupiter_01: "SHURA_meteor_jupiter_01",
+  EVENT_shura_meteor_mars_01: "SHURA_meteor_mars_01",
+  EVENT_shura_pepsi_jupiter_01: "SHURA_pepsi_jupiter_01",
+  EVENT_shura_pepsi_mars_01: "SHURA_pepsi_mars_01",
+};
+
 export const EVENT_BY_ID = Object.fromEntries(EVENTS.map((e) => [e.id, e]));
+for (const [oldId, newId] of Object.entries(EVENT_ID_ALIASES)) {
+  if (EVENT_BY_ID[newId]) EVENT_BY_ID[oldId] = EVENT_BY_ID[newId];
+}
