@@ -1,0 +1,528 @@
+import { compileSpecials } from "./events-special-helpers.js";
+
+function letterConditions(id, flag) {
+  return {
+    all: [{ flag: "dynamic_pool_unlocked" }, { flag }, { not: { completed: id } }],
+  };
+}
+
+function forceOnly(id) {
+  return { all: [{ not: { completed: id } }] };
+}
+
+export const SPECIAL_100_EVENTS = compileSpecials([
+  {
+    id: "SPECIAL_100_nini_letter_01",
+    character: "nini",
+    title: "那封沒有寄出去的信",
+    description:
+      "桌上有一封沒有署名的信，紙角已經被折得有些皺。\n日日看到之後明顯愣了一下，卻沒有伸手拿走。\n「這個……妳真的想看嗎？」她問得比平常安靜。\n信裡沒有漂亮的告白，只有一句又一句想留下月月的理由。\n最下面還畫著一隻小小的晶晶，像是很久以前的日日留下的。",
+    weight: 16,
+    tags: ["nini", "letter", "character"],
+    flags: ["nini_letter_seen"],
+    resultCopy: "💌 日日的秘密被觸碰了。",
+    intervalCopy: "🐕 有些喜歡不是沒有說出口，而是害怕說出口之後，就再也不能假裝只是陪伴。",
+    conditions: letterConditions("SPECIAL_100_nini_letter_01", "letter_to_nini"),
+    choices: [
+      { label: "把信交還給日日", stats: { affection: 4, trust: 5, obsession: -2 } },
+      { label: "打開信讀完", stats: { affection: 6, obsession: 5, trust: -4 } },
+      { label: "問她為什麼沒有寄出去", stats: { trust: 6, dependence: 3, jealousy: 2 } },
+      { label: "故意說「這封信不像寫給我的」", stats: { affection: -4, obsession: 6, jealousy: 4 } },
+    ],
+  },
+  {
+    id: "SPECIAL_100_meteor_letter_01",
+    character: "meteor",
+    title: "抽屜最底下的紙條",
+    description:
+      "流星打開抽屜找東西時，一張泛黃的紙條掉了出來。\n上面只有兩個人的字，而且其中一個名字已經被塗掉。\n流星看了一眼，立刻把紙條壓在手掌下面。\n「這種東西還留著，不代表什麼吧？」她笑得有點太快。\n紙條最後一行，是小時候兩人寫下的「長大以後也要在一起」。",
+    weight: 16,
+    tags: ["meteor", "letter", "memory", "character"],
+    flags: ["meteor_childhood_note"],
+    resultCopy: "🥤 流星的過去被重新翻開。",
+    intervalCopy: "🌙 有些約定早就過期了，有些人卻從來沒有真的把它丟掉。",
+    conditions: letterConditions("SPECIAL_100_meteor_letter_01", "letter_to_meteor"),
+    choices: [
+      { label: "問她是不是還記得那天", stats: { nostalgia: 6, affection: 4, pride: -2 } },
+      { label: "裝作沒看見", stats: { affection: 3, nostalgia: -3, destiny: 2 } },
+      { label: "直接拿走紙條", stats: { affection: -4, jealousy: 5, pride: 4 } },
+      { label: "笑著說「妳居然還留著」", stats: { nostalgia: 5, destiny: 5, pride: -3 } },
+    ],
+  },
+  {
+    id: "SPECIAL_100_pepsi_letter_01",
+    character: "pepsi",
+    title: "妳沒問過的那個答案",
+    description:
+      "百事突然問月月：「妳有沒有想過，為什麼我第一次見到妳就知道妳會說什麼？」\n她沒有等待回答，只把一張寫滿字的紙放到桌上。\n上面記錄著月月很多自己都忘記的小習慣。\n甚至連月月緊張時會先摸哪一邊的袖口，她都知道。\n「我沒有調查妳。」百事說，「我只是記得。」",
+    weight: 16,
+    tags: ["pepsi", "letter", "character"],
+    resultCopy: "🌑 百事的秘密似乎比妳想像得更深。",
+    intervalCopy: "🌌 她記得的，可能不只是妳做過什麼。",
+    conditions: letterConditions("SPECIAL_100_pepsi_letter_01", "letter_to_pepsi"),
+    choices: [
+      { label: "問她到底記了多久", stats: { resonance: 6, similarity: 4, destiny: 2 } },
+      { label: "把紙折起來收好", stats: { affection: 5, resonance: 5, similarity: -2 } },
+      { label: "說「妳這樣有點可怕」", stats: { affection: -3, resonance: 6, destiny: 4 } },
+      { label: "問她是不是也記得自己", stats: { similarity: 7, resonance: 5, affection: -2 } },
+    ],
+  },
+  {
+    id: "SPECIAL_100_jupiter_letter_01",
+    character: "jupiter",
+    title: "她從來沒有告訴妳的願望",
+    description:
+      "木星的桌上放著一份已經修改很多次的行程表。\n月月仔細看才發現，裡面有很多根本不是自己的安排。\n那是木星替月月偷偷預留的時間。\n「我只是希望妳哪一天真的想找我的時候，我剛好有空。」\n她說完又把那一頁撕掉，像是不想讓這件事變成壓力。",
+    weight: 16,
+    tags: ["jupiter", "letter", "character"],
+    resultCopy: "🪐 木星的等待被妳看見了。",
+    intervalCopy: "⏳ 最安靜的喜歡，有時候只是因為她不想讓妳覺得有負擔。",
+    conditions: letterConditions("SPECIAL_100_jupiter_letter_01", "letter_to_jupiter"),
+    choices: [
+      { label: "把撕掉的紙撿回來", stats: { affection: 5, devotion: 6, patience: -3 } },
+      { label: "告訴她不用一直等", stats: { patience: 6, hope: -4, affection: 3 } },
+      { label: "問她等了多久", stats: { devotion: 6, hope: 4, jealousy: 3 } },
+      { label: "故意說「那我今天就佔用妳」", stats: { affection: 7, patience: -4, hope: 5 } },
+    ],
+  },
+  {
+    id: "SPECIAL_100_mars_letter_01",
+    character: "mars",
+    title: "絕對不是寫給妳的",
+    description:
+      "火星的包裡掉出一張紙，上面密密麻麻寫著東西。\n她看到月月撿起來，第一反應就是搶回去。\n「那是比賽筆記，妳少自戀。」\n但其中一句被月月看見了：「如果她今天又輸給我，我就陪她去吃飯。」\n火星沉默三秒後說：「……這句可以當作沒看到。」",
+    weight: 16,
+    tags: ["mars", "letter", "character"],
+    resultCopy: "🔥 火星的嘴硬證據已被發現。",
+    intervalCopy: "🔥 有些人越說不是，越容易留下證據。",
+    conditions: letterConditions("SPECIAL_100_mars_letter_01", "letter_to_mars"),
+    choices: [
+      { label: "笑她根本就是在寫約會計畫", stats: { affection: 6, provocation: 5, pride: -4 } },
+      { label: "把紙還給她", stats: { chemistry: 3, affection: 4, provocation: -3 } },
+      { label: "故意問「輸了也陪？」", stats: { affection: 5, chemistry: 7, pride: -3 } },
+      { label: "說「我不想知道」", stats: { affection: -5, pride: 5, provocation: 6 } },
+    ],
+  },
+]);
+
+export const SPECIAL_200_EVENTS = compileSpecials([
+  {
+    id: "SPECIAL_200_SOLO_nini_01",
+    character: "nini",
+    kind: "solo200",
+    title: "今天只有我們",
+    description:
+      "門關上的瞬間，日日立刻確認走廊沒有人。\n她把晶晶抱在懷裡，像是終於不用再裝乖。\n「今天妳只能陪我，好不好？」\n她坐得很近，卻沒有真的碰過來。\n只是一直看著月月，像是要把這段時間全部記下來。",
+    weight: 18,
+    pool: false,
+    tags: ["nini", "solo", "romance"],
+    resultCopy: "🌙 日日獲得了一段只屬於她的時間。",
+    intervalCopy: "🌙 門關上之後，日日似乎終於不用假裝自己只是乖乖陪伴。",
+    conditions: forceOnly("SPECIAL_200_SOLO_nini_01"),
+    choices: [
+      { label: "答應她", stats: { affection: 7, obsession: 6, jealousy: -3 } },
+      { label: "提醒她只是暫時獨處", stats: { trust: 5, obsession: -4, jealousy: 3 } },
+      { label: "抱住晶晶開玩笑", stats: { affection: 5, dependence: 5, obsession: 2 } },
+      { label: "故意問「如果有人進來呢？」", stats: { obsession: 7, jealousy: 5, trust: -3 } },
+    ],
+  },
+  {
+    id: "SPECIAL_200_SOLO_meteor_01",
+    character: "meteor",
+    kind: "solo200",
+    title: "再走一次",
+    description:
+      "流星沒有帶月月去新的地方，而是直接走向小時候最常去的路。\n她一邊走一邊講那些已經講過很多次的舊事。\n某個轉角，她忽然停下來問：「妳還記得這裡嗎？」\n月月回答之前，她就笑著說：「我就知道妳記得。」\n那一刻，她像是把現在和很久以前重疊在了一起。",
+    weight: 18,
+    pool: false,
+    tags: ["meteor", "solo", "romance"],
+    resultCopy: "🥤 流星重新走進了那段只有妳們知道的過去。",
+    intervalCopy: "🌙 有些地方之所以重要，不是因為風景，而是因為曾經一起走過。",
+    conditions: forceOnly("SPECIAL_200_SOLO_meteor_01"),
+    choices: [
+      { label: "說「我一直記得」", stats: { nostalgia: 7, affection: 5, pride: -2 } },
+      { label: "說「其實我忘了」", stats: { nostalgia: -5, pride: 5, jealousy: 3 } },
+      { label: "問她為什麼偏偏來這裡", stats: { destiny: 6, nostalgia: 5, affection: 2 } },
+      { label: "故意牽她走過去", stats: { affection: 7, destiny: 5, pride: -4 } },
+    ],
+  },
+  {
+    id: "SPECIAL_200_SOLO_pepsi_01",
+    character: "pepsi",
+    kind: "solo200",
+    title: "不用說話也可以",
+    description:
+      "百事把兩杯飲料放到桌上，卻沒有說明哪一杯是月月的。\n月月伸手拿起其中一杯，她只是笑了一下。\n「果然。」\n接下來很久，她們都沒有說話。\n但每一次對方抬頭，另一個人都剛好也在看。",
+    weight: 18,
+    pool: false,
+    tags: ["pepsi", "solo", "romance"],
+    resultCopy: "🌑 百事與月月的默契再次同步。",
+    intervalCopy: "🌌 她們之間最危險的地方，可能就是很多事情根本不需要說。",
+    conditions: forceOnly("SPECIAL_200_SOLO_pepsi_01"),
+    choices: [
+      { label: "繼續沉默", stats: { resonance: 8, affection: 4, destiny: 2 } },
+      { label: "問她「妳剛剛在看什麼？」", stats: { affection: 6, resonance: 5, similarity: -2 } },
+      { label: "故意拿錯飲料", stats: { similarity: 6, resonance: -4, affection: 5 } },
+      { label: "說「妳真的很像我」", stats: { similarity: 8, destiny: 5, affection: -3 } },
+    ],
+  },
+  {
+    id: "SPECIAL_200_SOLO_jupiter_01",
+    character: "jupiter",
+    kind: "solo200",
+    title: "我今天沒有等妳",
+    description:
+      "木星準備好兩杯飲料，卻故意只說自己剛好買多了。\n她沒有像平常一樣問月月今天過得怎麼樣。\n反而安靜坐在旁邊，讓月月自己決定要不要開口。\n過了一會兒，她笑著說：「今天我沒有等妳，是妳剛好來了。」\n那句話聽起來很輕，卻像是她努力練習過很多次。",
+    weight: 18,
+    pool: false,
+    tags: ["jupiter", "date", "solo", "romance"],
+    flags: ["jupiter_quiet_date"],
+    resultCopy: "🪐 木星第一次把「等待」放到了月月手上。",
+    intervalCopy: "⏳ 她不是不想等，而是開始希望有一天，妳會主動走向她。",
+    conditions: forceOnly("SPECIAL_200_SOLO_jupiter_01"),
+    choices: [
+      { label: "坐到她身邊", stats: { affection: 7, hope: 6, patience: -3 } },
+      { label: "問她是不是在生氣", stats: { affection: 4, jealousy: 4, patience: 5 } },
+      { label: "說「那我下次還會自己來」", stats: { hope: 8, devotion: 4, patience: -5 } },
+      { label: "告訴她不要等自己", stats: { patience: 7, hope: -5, affection: -3 } },
+    ],
+  },
+  {
+    id: "SPECIAL_200_SOLO_mars_01",
+    character: "mars",
+    kind: "solo200",
+    title: "輸的人請客",
+    description:
+      "火星把兩杯飲料往桌上一放，宣布今天的規則只有一條。\n「輸的人請客。」\n比賽開始後，她明明有機會贏，卻故意慢了半拍。\n月月察覺時，她已經笑得非常囂張。\n「看吧，我今天就是想讓妳贏。」",
+    weight: 18,
+    pool: false,
+    tags: ["mars", "solo", "romance"],
+    resultCopy: "🔥 火星的獨處局面變得越來越不像比賽。",
+    intervalCopy: "🔥 有時候真正的競爭，是誰先承認自己根本沒有想贏。",
+    conditions: forceOnly("SPECIAL_200_SOLO_mars_01"),
+    choices: [
+      { label: "戳破她", stats: { chemistry: 7, provocation: 6, pride: -4 } },
+      { label: "接受她的好意", stats: { affection: 6, chemistry: 5, pride: -3 } },
+      { label: "故意反超", stats: { provocation: 8, chemistry: 6, affection: -3 } },
+      { label: "說「那我請妳」", stats: { affection: 7, pride: -5, provocation: 3 } },
+    ],
+  },
+]);
+
+export const SPECIAL_300_EVENTS = compileSpecials([
+  {
+    id: "SPECIAL_300_DISPLACE_nini_01",
+    character: "nini",
+    characters: ["nini", "meteor"],
+    title: "她今天有事",
+    description:
+      "日日突然站到月月面前，笑得異常乖巧。\n她轉頭對流星說：「妳不是還有東西要拿嗎？」\n流星皺眉，說自己根本沒有。\n日日卻已經替她把包放到了門口。\n「現在有了。」",
+    weight: 18,
+    pool: false,
+    tags: ["nini", "meteor", "displace"],
+    resultCopy: "💥 日日成功支開了競爭者。",
+    intervalCopy: "⚠️ 有人被請離場了，而留下來的人似乎早就知道自己想要什麼。",
+    conditions: forceOnly("SPECIAL_300_DISPLACE_nini_01"),
+    sharedChoiceEffects: [{ type: "forceEvent", eventId: "SPECIAL_200_SOLO_nini_01" }],
+    choices: [
+      { label: "讓日日繼續", statsBy: { nini: { obsession: 7, jealousy: 5 }, meteor: { jealousy: 5, pride: -3 } } },
+      { label: "把流星叫回來", statsBy: { nini: { affection: -4, trust: 5 }, meteor: { affection: 5, pride: 3 } } },
+      { label: "問日日到底想做什麼", statsBy: { nini: { trust: 6, obsession: 3 }, meteor: { jealousy: 2 } } },
+      { label: "笑著配合她", statsBy: { nini: { affection: 6, obsession: 6 }, meteor: { jealousy: 7, pride: -4 } } },
+    ],
+  },
+  {
+    id: "SPECIAL_300_DISPLACE_meteor_01",
+    character: "meteor",
+    characters: ["meteor", "jupiter"],
+    title: "我們有約",
+    description:
+      "流星忽然搭住月月的肩膀，對其他人說她們今天有約。\n月月根本不記得這個約定。\n流星卻非常自然地補了一句：「小時候就約好了。」\n她看向木星，眼神裡第一次沒有笑。\n木星沉默了一下，主動退開。",
+    weight: 18,
+    pool: false,
+    tags: ["meteor", "jupiter", "displace"],
+    resultCopy: "💥 流星把「以前的約定」拿到了現在。",
+    intervalCopy: "🥤 有些人說的是玩笑，有些人卻一直把它當成預約。",
+    conditions: forceOnly("SPECIAL_300_DISPLACE_meteor_01"),
+    sharedChoiceEffects: [{ type: "forceEvent", eventId: "SPECIAL_200_SOLO_meteor_01" }],
+    choices: [
+      { label: "順著流星走", statsBy: { meteor: { affection: 7, destiny: 6 }, jupiter: { jealousy: 6 } } },
+      { label: "否認有約", statsBy: { meteor: { pride: -5, jealousy: 5 }, jupiter: { patience: 4 } } },
+      { label: "問她為什麼要支開木星", statsBy: { meteor: { destiny: 5, pride: -3 }, jupiter: { jealousy: 3 } } },
+      { label: "牽著流星離開", statsBy: { meteor: { affection: 8, destiny: 7 }, jupiter: { jealousy: 7 } } },
+    ],
+  },
+  {
+    id: "SPECIAL_300_DISPLACE_pepsi_01",
+    character: "pepsi",
+    characters: ["pepsi", "mars"],
+    title: "她想跟妳說一件事",
+    description:
+      "百事走到火星面前，平靜地說月月有話想跟她單獨說。\n火星回頭看月月，立刻知道這是假的。\n「她什麼時候授權妳替她說話了？」\n百事沒有回答，只是看著月月。\n最後火星笑了：「行啊，我就看看妳們能說什麼。」",
+    weight: 18,
+    pool: false,
+    tags: ["pepsi", "mars", "displace"],
+    resultCopy: "💥 百事第一次主動把第三人推開。",
+    intervalCopy: "🌑 她不需要搶位置，她只是讓別人暫時沒有位置。",
+    conditions: forceOnly("SPECIAL_300_DISPLACE_pepsi_01"),
+    sharedChoiceEffects: [{ type: "forceEvent", eventId: "SPECIAL_200_SOLO_pepsi_01" }],
+    choices: [
+      { label: "接受百事的安排", statsBy: { pepsi: { resonance: 7, destiny: 5 }, mars: { provocation: 6, pride: -3 } } },
+      { label: "當場拆穿", statsBy: { pepsi: { affection: -4, similarity: 5 }, mars: { affection: 5, provocation: 3 } } },
+      { label: "問百事為什麼這麼做", statsBy: { pepsi: { resonance: 6, destiny: 6 }, mars: { provocation: 3 } } },
+      { label: "故意跟百事離開", statsBy: { pepsi: { affection: 8, resonance: 7 }, mars: { provocation: 11 } } },
+    ],
+  },
+  {
+    id: "SPECIAL_300_DISPLACE_jupiter_01",
+    character: "jupiter",
+    characters: ["jupiter", "mars"],
+    title: "她今天需要休息",
+    description:
+      "木星溫柔地對火星說月月今天狀態不好。\n火星本來想反駁，卻看到月月真的有些疲憊。\n「所以妳現在要把我趕走？」火星問。\n木星沒有否認。\n她只是說：「今天，我想先照顧她。」",
+    weight: 18,
+    pool: false,
+    tags: ["jupiter", "mars", "displace"],
+    resultCopy: "💥 木星第一次沒有把「尊重選擇」放在最前面。",
+    intervalCopy: "🪐 她終於承認，成全和想要之間，其實一直隔著一小步。",
+    conditions: forceOnly("SPECIAL_300_DISPLACE_jupiter_01"),
+    sharedChoiceEffects: [{ type: "forceEvent", eventId: "SPECIAL_200_SOLO_jupiter_01" }],
+    choices: [
+      { label: "讓木星留下", statsBy: { jupiter: { devotion: 7, affection: 5 }, mars: { provocation: 4 } } },
+      { label: "跟火星一起走", statsBy: { jupiter: { affection: -5, hope: -3 }, mars: { chemistry: 5 } } },
+      { label: "問木星是不是吃醋", statsBy: { jupiter: { jealousy: 6, affection: 4 }, mars: { provocation: 3 } } },
+      { label: "牽住木星的手", statsBy: { jupiter: { affection: 8, devotion: 6 }, mars: { provocation: 8 } } },
+    ],
+  },
+  {
+    id: "SPECIAL_300_DISPLACE_mars_01",
+    character: "mars",
+    characters: ["mars", "jupiter"],
+    title: "這局她歸我",
+    description:
+      "火星直接站到月月身邊，對木星挑了挑眉。\n「今天她跟我。」\n木星沒有立刻反駁，只問：「妳確定這是她的意思？」\n火星看向月月，忽然笑了。\n「那就讓她自己選。」",
+    weight: 18,
+    pool: false,
+    tags: ["mars", "jupiter", "displace"],
+    resultCopy: "💥 火星正式把選擇丟到了月月面前。",
+    intervalCopy: "🔥 今天沒有人想當候補。",
+    conditions: forceOnly("SPECIAL_300_DISPLACE_mars_01"),
+    sharedChoiceEffects: [{ type: "forceEvent", eventId: "SPECIAL_200_SOLO_mars_01" }],
+    choices: [
+      { label: "跟火星走", statsBy: { mars: { affection: 8, chemistry: 7 }, jupiter: { jealousy: 7, hope: -3 } } },
+      { label: "留在木星身邊", statsBy: { mars: { pride: -6, provocation: 7 }, jupiter: { affection: 7, devotion: 5 } } },
+      { label: "兩個都不選", statsBy: { mars: { pride: 5, affection: -4 }, jupiter: { patience: 5 } } },
+      { label: "說「我兩個都要」", statsBy: { mars: { chemistry: 8, provocation: 8 }, jupiter: { jealousy: 8, hope: 3 } } },
+    ],
+  },
+]);
+
+export const SPECIAL_500_EVENTS = compileSpecials([
+  {
+    id: "SPECIAL_500_JOIN_nini_01",
+    character: "nini",
+    characters: ["nini", "meteor"],
+    title: "妳也要一起？",
+    description:
+      "日日正在享受與月月的獨處，門卻突然被推開。\n流星站在門口，手裡還拿著那張小時候的紙條。\n日日抱緊晶晶，笑容沒有消失，眼神卻變了。\n流星說：「我只是想確認一件事。」\n兩個人同時看向月月。",
+    weight: 20,
+    pool: false,
+    tags: ["nini", "meteor", "shura"],
+    resultCopy: "🔥 流星加入了日日的獨處。",
+    intervalCopy: "歡迎來到戀愛修羅場。此時，可樂月月、日日、流星，場面開始變得不太平靜。",
+    conditions: forceOnly("SPECIAL_500_JOIN_nini_01"),
+    choices: [
+      { label: "讓流星留下", statsBy: { nini: { jealousy: 8, obsession: 6 }, meteor: { destiny: 7, nostalgia: 5 } } },
+      { label: "讓流星離開", statsBy: { nini: { affection: 6, obsession: 7 }, meteor: { pride: 6, jealousy: 5 } } },
+      { label: "問流星想確認什麼", statsBy: { meteor: { destiny: 8, pride: -3 }, nini: { jealousy: 6 } } },
+      { label: "坐到兩人中間", statsBy: { nini: { jealousy: 7, affection: 4 }, meteor: { jealousy: 7, affection: 4 } } },
+    ],
+  },
+  {
+    id: "SPECIAL_500_JOIN_meteor_01",
+    character: "meteor",
+    characters: ["meteor", "nini"],
+    title: "那個位置我坐過",
+    description:
+      "流星正在和月月走童年舊路，日日卻追了上來。\n日日沒有質問，只說：「我也想一起。」\n流星笑著讓出半步，卻沒有真的讓開。\n「這條路以前可是我們兩個走的。」\n日日抱緊晶晶：「那現在可以多一個人。」",
+    weight: 20,
+    pool: false,
+    tags: ["meteor", "nini", "shura"],
+    resultCopy: "🔥 舊愛與依賴第一次站到了同一條路上。",
+    intervalCopy: "🌙 一條舊路，今天突然擠進了三個人的腳步。",
+    conditions: forceOnly("SPECIAL_500_JOIN_meteor_01"),
+    choices: [
+      { label: "三個人一起走", statsBy: { nini: { affection: 5, jealousy: 7 }, meteor: { nostalgia: 6, pride: -2 } } },
+      { label: "只跟流星走", statsBy: { meteor: { affection: 7, destiny: 6 }, nini: { jealousy: 8, obsession: 5 } } },
+      { label: "只跟日日走", statsBy: { nini: { affection: 7, obsession: 7 }, meteor: { jealousy: 8, pride: 5 } } },
+      { label: "問她們能不能別爭", statsBy: { nini: { trust: 4, jealousy: -3 }, meteor: { pride: 4, jealousy: -3 } } },
+    ],
+  },
+  {
+    id: "SPECIAL_500_JOIN_pepsi_01",
+    character: "pepsi",
+    characters: ["pepsi", "mars"],
+    title: "妳們的默契很好",
+    description:
+      "百事原本安靜坐在月月旁邊，火星卻突然加入。\n火星看著兩人幾乎同時拿飲料的動作，忍不住笑了。\n「妳們兩個真的很像。」\n百事看著她：「所以妳不喜歡？」\n火星靠回椅背：「不，我只是突然覺得很好玩。」",
+    weight: 20,
+    pool: false,
+    tags: ["pepsi", "mars", "shura"],
+    resultCopy: "🔥 火星加入了百事的默契世界。",
+    intervalCopy: "🌌 有人相信靈魂共鳴，有人只是想知道自己能不能插進去。",
+    conditions: forceOnly("SPECIAL_500_JOIN_pepsi_01"),
+    choices: [
+      { label: "讓火星坐下", statsBy: { pepsi: { resonance: 5, similarity: 5 }, mars: { chemistry: 7, provocation: 6 } } },
+      { label: "繼續只和百事互動", statsBy: { pepsi: { affection: 7, resonance: 8 }, mars: { provocation: 12 } } },
+      { label: "問火星是不是吃醋", statsBy: { mars: { provocation: 8, affection: 4 }, pepsi: { destiny: 4 } } },
+      { label: "故意模仿百事", statsBy: { pepsi: { similarity: 8, resonance: 6 }, mars: { chemistry: 5, pride: -3 } } },
+    ],
+  },
+  {
+    id: "SPECIAL_500_JOIN_jupiter_01",
+    character: "jupiter",
+    characters: ["jupiter", "mars"],
+    title: "她說她不介意",
+    description:
+      "木星正在替月月整理東西時，火星忽然出現在門口。\n「聽說這裡今天有人需要幫忙。」\n木星笑著說：「可以啊。」\n但她握著紙張的手明顯收緊了一點。\n火星看到後笑得更開心了。",
+    weight: 20,
+    pool: false,
+    tags: ["jupiter", "mars", "shura"],
+    resultCopy: "🔥 火星加入了木星的獨處。",
+    intervalCopy: "🪐 她說不介意，但她的手指好像沒有這麼說。",
+    conditions: forceOnly("SPECIAL_500_JOIN_jupiter_01"),
+    choices: [
+      { label: "讓火星幫忙", statsBy: { mars: { chemistry: 6, provocation: 6 }, jupiter: { jealousy: 7, patience: -3 } } },
+      { label: "只讓木星幫忙", statsBy: { jupiter: { affection: 7, devotion: 6 }, mars: { pride: 6, provocation: 5 } } },
+      { label: "讓兩人一起", statsBy: { jupiter: { devotion: 4, jealousy: 7 }, mars: { chemistry: 7, provocation: 7 } } },
+      { label: "問木星是不是不高興", statsBy: { jupiter: { patience: 6, jealousy: 6 }, mars: { pride: -2 } } },
+    ],
+  },
+  {
+    id: "SPECIAL_500_JOIN_mars_01",
+    character: "mars",
+    characters: ["mars", "pepsi"],
+    title: "她怎麼會在這裡？",
+    description:
+      "火星原本正在和月月鬥嘴，百事卻忽然坐到了另一側。\n火星挑眉：「妳也來？」\n百事點頭：「嗯。」\n兩個人都沒有離開的意思。\n月月第一次覺得，這場獨處可能已經救不回來了。",
+    weight: 20,
+    pool: false,
+    tags: ["mars", "pepsi", "shura"],
+    resultCopy: "🔥 火星的獨處被第三人正式打破。",
+    intervalCopy: "歡迎來到戀愛修羅場。這次，沒有人打算主動離場。",
+    conditions: forceOnly("SPECIAL_500_JOIN_mars_01"),
+    choices: [
+      { label: "讓百事留下", statsBy: { pepsi: { resonance: 7, affection: 4 }, mars: { provocation: 13 } } },
+      { label: "讓百事離開", statsBy: { mars: { affection: 7, chemistry: 6 }, pepsi: { destiny: 5, resonance: -3 } } },
+      { label: "問火星是不是吃醋", statsBy: { mars: { affection: 5, provocation: 8 }, pepsi: { similarity: 4 } } },
+      { label: "坐到兩人中間", statsBy: { mars: { chemistry: 6, provocation: 5 }, pepsi: { resonance: 6, destiny: 3 } } },
+    ],
+  },
+]);
+
+export const SPECIAL_1000_EVENTS = compileSpecials([
+  {
+    id: "SPECIAL_1000_REWRITE_nini_01",
+    character: "nini",
+    title: "如果重新來一次",
+    description:
+      "畫面上的日日資料開始閃爍。\n原本的數值一項一項被抽離，像是有人把命運重新洗牌。\n晶晶的圖示短暫消失，又重新亮起。\n新的數值重新落下。\n日日抬頭看著月月，卻仍然是那個日日。",
+    weight: 24,
+    pool: false,
+    tags: ["nini", "rewrite", "rare"],
+    resultCopy: "🔮 命運已重新洗牌。",
+    intervalCopy: "🔮 日日的核心數值被重新洗牌。她還是她，只是今晚的起點不一樣了。",
+    conditions: forceOnly("SPECIAL_1000_REWRITE_nini_01"),
+    choices: [
+      { label: "接受改寫", rewrite: "apply" },
+      { label: "取消", rewrite: "cancel" },
+      { label: "查看洗牌前資料", rewrite: "preview" },
+      { label: "確認後執行", rewrite: "apply" },
+    ],
+  },
+  {
+    id: "SPECIAL_1000_REWRITE_meteor_01",
+    character: "meteor",
+    title: "另一條路",
+    description:
+      "流星的數值像一張張舊照片，被風吹散。\n其中有童年、約定、驕傲，也有沒有說出口的嫉妒。\n系統開始重新排列這些東西的位置。\n新的數值落下之後，她依然笑著看著月月。\n只是這一次，她不知道自己會有多相信那個約定。",
+    weight: 24,
+    pool: false,
+    tags: ["meteor", "rewrite", "rare"],
+    resultCopy: "🔮 流星的命運已重新排列。",
+    intervalCopy: "🔮 流星的核心數值被重新排列。約定還在，只是重量變了。",
+    conditions: forceOnly("SPECIAL_1000_REWRITE_meteor_01"),
+    choices: [
+      { label: "重寫命運", rewrite: "apply" },
+      { label: "查看現在命運", rewrite: "preview" },
+      { label: "取消", rewrite: "cancel" },
+      { label: "確認後重新洗牌", rewrite: "apply" },
+    ],
+  },
+  {
+    id: "SPECIAL_1000_REWRITE_pepsi_01",
+    character: "pepsi",
+    title: "如果共鳴改變",
+    description:
+      "百事的資料只剩下幾個漂浮的符號。\n共鳴、自我映照、命定感與好感被全部打散。\n她沒有阻止，只安靜地看著月月。\n「妳想知道，如果我們不再這麼像，會發生什麼嗎？」\n下一秒，新的數值重新生成。",
+    weight: 24,
+    pool: false,
+    tags: ["pepsi", "rewrite", "rare"],
+    resultCopy: "🔮 百事的命運參數已重新生成。",
+    intervalCopy: "🔮 百事的核心數值被重新生成。相似還在，只是距離變了。",
+    conditions: forceOnly("SPECIAL_1000_REWRITE_pepsi_01"),
+    choices: [
+      { label: "執行重洗", rewrite: "apply" },
+      { label: "查看洗牌前", rewrite: "preview" },
+      { label: "取消", rewrite: "cancel" },
+      { label: "確認重洗並顯示前後差異", rewrite: "apply" },
+    ],
+  },
+  {
+    id: "SPECIAL_1000_REWRITE_jupiter_01",
+    character: "jupiter",
+    title: "如果她不再等待",
+    description:
+      "木星的資料面板停在「等待度」。\n那個數字閃爍了一次，像是在問她到底願意等多久。\n守護、希望、嫉妒與好感也開始一起被重新洗牌。\n木星只是笑著說：「如果這能讓妳看見另一個我，也沒關係。」\n新的數值最後全部落定。",
+    weight: 24,
+    pool: false,
+    tags: ["jupiter", "rewrite", "rare"],
+    resultCopy: "🔮 木星的等待被重新定義。",
+    intervalCopy: "🔮 木星的核心數值被重新定義。她還在，只是等待的重量變了。",
+    conditions: forceOnly("SPECIAL_1000_REWRITE_jupiter_01"),
+    choices: [
+      { label: "執行重洗", rewrite: "apply" },
+      { label: "先查看", rewrite: "preview" },
+      { label: "取消", rewrite: "cancel" },
+      { label: "確認重洗", rewrite: "apply" },
+    ],
+  },
+  {
+    id: "SPECIAL_1000_REWRITE_mars_01",
+    character: "mars",
+    title: "沒有理由的喜歡",
+    description:
+      "火星看到自己的資料被打散，第一反應是笑。\n「所以連我自己都不知道自己會變成什麼？」\n化學反應、挑釁、傲氣與好感全部重新排列。\n她靠在椅背上：「挺有意思的。」\n新的數值落下後，她仍然第一個挑釁月月。",
+    weight: 24,
+    pool: false,
+    tags: ["mars", "rewrite", "rare"],
+    resultCopy: "🔮 火星的命運重新洗牌完成。",
+    intervalCopy: "🔮 火星的核心數值被重新洗牌。她還是會先挑釁，只是數字不一樣了。",
+    conditions: forceOnly("SPECIAL_1000_REWRITE_mars_01"),
+    choices: [
+      { label: "執行重洗", rewrite: "apply" },
+      { label: "查看洗牌前", rewrite: "preview" },
+      { label: "取消", rewrite: "cancel" },
+      { label: "確認並顯示前後數值", rewrite: "apply" },
+    ],
+  },
+]);
+
+export const SPECIAL_EVENTS = [
+  ...SPECIAL_100_EVENTS,
+  ...SPECIAL_200_EVENTS,
+  ...SPECIAL_300_EVENTS,
+  ...SPECIAL_500_EVENTS,
+  ...SPECIAL_1000_EVENTS,
+];
+

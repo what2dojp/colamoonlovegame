@@ -7,11 +7,11 @@ import { shuraIdsForPair } from "../data/seasons/qixi-2026/interventions.js";
 const IDS = CHARACTERS.map((c) => c.id);
 const SOLO_BY_ID = Object.fromEntries(CHARACTERS.map((c) => [c.id, c.soloEventId]));
 const CRISIS_BY_ID = {
-  nini: "EVENT_nini_lockbox_01",
-  meteor: "EVENT_meteor_never_broke_up_01",
-  pepsi: "EVENT_pepsi_identity_01",
-  jupiter: "EVENT_jupiter_packing_01",
-  mars: "EVENT_mars_too_close_01",
+  nini: "CRISIS_nini_01",
+  meteor: "CRISIS_meteor_01",
+  pepsi: "CRISIS_pepsi_01",
+  jupiter: "CRISIS_jupiter_01",
+  mars: "CRISIS_mars_01",
 };
 const rows = [];
 const gaps = [];
@@ -124,7 +124,7 @@ function peekSecret(targetId, choiceId) {
 {
   const privateLetter = peekLetter("nini", "private");
   must(privateLetter.game.getState().flags.letter_to_nini, "letter_to_nini written");
-  must(privateLetter.game.getState().currentEvent.id === "EVENT_letter_nini", "private letter forceEvents letter follow-up");
+  must(privateLetter.game.getState().currentEvent.id === "SPECIAL_100_nini_letter_01", "private letter forceEvents letter follow-up");
   must(
     privateLetter.game.getState().characters.nini.affection === privateLetter.affectionBefore,
     "private letter does not add affection"
@@ -141,10 +141,10 @@ function peekSecret(targetId, choiceId) {
 
   const misread = peekLetter("nini", "misread");
   must(misread.game.getState().flags.letter_misread_by_meteor, "letter_misread_by_meteor written");
-  must(misread.game.getState().currentEvent.id === "EVENT_shura_nini_meteor_01", "misread forceEvents shura");
+  must(misread.game.getState().currentEvent.id === "SHURA_nini_meteor_01", "misread forceEvents shura");
 
   const pepsiMisread = peekLetter("pepsi", "misread");
-  must(pepsiMisread.game.getState().currentEvent.id === "EVENT_shura_pepsi_meteor_01", "pepsi misread forceEvents pepsi-meteor shura");
+  must(pepsiMisread.game.getState().currentEvent.id === "SHURA_meteor_pepsi_01", "pepsi misread forceEvents pepsi-meteor shura");
 
   for (const id of IDS) {
     const keep = peekSecret(id, "keep");
@@ -228,9 +228,9 @@ function peekSecret(targetId, choiceId) {
   const unlocked = fresh();
   unlocked.intervene("encounter", "nini");
   unlocked.choose("unlocked");
-  must(unlocked.getState().currentEvent.id === "EVENT_nini_solo_01", "200 second choice still creates nini solo");
+  must(unlocked.getState().currentEvent.id === "SPECIAL_200_SOLO_nini_01", "200 second choice still creates nini 200 solo");
   must(unlocked.getState().flags.solo_active_nini, "200 second choice writes solo_active");
-  must(unlocked.getState().currentEvent.id !== "EVENT_shura_nini_meteor_01", "200 never jumps to shura");
+  must(unlocked.getState().currentEvent.id !== "SHURA_nini_meteor_01", "200 never jumps to shura");
 
   addRow({
     cost: 200,
@@ -256,11 +256,11 @@ function peekSecret(targetId, choiceId) {
     mars: "EVENT_mars_jealousy_01",
   };
   const expectedBurn = {
-    nini: "EVENT_nini_lockbox_01",
-    meteor: "EVENT_meteor_never_broke_up_01",
-    pepsi: "EVENT_pepsi_identity_01",
-    jupiter: "EVENT_jupiter_packing_01",
-    mars: "EVENT_mars_too_close_01",
+    nini: "CRISIS_nini_01",
+    meteor: "CRISIS_meteor_01",
+    pepsi: "CRISIS_pepsi_01",
+    jupiter: "CRISIS_jupiter_01",
+    mars: "CRISIS_mars_01",
   };
 
   for (const id of IDS) {
@@ -358,7 +358,7 @@ function peekSecret(targetId, choiceId) {
   must(joinedSweet.lastResult.overlayTitle === "局勢突然改變", "500 overlay title is 局勢突然改變");
   must(joinedSweet.lastResult.originalCharacter === "jupiter", "500 stores A as current card character");
   must(joinedSweet.lastResult.joiningCharacter === "mars", "500 stores B as the joiner");
-  must(joinedSweet.currentEvent.id === "EVENT_shura_jupiter_mars_01", "jupiter sweet + mars join → 木星×火星修羅場");
+  must(joinedSweet.currentEvent.id === "SPECIAL_500_JOIN_jupiter_01", "jupiter sweet + mars join → 木星 500 拉人");
   must(joinedSweet.characters.jupiter.affection === affection, "500 is not affection");
   must(
     joinedSweet.lastResult.statChanges.some((row) => row.id === "jupiter" && row.changes.some((c) => c.key === "danger" && c.to > c.from)),
@@ -381,7 +381,7 @@ function peekSecret(targetId, choiceId) {
   must(joined.lastResult.joiningCharacter === "mars", "500 stores B as the joiner");
   must(joined.currentSession.originalSoloCharacter === "jupiter", "session keeps A");
   must(joined.currentSession.joiningCharacter === "mars", "session keeps B");
-  must(joined.currentEvent.id === "EVENT_shura_jupiter_mars_01", "jupiter solo + mars join → 木星×火星修羅場");
+  must(joined.currentEvent.id === "SPECIAL_500_JOIN_jupiter_01", "jupiter solo + mars join → 木星 500 拉人");
   must(joined.currentEvent.characters.includes("jupiter") && joined.currentEvent.characters.includes("mars"), "shura cast is A×B");
   must(/歡迎來到戀愛修羅場/.test(joined.lastResult.intervalCopy), "500 interval uses the shura welcome");
   must(!joined.lastResult.intervalCopy.includes("EVENT_"), "500 interval copy has no event id");
@@ -391,29 +391,33 @@ function peekSecret(targetId, choiceId) {
   marsJoinsNini.intervene("force", "mars");
   must(marsJoinsNini.getState().lastResult.joiningCharacter === "mars", "selected joiner stays mars");
   must(marsJoinsNini.getState().lastResult.originalCharacter === "nini", "card host stays nini");
-  must(marsJoinsNini.getState().currentEvent.id === "EVENT_shura_nini_mars_01", "nini card + mars join → 日日×火星修羅場");
-  must(marsJoinsNini.getState().currentEvent.id !== "EVENT_shura_jupiter_mars_01", "selecting 西打火星 does not spawn 芬達木星's default shura");
+  must(marsJoinsNini.getState().currentEvent.id === "SHURA_nini_mars_01", "nini card + mars join → 日日×火星修羅場");
+  must(marsJoinsNini.getState().currentEvent.id !== "SHURA_jupiter_mars_01", "selecting 西打火星 does not spawn 芬達木星's default shura");
 
   const ALL_PAIRS = [
-    ["meteor", "nini", "EVENT_shura_nini_meteor_01"],
-    ["nini", "meteor", "EVENT_shura_nini_meteor_01"],
-    ["pepsi", "meteor", "EVENT_shura_pepsi_meteor_01"],
-    ["nini", "pepsi", "EVENT_shura_nini_pepsi_01"],
-    ["mars", "jupiter", "EVENT_shura_jupiter_mars_01"],
-    ["jupiter", "mars", "EVENT_shura_jupiter_mars_01"],
-    ["nini", "jupiter", "EVENT_shura_nini_jupiter_01"],
-    ["nini", "mars", "EVENT_shura_nini_mars_01"],
-    ["meteor", "jupiter", "EVENT_shura_meteor_jupiter_01"],
-    ["meteor", "mars", "EVENT_shura_meteor_mars_01"],
-    ["pepsi", "jupiter", "EVENT_shura_pepsi_jupiter_01"],
-    ["pepsi", "mars", "EVENT_shura_pepsi_mars_01"],
+    ["meteor", "nini", "SPECIAL_500_JOIN_meteor_01"],
+    ["nini", "meteor", "SPECIAL_500_JOIN_nini_01"],
+    ["pepsi", "meteor", "SHURA_meteor_pepsi_01"],
+    ["nini", "pepsi", "SHURA_nini_pepsi_01"],
+    ["mars", "jupiter", "SHURA_jupiter_mars_01"],
+    ["jupiter", "mars", "SPECIAL_500_JOIN_jupiter_01"],
+    ["nini", "jupiter", "SHURA_nini_jupiter_01"],
+    ["nini", "mars", "SHURA_nini_mars_01"],
+    ["meteor", "jupiter", "SHURA_meteor_jupiter_01"],
+    ["meteor", "mars", "SHURA_meteor_mars_01"],
+    ["pepsi", "jupiter", "SHURA_pepsi_jupiter_01"],
+    ["pepsi", "mars", "SPECIAL_500_JOIN_pepsi_01"],
   ];
   for (const [soloId, joinId, expected] of ALL_PAIRS) {
     const game = fresh();
     game.startEvent(CHARACTER_BY_ID[soloId].soloEventId, { force: true });
     game.intervene("force", joinId);
     must(game.getState().currentEvent.id === expected, `${soloId} card + 500 ${joinId} → ${expected}`);
-    must(shuraIdsForPair(soloId, joinId).includes(game.getState().currentEvent.id), "followup is an A×B shura id");
+    must(
+      shuraIdsForPair(soloId, joinId).includes(game.getState().currentEvent.id) ||
+        String(game.getState().currentEvent.id).startsWith("SPECIAL_500_JOIN_"),
+      "followup is an A×B shura or 500 join card"
+    );
     must(game.getState().lastResult.originalCharacter === soloId, `${expected} keeps A`);
     must(game.getState().lastResult.joiningCharacter === joinId, `${expected} keeps B`);
   }
@@ -423,23 +427,23 @@ function peekSecret(targetId, choiceId) {
   must(selfJoin.intervene("force", "jupiter").ok === false, "500 cannot join your own card");
 
   const crisisJoin = fresh();
-  crisisJoin.startEvent("EVENT_nini_lockbox_01", { force: true });
+  crisisJoin.startEvent("CRISIS_nini_01", { force: true });
   must(crisisJoin.getState().eventLeadId === "nini", "crisis card lead is 雪碧日日");
   must(crisisJoin.intervene("force", "mars").ok, "500 works on a crisis card");
-  must(crisisJoin.getState().currentEvent.id === "EVENT_shura_nini_mars_01", "crisis 日日 + 火星 → 日日×火星修羅場");
+  must(crisisJoin.getState().currentEvent.id === "SHURA_nini_mars_01", "crisis 日日 + 火星 → 日日×火星修羅場");
 
   const natureJoin = fresh();
   natureJoin.startEvent("EVENT_meteor_nature_01", { force: true });
   must(natureJoin.intervene("force", "nini").ok, "500 works on a personality card");
-  must(natureJoin.getState().currentEvent.id === "EVENT_shura_nini_meteor_01", "性格 流星 + 日日 → 日日×流星修羅場");
+  must(natureJoin.getState().currentEvent.id === "SPECIAL_500_JOIN_meteor_01", "性格 流星 + 日日 → 流星 500 拉人");
 
   const onShura = fresh();
-  onShura.startEvent("EVENT_shura_jupiter_mars_01", { force: true });
+  onShura.startEvent("SHURA_jupiter_mars_01", { force: true });
   must(onShura.intervene("force", "nini").ok === false, "500 refused on an existing shura card");
 
   const dual = fresh();
-  dual.startEvent("EVENT_shura_nini_mars_01", { force: true });
-  dual.choose("help_nini");
+  dual.startEvent("SHURA_nini_mars_01", { force: true });
+  dual.choose("a");
   const dualRows = dual.getState().lastResult.statChanges || [];
   must(dualRows.some((row) => row.id === "nini"), "new shura option shows 雪碧日日");
   must(dualRows.some((row) => row.id === "mars"), "new shura option also shows 西打火星");
@@ -468,54 +472,43 @@ function peekSecret(targetId, choiceId) {
     must(game.getState().characters[id][primary] === 90, `${id} core raised before 1000`);
     must(game.intervene("rewrite", id).ok, `rewrite ${id}`);
     must(game.getState().fate === fate, "1000 does not deduct fate");
-    must(game.getState().currentEvent.id === "EVENT_008_office_hub", "1000 returns to hub");
+    must(game.getState().currentEvent.id === CHARACTER_BY_ID[id].rewriteEventId, `${id} 1000 opens rewrite scene`);
+    must(game.getState().characters[id][primary] === 90, `${id} 1000 does not shuffle until apply`);
+    const applyId = game.getState().currentEvent.choices.find((choice) => choice.rewrite === "apply").id;
+    must(game.choose(applyId).ok, `${id} apply rewrite`);
+    must(game.getState().currentEvent.id === "EVENT_008_office_hub", "1000 apply returns to hub");
     must(game.getState().lastResult.kind === "rewrite", "1000 is a number shuffle popup");
     must(game.getState().characters[id][primary] !== 90, `${id} 1000 reshuffles ${primary}`);
     must(!game.getState().flags[`fate_rewritten_${id}`], `1000 does not write fate_rewritten_${id}`);
     must(!game.getState().flags[`crisis_blocked_${id}`], `1000 does not write crisis_blocked_${id}`);
-    must(game.getState().currentEvent.id !== CHARACTER_BY_ID[id].rewriteEventId, `${id} 1000 does not open rewrite scene`);
     must(!JSON.stringify(game.getState().lastResult).includes("EVENT_rewrite"), "1000 result hides rewrite event ids");
   }
 
   const randomPick = fresh();
   randomPick.intervene("rewrite");
   must(randomPick.getState().lastResult.characterId === "nini", "1000 without a target randomly selects a character");
-  must(randomPick.getState().currentEvent.id === "EVENT_008_office_hub", "random 1000 still returns to hub");
+  must(randomPick.getState().currentEvent.id === "SPECIAL_1000_REWRITE_nini_01", "random 1000 opens rewrite scene");
 
-  const override = fresh();
-  override.startEvent("EVENT_rewrite_nini", { force: true });
-  override.choose("wait");
-  must(override.getState().flags.crisis_blocked_nini, "rewrite scene wait still can block crisis");
-  must(!inPool(override, "EVENT_nini_lockbox_01"), "blocked lockbox not in pool");
-  const blockedForce = override.intervene("force", "meteor");
-  must(blockedForce.ok === false, "500 on hub after rewrite wait is refused");
+  const preview = fresh();
+  preview.setStat("nini", "obsession", 90);
+  preview.setStat("nini", "trust", 40);
+  preview.startEvent("SPECIAL_1000_REWRITE_nini_01", { force: true });
+  preview.choose("c");
+  must(preview.getState().currentEvent.id === "SPECIAL_1000_REWRITE_nini_01", "preview stays on rewrite scene");
+  must(preview.getState().characters.nini.obsession === 90, "preview does not shuffle");
+  must(preview.getState().characters.nini.trust === 40, "preview does not touch auxiliary stats");
+
+  const cancel = fresh();
+  cancel.setStat("nini", "obsession", 90);
+  cancel.startEvent("SPECIAL_1000_REWRITE_nini_01", { force: true });
+  cancel.choose("b");
+  must(cancel.getState().characters.nini.obsession === 90, "cancel does not shuffle");
+  must(cancel.getState().currentEvent.id === "EVENT_008_office_hub", "cancel returns to hub");
 
   const rewriteCard = fresh();
-  rewriteCard.startEvent("EVENT_rewrite_nini", { force: true });
+  rewriteCard.startEvent("SPECIAL_1000_REWRITE_nini_01", { force: true });
   must(rewriteCard.intervene("force", "meteor").ok === false, "500 refused on rewrite scene");
-  must(rewriteCard.getState().currentEvent.id === "EVENT_rewrite_nini", "failed 500 stays on rewrite scene");
-
-  const jupiterStay = fresh();
-  jupiterStay.startEvent("EVENT_rewrite_jupiter", { force: true });
-  jupiterStay.choose("stay");
-  must(jupiterStay.getState().flags.crisis_blocked_jupiter, "jupiter stay sets crisis_blocked_jupiter");
-  must(!inPool(jupiterStay, "EVENT_jupiter_packing_01"), "blocked packing not in pool");
-  must(!inPool(jupiterStay, "EVENT_jupiter_hope_low_01"), "blocked hope_low not in pool");
-
-  const meteorBlock = fresh();
-  meteorBlock.startEvent("EVENT_rewrite_meteor", { force: true });
-  meteorBlock.choose("break");
-  must(!inPool(meteorBlock, "EVENT_meteor_never_broke_up_01"), "blocked never_broke_up not in pool");
-
-  const pepsiBlock = fresh();
-  pepsiBlock.startEvent("EVENT_rewrite_pepsi", { force: true });
-  pepsiBlock.choose("cut");
-  must(!inPool(pepsiBlock, "EVENT_pepsi_identity_01"), "blocked identity not in pool");
-
-  const marsBlock = fresh();
-  marsBlock.startEvent("EVENT_rewrite_mars", { force: true });
-  marsBlock.choose("away");
-  must(!inPool(marsBlock, "EVENT_mars_too_close_01"), "blocked too_close not in pool");
+  must(rewriteCard.getState().currentEvent.id === "SPECIAL_1000_REWRITE_nini_01", "failed 500 stays on rewrite scene");
 
   const { written, read } = auditFlags();
   for (const id of IDS) {
@@ -530,9 +523,9 @@ function peekSecret(targetId, choiceId) {
   addRow({
     cost: 1000,
     name: "改寫命運",
-    effect: "隨機（或指定）一人，重新洗牌她的核心數值；不進改寫場景、不封鎖危機、不強制下一張",
-    next: "否（回到現場）",
-    later: "否（只改數值，不寫 fate_rewritten / crisis_blocked）",
+    effect: "指定角色後打開改寫事件，確認才重洗該角色核心數值；不封鎖危機、不改 lore",
+    next: "是（先進入改寫事件，確認後回到現場）",
+    later: "否（只改核心數值，不寫 fate_rewritten / crisis_blocked）",
     fake: "無",
     invalid: "無",
     result: "通過",

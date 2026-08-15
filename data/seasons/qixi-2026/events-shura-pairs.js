@@ -1,33 +1,12 @@
-function skeleton({
-  id,
-  title,
-  description,
-  characters,
-  speaker = "現場",
-  type = "CONFLICT",
-  weight = 20,
-  tags = [],
-  conditions,
-  onEnter,
-  choices,
-  pool = true,
-}) {
-  return {
-    id,
-    title,
-    description,
-    characters,
-    speaker,
-    type,
-    pool,
-    weight,
-    repeatable: false,
-    tags,
-    conditions,
-    onEnter,
-    choices,
-  };
-}
+import { compileSpecials } from "./events-special-helpers.js";
+
+const CRISIS = {
+  nini: "CRISIS_nini_01",
+  meteor: "CRISIS_meteor_01",
+  pepsi: "CRISIS_pepsi_01",
+  jupiter: "CRISIS_jupiter_01",
+  mars: "CRISIS_mars_01",
+};
 
 function pairConditions(a, b, eventId) {
   return {
@@ -47,195 +26,216 @@ function pairConditions(a, b, eventId) {
   };
 }
 
-function pairChoices(a, b, labels = {}) {
-  const names = {
-    nini: "日日",
-    meteor: "流星",
-    pepsi: "百事",
-    jupiter: "木星",
-    mars: "火星",
-  };
+function helpCrisis(characterId) {
   return [
-    {
-      id: "continue",
-      label: labels.continue || "讓兩人繼續僵持，可樂月月先不選",
-      effects: [
-        { type: "eventStatus", status: "unresolved" },
-        { type: "flag", key: `shura_${a}_${b}_unresolved`, value: true },
-        { type: "tension", pair: `${a}-${b}`, op: "add", value: 6 },
-      ],
-    },
-    {
-      id: `help_${a}`,
-      label: labels[a] || `站在${names[a]}這一邊`,
-      effects: [
-        { type: "flag", key: `shura_helped_${a}`, value: true },
-        { type: "tension", pair: `${a}-${b}`, op: "add", value: 4 },
-      ],
-    },
-    {
-      id: `help_${b}`,
-      label: labels[b] || `站在${names[b]}這一邊`,
-      effects: [
-        { type: "flag", key: `shura_helped_${b}`, value: true },
-        { type: "tension", pair: `${a}-${b}`, op: "add", value: 4 },
-      ],
-    },
-    {
-      id: "pull_moon",
-      label: labels.pull || "把可樂月月拉開，不讓兩人定義她",
-      effects: [
-        { type: "eventStatus", status: "unresolved" },
-        { type: "flag", key: "moon_refuses_public_claim", value: true },
-        { type: "tension", pair: `${a}-${b}`, op: "add", value: 3 },
-      ],
-    },
+    { type: "flag", key: `shura_helped_${characterId}`, value: true },
+    { type: "weightMod", eventId: CRISIS[characterId], value: 18 },
+    { type: "forceEvent", eventId: CRISIS[characterId] },
   ];
 }
 
-export const EXTRA_SHURA_EVENTS = [
-  skeleton({
-    id: "EVENT_shura_nini_jupiter_01",
-    title: "留下還是成全",
-    description:
-      "日日把晶晶塞進可樂月月手裡，聲音很輕，意思卻很硬：「喜歡就留下來。留下來就等於喜歡。」木星沒有伸手去搶娃娃，只把熱過的飲料放到旁邊。「我不會叫她選我。可是累的時候，是我一直在。」不干預時，直接表達的喜歡和默默照顧同時把人困在中間。可樂月月握著晶晶，飲料還燙，一時不知道該先回答哪一句。",
+function calmEffects(flag) {
+  return [
+    { type: "eventStatus", status: "unresolved" },
+    { type: "flag", key: flag, value: true },
+  ];
+}
+
+function continueTo(eventId, flag) {
+  const effects = [
+    { type: "eventStatus", status: "unresolved" },
+    { type: "flag", key: flag, value: true },
+  ];
+  if (eventId) effects.push({ type: "forceEvent", eventId });
+  return effects;
+}
+
+function pairOnEnter(a, b, flags, extra = []) {
+  return [
+    ...flags.map((key) => ({ type: "flag", key, value: true })),
+    { type: "tension", pair: `${a}-${b}`, op: "add", value: 10 },
+    { type: "weightMod", eventId: CRISIS[a], value: 8 },
+    { type: "weightMod", eventId: CRISIS[b], value: 8 },
+    ...extra,
+  ];
+}
+
+export const EXTRA_SHURA_EVENTS = compileSpecials([
+  {
+    id: "SHURA_nini_jupiter_01",
+    character: "nini",
     characters: ["nini", "jupiter"],
+    type: "CONFLICT",
+    title: "誰比較需要誰？",
+    description:
+      "日日說木星只是習慣照顧月月。\n木星第一次回答：「如果只是習慣，我早就停止了。」\n日日沉默。\n她抱著晶晶說：「那妳為什麼不直接把她帶走？」\n木星看著月月：「因為我想讓她自己選。」",
+    weight: 20,
     tags: ["conflict", "shura", "nini", "jupiter"],
-    onEnter: [
-      { type: "flag", key: "shura_nini_jupiter_started", value: true },
-      { type: "stat", path: "characters.nini.obsession", op: "add", value: 8 },
-      { type: "stat", path: "characters.nini.dependence", op: "add", value: 4 },
-      { type: "stat", path: "characters.jupiter.devotion", op: "add", value: 6 },
-      { type: "stat", path: "characters.jupiter.patience", op: "add", value: 4 },
-      { type: "tension", pair: "nini-jupiter", op: "add", value: 10 },
+    resultCopy: "💣 日日 × 木星：佔有與克制開始衝撞。",
+    intervalCopy: "💣 一個想留下她，一個願意讓她自己決定。",
+    onEnter: pairOnEnter("nini", "jupiter", ["shura_nini_jupiter_started"], [
       { type: "log", text: "日日要她留下。木星只把熱飲放好。佔有和成全同時出現。" },
+    ]),
+    conditions: pairConditions("nini", "jupiter", "SHURA_nini_jupiter_01"),
+    choices: [
+      { label: "靠近日日", statsBy: { nini: { affection: 7, dependence: 7 }, jupiter: { jealousy: 7, hope: -4 } }, effects: helpCrisis("nini") },
+      { label: "靠近木星", statsBy: { jupiter: { affection: 8, devotion: 7 }, nini: { jealousy: 8, obsession: 5 } }, effects: helpCrisis("jupiter") },
+      { label: "說「妳們都很重要」", statsBy: { nini: { trust: 5, jealousy: 4 }, jupiter: { hope: 5, jealousy: 4 } }, effects: calmEffects("moon_refuses_public_claim") },
+      { label: "反問「那我選誰？」", statsBy: { nini: { obsession: 8, jealousy: 7 }, jupiter: { hope: 8, patience: -6 } }, effects: continueTo(null, "shura_nini_jupiter_unresolved") },
     ],
-    conditions: pairConditions("nini", "jupiter", "EVENT_shura_nini_jupiter_01"),
-    choices: pairChoices("nini", "jupiter", {
-      continue: "讓「喜歡就留下」和「我一直在」同時壓上來",
-      nini: "讓日日把喜歡說完",
-      jupiter: "讓木星繼續默默照顧",
-      pull: "把可樂月月從留下／成全裡拉開",
-    }),
-  }),
-  skeleton({
-    id: "EVENT_shura_nini_mars_01",
-    title: "鑰匙對上火",
-    description:
-      "日日把地下室鑰匙握在掌心：「她是我的。鑰匙還在。」火星靠過來，笑得很刺耳。「鑰匙又不能把人鎖在喜歡裡。妳越抓，我越想把她拉走。」不干預時，永遠佔有和互相傷害的火同時燒起來。可樂月月站在兩人中間，一邊是鎖，一邊是燎原。",
+  },
+  {
+    id: "SHURA_nini_mars_01",
+    character: "nini",
     characters: ["nini", "mars"],
+    type: "CONFLICT",
+    title: "妳以為妳很了解她？",
+    description:
+      "火星笑著說日日根本只是把月月關起來。\n日日沒有生氣，只問：「至少她願意留下。」\n火星的笑消失了。\n「那妳有沒有問過她想不想留下？」\n日日第一次真正看向月月。",
+    weight: 20,
     tags: ["conflict", "shura", "nini", "mars"],
-    onEnter: [
-      { type: "flag", key: "shura_nini_mars_started", value: true },
-      { type: "stat", path: "characters.nini.obsession", op: "add", value: 8 },
-      { type: "stat", path: "characters.nini.jealousy", op: "add", value: 6 },
-      { type: "stat", path: "characters.mars.provocation", op: "add", value: 8 },
-      { type: "stat", path: "characters.mars.chemistry", op: "add", value: 5 },
-      { type: "tension", pair: "nini-mars", op: "add", value: 12 },
+    resultCopy: "💣 日日 × 火星：佔有與挑釁正式交鋒。",
+    intervalCopy: "🔥 今天連火星都沒有在笑。",
+    onEnter: pairOnEnter("nini", "mars", ["shura_nini_mars_started"], [
       { type: "log", text: "日日握著鑰匙。火星把火湊近。佔有和挑釁同時升高。" },
+    ]),
+    conditions: pairConditions("nini", "mars", "SHURA_nini_mars_01"),
+    choices: [
+      { label: "替日日說話", statsBy: { nini: { affection: 7, obsession: 8 }, mars: { provocation: 7, pride: -5 } }, effects: helpCrisis("nini") },
+      { label: "替火星說話", statsBy: { mars: { chemistry: 8, affection: 6 }, nini: { jealousy: 8, trust: -5 } }, effects: helpCrisis("mars") },
+      { label: "說「我自己決定」", statsBy: { nini: { trust: 7, obsession: -3 }, mars: { pride: 5, provocation: -3 } }, effects: calmEffects("moon_refuses_public_claim") },
+      { label: "故意說兩個都很煩", statsBy: { mars: { chemistry: 7, provocation: 5 }, nini: { affection: 5, jealousy: 6 } }, effects: continueTo(null, "shura_nini_mars_unresolved") },
     ],
-    conditions: pairConditions("nini", "mars", "EVENT_shura_nini_mars_01"),
-    choices: pairChoices("nini", "mars", {
-      continue: "讓鑰匙和火同時燒著，可樂月月先不選",
-      nini: "請火星停手，站在日日這一邊",
-      mars: "讓火星把她拉走",
-      pull: "把可樂月月從鎖與火中間拉開",
-    }),
-  }),
-  skeleton({
-    id: "EVENT_shura_meteor_jupiter_01",
-    title: "舊路和新的照顧",
-    description:
-      "流星提起小時候那條路，像在提醒所有人：約定比今晚更早。「我們本來就會走回去。」木星沒有反駁那句話，只把外套往可樂月月肩上放。「我知道妳們認識得早。可是她現在累的時候，是我在。」不干預時，共同回憶和安靜陪伴開始爭同一段距離。可樂月月摸到舊路的灰塵，也摸到還有體溫的衣領。",
+  },
+  {
+    id: "SHURA_meteor_jupiter_01",
+    character: "meteor",
     characters: ["meteor", "jupiter"],
+    type: "CONFLICT",
+    title: "妳等得到她嗎？",
+    description:
+      "流星問木星：「妳到底打算等多久？」\n木星回答：「直到她告訴我不用等。」\n流星笑了：「那妳永遠等不到。」\n木星第一次回她：「至少我沒有把她的選擇當成自己的約定。」\n空氣瞬間安靜。",
+    weight: 20,
     tags: ["conflict", "shura", "meteor", "jupiter"],
-    onEnter: [
-      { type: "flag", key: "shura_meteor_jupiter_started", value: true },
-      { type: "stat", path: "characters.meteor.destiny", op: "add", value: 8 },
-      { type: "stat", path: "characters.meteor.nostalgia", op: "add", value: 6 },
-      { type: "stat", path: "characters.jupiter.devotion", op: "add", value: 6 },
-      { type: "stat", path: "characters.jupiter.hope", op: "add", value: 4 },
-      { type: "tension", pair: "meteor-jupiter", op: "add", value: 10 },
+    resultCopy: "💣 流星 × 木星：命定與等待正面衝突。",
+    intervalCopy: "⏳ 一個相信最後會回來，一個相信答案必須由她自己說。",
+    onEnter: pairOnEnter("meteor", "jupiter", ["shura_meteor_jupiter_started"], [
       { type: "log", text: "流星搬出舊路。木星只把外套披上。回憶和照顧同時靠近。" },
+    ]),
+    conditions: pairConditions("meteor", "jupiter", "SHURA_meteor_jupiter_01"),
+    choices: [
+      { label: "站木星這邊", statsBy: { jupiter: { affection: 7, devotion: 8 }, meteor: { jealousy: 7, pride: -5 } }, effects: helpCrisis("jupiter") },
+      { label: "站流星這邊", statsBy: { meteor: { destiny: 8, nostalgia: 7 }, jupiter: { hope: -6, jealousy: 6 } }, effects: helpCrisis("meteor") },
+      { label: "說兩人都太執著", statsBy: { meteor: { pride: -3, jealousy: -3 }, jupiter: { patience: 5, hope: 3 } }, effects: calmEffects("moon_refuses_public_claim") },
+      { label: "直接說「我不想被等」", statsBy: { jupiter: { patience: -6, hope: -5 }, meteor: { destiny: -4, affection: 5 } }, effects: continueTo(null, "shura_meteor_jupiter_unresolved") },
     ],
-    conditions: pairConditions("meteor", "jupiter", "EVENT_shura_meteor_jupiter_01"),
-    choices: pairChoices("meteor", "jupiter", {
-      continue: "讓舊路和外套同時靠近，可樂月月先不選",
-      meteor: "讓流星把共同回憶說完",
-      jupiter: "讓木星把現在的照顧做完",
-      pull: "把可樂月月從舊路和新的照顧裡拉開",
-    }),
-  }),
-  skeleton({
-    id: "EVENT_shura_meteor_mars_01",
-    title: "瓶蓋對上掌聲",
-    description:
-      "流星把沙士瓶蓋拍在桌上：「這是我們的。妳再受歡迎，也走不進那條路。」火星笑得很鋒利，像習慣被看見的人。「回憶很甜。可是現在看她的人比妳多，而我不會假裝自己只是朋友。」不干預時，共同回憶和強勢的現在互相覆蓋。可樂月月聽見瓶蓋的聲響，也聽見走廊另一頭有人轉頭看火星。",
+  },
+  {
+    id: "SHURA_meteor_mars_01",
+    character: "meteor",
     characters: ["meteor", "mars"],
+    type: "CONFLICT",
+    title: "妳那個約定值多少？",
+    description:
+      "火星嘲笑流星的童年約定。\n「一句小時候說的結婚，就想算一輩子？」\n流星的笑慢慢消失。\n「至少我敢承認自己喜歡她。」\n火星靠近一步：「我也是。」",
+    weight: 20,
     tags: ["conflict", "shura", "meteor", "mars"],
-    onEnter: [
-      { type: "flag", key: "shura_meteor_mars_started", value: true },
-      { type: "stat", path: "characters.meteor.destiny", op: "add", value: 7 },
-      { type: "stat", path: "characters.meteor.pride", op: "add", value: 6 },
-      { type: "stat", path: "characters.mars.pride", op: "add", value: 6 },
-      { type: "stat", path: "characters.mars.provocation", op: "add", value: 7 },
-      { type: "tension", pair: "meteor-mars", op: "add", value: 12 },
+    resultCopy: "💣 流星 × 火星：命定與化學反應互相挑釁。",
+    intervalCopy: "🔥 一個說命中注定，一個說喜歡根本不需要理由。",
+    onEnter: pairOnEnter("meteor", "mars", ["shura_meteor_mars_started"], [
       { type: "log", text: "流星拍瓶蓋。火星把鋒芒亮出來。舊愛和現在的掌聲撞在一起。" },
+    ]),
+    conditions: pairConditions("meteor", "mars", "SHURA_meteor_mars_01"),
+    choices: [
+      { label: "支持流星", statsBy: { meteor: { destiny: 8, affection: 6 }, mars: { provocation: 8, pride: -4 } }, effects: helpCrisis("meteor") },
+      { label: "支持火星", statsBy: { mars: { chemistry: 8, affection: 7 }, meteor: { jealousy: 8, pride: -5 } }, effects: helpCrisis("mars") },
+      { label: "說約定和現在都重要", statsBy: { meteor: { nostalgia: 6, jealousy: 4 }, mars: { chemistry: 5, provocation: 4 } }, effects: calmEffects("moon_refuses_public_claim") },
+      { label: "說「那妳們都告白啊」", statsBy: { meteor: { affection: 7, pride: -5 }, mars: { affection: 7, pride: -5 } }, effects: continueTo(null, "shura_meteor_mars_unresolved") },
     ],
-    conditions: pairConditions("meteor", "mars", "EVENT_shura_meteor_mars_01"),
-    choices: pairChoices("meteor", "mars", {
-      continue: "讓瓶蓋和掌聲互相覆蓋，可樂月月先不選",
-      meteor: "讓流星守住那條舊路",
-      mars: "讓火星把現在的鋒芒亮出來",
-      pull: "把可樂月月從回憶和掌聲裡拉開",
-    }),
-  }),
-  skeleton({
-    id: "EVENT_shura_pepsi_jupiter_01",
-    title: "認出與等待",
-    description:
-      "百事靠得很近，卻沒有伸手去搶：「我不搶。真正命中注定的人，靈魂會自己走過來。」木星第一次把聲音抬高一點。「我不搶，不代表我不想被選。我等很久了。等不是因為沒有喜歡。」不干預時，平靜的認出和想被選的等待同時壓上來。可樂月月看見兩張很像的臉，一個太懂她，一個太珍惜她。",
+  },
+  {
+    id: "SHURA_pepsi_jupiter_01",
+    character: "pepsi",
     characters: ["pepsi", "jupiter"],
-    tags: ["conflict", "shura", "pepsi", "jupiter"],
-    onEnter: [
-      { type: "flag", key: "shura_pepsi_jupiter_started", value: true },
-      { type: "stat", path: "characters.pepsi.resonance", op: "add", value: 7 },
-      { type: "stat", path: "characters.pepsi.similarity", op: "add", value: 5 },
-      { type: "stat", path: "characters.jupiter.devotion", op: "add", value: 7 },
-      { type: "stat", path: "characters.jupiter.hope", op: "add", value: -4 },
-      { type: "tension", pair: "pepsi-jupiter", op: "add", value: 9 },
-      { type: "log", text: "百事說靈魂會自己靠近。木星說等待不是沒有喜歡。" },
-    ],
-    conditions: pairConditions("pepsi", "jupiter", "EVENT_shura_pepsi_jupiter_01"),
-    choices: pairChoices("pepsi", "jupiter", {
-      continue: "讓認出和等待同時壓上來，可樂月月先不選",
-      pepsi: "讓百事把靈魂會自己靠近說完",
-      jupiter: "讓木星說出她也想被選",
-      pull: "把可樂月月從認出與等待裡拉開",
-    }),
-  }),
-  skeleton({
-    id: "EVENT_shura_pepsi_mars_01",
-    title: "靈魂和不講理",
+    type: "CONFLICT",
+    title: "妳太懂她了",
     description:
-      "百事看著火星，語氣幾乎像在說明一件事實：「妳越急，越不像命定。真正會留下的人，不必把場面搶到手。」火星往前一步，擋在可樂月月視線裡。「我沒有命定。我就是現在要站在她旁邊。理由之後再想。」不干預時，不需要贏的靈魂和就是要贏的火同時出現。可樂月月聽見兩種喜歡：一種太安靜，一種太燙。",
-    characters: ["pepsi", "mars"],
-    tags: ["conflict", "shura", "pepsi", "mars"],
-    onEnter: [
-      { type: "flag", key: "shura_pepsi_mars_started", value: true },
-      { type: "stat", path: "characters.pepsi.resonance", op: "add", value: 6 },
-      { type: "stat", path: "characters.pepsi.destiny", op: "add", value: 5 },
-      { type: "stat", path: "characters.mars.chemistry", op: "add", value: 7 },
-      { type: "stat", path: "characters.mars.provocation", op: "add", value: 8 },
-      { type: "tension", pair: "pepsi-mars", op: "add", value: 11 },
-      { type: "log", text: "百事不搶。火星偏要站進來。命定和不講理打在同一張臉上。" },
+      "木星第一次對百事露出戒心。\n「妳總是知道她想要什麼。」\n百事回答：「因為她和我很像。」\n木星沉默了一會兒：「那妳有沒有想過，她也需要有人不只是理解她？」\n百事沒有立刻回答。",
+    weight: 20,
+    tags: ["conflict", "shura", "pepsi", "jupiter"],
+    resultCopy: "💣 百事 × 木星：理解與守護發生衝突。",
+    intervalCopy: "🌌 一個想成為最懂妳的人，一個只想成為最可靠的人。",
+    onEnter: pairOnEnter("pepsi", "jupiter", ["shura_pepsi_jupiter_started"], [
+      { type: "log", text: "百事說靈魂會自己靠近。木星說等待不是沒有喜歡。" },
+    ]),
+    conditions: pairConditions("pepsi", "jupiter", "SHURA_pepsi_jupiter_01"),
+    choices: [
+      { label: "支持百事", statsBy: { pepsi: { resonance: 8, similarity: 7 }, jupiter: { jealousy: 8, hope: -4 } }, effects: helpCrisis("pepsi") },
+      { label: "支持木星", statsBy: { jupiter: { devotion: 8, affection: 6 }, pepsi: { destiny: 5, resonance: -4 } }, effects: helpCrisis("jupiter") },
+      { label: "說兩人都有道理", statsBy: { pepsi: { resonance: 5, destiny: 3 }, jupiter: { patience: 5, jealousy: 3 } }, effects: calmEffects("moon_refuses_public_claim") },
+      { label: "問百事「妳真的懂我嗎？」", statsBy: { pepsi: { similarity: 8, affection: 6 }, jupiter: { jealousy: 6 } }, effects: continueTo("SHURA_pepsi_jupiter_02", "shura_pepsi_jupiter_unresolved") },
     ],
-    conditions: pairConditions("pepsi", "mars", "EVENT_shura_pepsi_mars_01"),
-    choices: pairChoices("pepsi", "mars", {
-      continue: "讓靈魂和不講理同時出現，可樂月月先不選",
-      pepsi: "讓百事把「不必搶」說完",
-      mars: "讓火星就是要站進來",
-      pull: "把可樂月月從安靜和燙裡拉開",
-    }),
-  }),
-];
+  },
+  {
+    id: "SHURA_pepsi_jupiter_02",
+    character: "pepsi",
+    characters: ["pepsi", "jupiter"],
+    type: "CRISIS",
+    title: "她需要的是誰？",
+    description:
+      "百事說月月不需要被照顧，她只是需要有人理解。\n木星回答：「我知道。」\n百事看向她：「知道，和陪她走過去不一樣。」\n木星沒有反駁。\n她只是握緊月月手裡的東西。",
+    weight: 24,
+    tags: ["crisis", "shura", "pepsi", "jupiter"],
+    resultCopy: "💣 百事 × 木星：理解與陪伴的定義發生衝突。",
+    intervalCopy: "🌙 有人想讀懂妳，有人想陪妳活完讀懂之後的每一天。",
+    onEnter: [
+      { type: "flag", key: "shura_pepsi_jupiter_escalated", value: true },
+      { type: "tension", pair: "pepsi-jupiter", op: "add", value: 10 },
+      { type: "weightMod", eventId: "CRISIS_pepsi_01", value: 12 },
+      { type: "weightMod", eventId: "CRISIS_jupiter_01", value: 12 },
+    ],
+    conditions: {
+      all: [
+        { flag: "dynamic_pool_unlocked" },
+        { not: { completed: "SHURA_pepsi_jupiter_02" } },
+        {
+          any: [
+            { unresolved: "SHURA_pepsi_jupiter_01" },
+            { completed: "SHURA_pepsi_jupiter_01" },
+            { flag: "forced_pepsi" },
+            { flag: "forced_jupiter" },
+          ],
+        },
+      ],
+    },
+    choices: [
+      { label: "選擇百事", statsBy: { pepsi: { resonance: 8, affection: 6 }, jupiter: { jealousy: 8, hope: -5 } }, effects: helpCrisis("pepsi") },
+      { label: "選擇木星", statsBy: { jupiter: { devotion: 8, affection: 7 }, pepsi: { resonance: -5, destiny: 5 } }, effects: helpCrisis("jupiter") },
+      { label: "說兩人都需要", statsBy: { pepsi: { similarity: 5, destiny: 3 }, jupiter: { patience: 5, hope: 3 } }, effects: calmEffects("moon_refuses_public_claim") },
+      { label: "問她們誰更了解妳", statsBy: { pepsi: { resonance: 7, affection: 5 }, jupiter: { jealousy: 7, affection: 5 } }, effects: continueTo(null, "shura_pepsi_jupiter_mutual") },
+    ],
+  },
+  {
+    id: "SHURA_pepsi_mars_01",
+    character: "pepsi",
+    characters: ["pepsi", "mars"],
+    type: "CONFLICT",
+    title: "妳跟她真的很像",
+    description:
+      "火星看著百事和月月同步的動作，忍不住笑。\n「所以妳是她的複製品？」\n百事回答：「不是。」\n火星靠近她：「那證明給我看。」\n百事第一次沒有退開。",
+    weight: 20,
+    tags: ["conflict", "shura", "pepsi", "mars"],
+    resultCopy: "💣 百事 × 火星：共鳴與挑釁正式碰撞。",
+    intervalCopy: "🔥 有人想看穿靈魂，有人只想把對方逼到承認心跳。",
+    onEnter: pairOnEnter("pepsi", "mars", ["shura_pepsi_mars_started"], [
+      { type: "log", text: "百事不搶。火星偏要站進來。命定和不講理打在同一張臉上。" },
+    ]),
+    conditions: pairConditions("pepsi", "mars", "SHURA_pepsi_mars_01"),
+    choices: [
+      { label: "站百事這邊", statsBy: { pepsi: { resonance: 8, similarity: 8 }, mars: { provocation: 14 } }, effects: helpCrisis("pepsi") },
+      { label: "站火星這邊", statsBy: { mars: { chemistry: 9, affection: 6 }, pepsi: { resonance: -5, destiny: 4 } }, effects: helpCrisis("mars") },
+      { label: "讓兩人繼續鬥嘴", statsBy: { mars: { chemistry: 7, provocation: 6 }, pepsi: { resonance: 6, similarity: 4 } }, effects: calmEffects("moon_refuses_public_claim") },
+      { label: "說「你們兩個都很像在吃醋」", statsBy: { mars: { provocation: 7, pride: -4 }, pepsi: { destiny: 5, affection: 4 } }, effects: continueTo(null, "shura_pepsi_mars_unresolved") },
+    ],
+  },
+]);
