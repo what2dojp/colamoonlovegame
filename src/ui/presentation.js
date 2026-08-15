@@ -1,8 +1,8 @@
 export const FATE_COPY = {
   peek: { cost: 100, title: "偷看命運", tag: "看見不該知道的事" },
   encounter: { cost: 200, title: "碰觸命運", tag: "讓某人靠近可樂月月" },
-  intervene: { cost: 300, title: "干涉命運", tag: "改變正在發生的事" },
-  force: { cost: 500, title: "扭轉命運", tag: "改變現在的局勢" },
+  intervene: { cost: 300, title: "干涉命運", tag: "把可樂月月支開，搶走鏡頭" },
+  force: { cost: 500, title: "扭轉命運", tag: "把人叫進來，炸成修羅場" },
   rewrite: { cost: 1000, title: "改寫命運", tag: "重新洗牌一人的命運" },
 };
 

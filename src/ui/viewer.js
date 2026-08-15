@@ -39,7 +39,7 @@ function intervalCopy(state) {
       state.currentSession?.feedback?.intervalCopy ||
       state.lastResult?.intervalCopy ||
       DEFAULT_INTERVAL
-  );
+  ).replace(/\n/g, "<br>");
 }
 
 function fateAction(state, id) {
@@ -254,12 +254,14 @@ function renderFateButtons(state) {
           .map((item) => {
             const copy = FATE_COPY[item.id] || {};
             const canBreak = item.id === "intervene" && solo;
+            const canJoin = item.id === "force" && solo;
             return `
-              <button class="fate-btn fate-${item.cost} ${canBreak ? "has-solo" : ""}" data-iv="${item.id}" ${unlocked ? "" : "disabled"}>
+              <button class="fate-btn fate-${item.cost} ${canBreak || canJoin ? "has-solo" : ""}" data-iv="${item.id}" ${unlocked ? "" : "disabled"}>
                 <span class="fate-cost">${item.cost}</span>
                 <span class="fate-name">${copy.title || item.name}</span>
                 <small>${copy.tag || item.blurb}</small>
-                ${canBreak ? `<em>可破壞獨處</em>` : ""}
+                ${canBreak ? `<em>可支開獨處</em>` : ""}
+                ${canJoin ? `<em>可加入戰場</em>` : ""}
               </button>`;
           })
           .join("")}
@@ -274,7 +276,7 @@ function renderFateButtons(state) {
                 ? `<p class="lock">今晚的命運已保存。場面停在這裡。</p>`
                 : `<p class="lock">先看完開場。特殊命運會在認識五個人之後解鎖。</p>`
           : solo
-            ? `<p class="lock">🌙 ${soloName} 正在與可樂月月獨處。300 可以破壞這段。</p>`
+            ? `<p class="lock">🌙 ${soloName} 正在與可樂月月獨處。300 可以支開她，500 可以把人叫進來。</p>`
             : `<p class="lock">特殊命運是主播主動干涉。沒有確認，不會執行。</p>`
       }
     </section>`;
@@ -282,6 +284,18 @@ function renderFateButtons(state) {
 
 function renderConfirm(state) {
   const action = fateAction(state, ui.actionId);
+  const solo = state.soloActive;
+  const soloName = state.charactersView.find((c) => c.id === solo)?.name;
+  const body =
+    action.id === "intervene"
+      ? soloName
+        ? `指定一個人出手，把正在與可樂月月獨處的${soloName}支開。`
+        : "目前沒有正在發生的獨處，無法支開。"
+      : action.id === "force"
+        ? soloName
+          ? `指定一個人加入${soloName}與可樂月月的獨處，直接把局面炸成修羅場。`
+          : "目前沒有正在發生的獨處，無法把人叫進來。"
+        : "你即將改變目前的局勢。";
   return `
     <div class="modal" data-overlay="confirm">
       <div class="backdrop" data-cancel="1"></div>
@@ -289,7 +303,7 @@ function renderConfirm(state) {
         <p class="kicker">${action.cost}｜${action.name}</p>
         <h3>${action.cost}｜${action.name}</h3>
         <p class="sub">${action.tag}</p>
-        <p>你即將改變目前的局勢。</p>
+        <p>${body}</p>
         <p>確定要觸碰這條命運嗎？</p>
         <div class="modal-actions">
           <button class="choice" data-confirm="1">確定</button>
@@ -301,19 +315,24 @@ function renderConfirm(state) {
 
 function renderTarget(state) {
   const action = fateAction(state, ui.actionId);
+  const solo = state.soloActive;
+  const pickingJoin = action.id === "force";
+  const pickingInterrupt = action.id === "intervene";
+  const heading = pickingJoin ? "誰加入戰場？" : pickingInterrupt ? "誰把可樂月月支開？" : "選擇對象";
   return `
     <div class="modal" data-overlay="target">
       <div class="backdrop" data-cancel="1"></div>
       <div class="card">
         <p class="kicker">${action.cost}｜${action.name}</p>
-        <h3>選擇對象</h3>
+        <h3>${heading}</h3>
         <p class="sub">${action.tag}</p>
         <div class="target-grid">
           ${state.charactersView
-            .map(
-              (c) =>
-                `<button class="target-btn ${c.audienceStatus?.key === "solo" ? "is-solo" : ""}" data-target="${c.id}">${c.icon}<br>${c.name}${c.audienceStatus?.key === "solo" ? "<small>獨處中</small>" : ""}</button>`
-            )
+            .map((c) => {
+              const isSolo = c.id === solo;
+              const blocked = (pickingJoin || pickingInterrupt) && isSolo;
+              return `<button class="target-btn ${isSolo ? "is-solo" : ""}" data-target="${c.id}" ${blocked ? "disabled" : ""}>${c.icon}<br>${c.name}${isSolo ? "<small>獨處中</small>" : ""}</button>`;
+            })
             .join("")}
         </div>
         <button class="ghost" data-cancel="1">取消</button>
@@ -444,35 +463,27 @@ function renderPopup() {
   }
 
   if (popup.kind === "force") {
-    const from = result.dangerFrom;
-    const to = result.dangerTo;
-    const dangerBlock =
-      from != null && to != null
-        ? `
-          <div class="force-compare">
-            <div>
-              <p class="force-label">原本</p>
-              <p>${name}</p>
-              <p>危險度 ${from}</p>
-            </div>
-            <div>
-              <p class="force-label">現在</p>
-              <p>${name}</p>
-              <p>危險度 <b><i data-count-from="${from}" data-count-to="${to}">${from}</i></b></p>
-            </div>
-          </div>`
-        : stats;
+    const joinName = audienceText(result.joiningName || name);
+    const hostName = audienceText(result.originalSoloName || "");
+    const missing = result.missingShura
+      ? `<p class="force-missing">${audienceText(
+          result.missingReason === "exhausted"
+            ? `${hostName} × ${joinName} 的修羅場已經用完。沒有改抽其他角色。`
+            : `${hostName} × ${joinName} 目前還沒有可用的修羅場事件。沒有改抽其他角色。`
+        )}</p>`
+      : "";
     return popupShell(
       `
-        <p class="kicker">✦ 局勢變化</p>
+        <p class="kicker">✦ 局勢發生變化</p>
         <p class="fate-cost-tag">500</p>
-        ${dangerBlock}
-        ${stats && from == null ? stats : ""}
+        <h3 class="force-join">${joinName}決定加入戰局。</h3>
+        <p class="force-line">${hostName ? audienceText(`她直接打破了${hostName}與可樂月月原本的獨處時光。`) : ""}</p>
+        ${stats}
         ${notes}
-        <p class="force-line">${richText(result.intervalCopy || "主播介入了剛才的局勢。")}</p>
-        <button class="choice" data-popup-done="1">繼續</button>
+        ${missing}
+        <button class="choice" data-popup-done="1">進入修羅場</button>
       `,
-      "force-card fate-strong"
+      "force-card fate-strong fate-500"
     );
   }
 
@@ -493,16 +504,21 @@ function renderPopup() {
   }
 
   if (popup.kind === "sabotage" || popup.kind === "intervene") {
+    const actor = audienceText(result.interruptingName || name);
+    const broken = audienceText(result.originalSoloName || "");
+    const quote = audienceText(result.interruptLine || "");
     return popupShell(
       `
         <p class="kicker">✦ 特殊命運介入</p>
         <p class="fate-cost-tag">300</p>
-        <p class="force-line">${richText(result.intervalCopy || "主播介入了剛才的局勢。")}</p>
+        <h3 class="interrupt-lead">${actor}出手了</h3>
+        ${quote ? `<p class="interrupt-quote">「${quote}」</p>` : ""}
+        <p class="force-line">${broken ? audienceText(`${broken}與可樂月月的獨處被打斷。`) : ""}</p>
         ${notes}
         ${stats}
         <button class="choice" data-popup-done="1">繼續</button>
       `,
-      "intervene-card fate-strong"
+      "intervene-card fate-strong fate-300"
     );
   }
 
@@ -675,7 +691,7 @@ app.addEventListener("click", (event) => {
       alert(result.error);
       return;
     }
-    if (type === "force") {
+    if (type === "force" || type === "intervene") {
       closeOverlay();
       render(game.getState());
       return;

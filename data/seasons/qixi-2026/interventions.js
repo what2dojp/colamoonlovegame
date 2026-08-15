@@ -8,39 +8,48 @@ export function activeSoloId(state) {
   return SOLO_FLAG_IDS.find((id) => state.flags?.[soloFlag(id)] === true) || null;
 }
 
-const CRISIS_BY_ID = {
-  nini: "EVENT_nini_lockbox_01",
-  meteor: "EVENT_meteor_never_broke_up_01",
-  pepsi: "EVENT_pepsi_identity_01",
-  jupiter: "EVENT_jupiter_packing_01",
-  mars: "EVENT_mars_too_close_01",
+export const SHURA_BY_PAIR = {
+  "meteor|nini": ["EVENT_shura_nini_meteor_01", "EVENT_shura_nini_meteor_02"],
+  "meteor|pepsi": ["EVENT_shura_pepsi_meteor_01", "EVENT_shura_pepsi_meteor_02"],
+  "nini|pepsi": ["EVENT_shura_nini_pepsi_01", "EVENT_shura_nini_pepsi_02"],
+  "jupiter|mars": ["EVENT_shura_jupiter_mars_01", "EVENT_shura_jupiter_mars_02"],
 };
 
-const HUB_EVENT_ID = "EVENT_008_office_hub";
-
-function shuraForStage(ids) {
-  if (ids.length === 1) {
-    if (ids[0] === "meteor") return "EVENT_shura_nini_meteor_01";
-    if (ids[0] === "pepsi") return "EVENT_shura_pepsi_meteor_01";
-    if (ids[0] === "nini") return "EVENT_shura_nini_meteor_01";
-    if (ids[0] === "jupiter") return "EVENT_shura_jupiter_mars_01";
-    if (ids[0] === "mars") return "EVENT_shura_jupiter_mars_01";
-  }
-  if (ids.length === 2) {
-    if (ids.includes("nini") && ids.includes("meteor")) return "EVENT_shura_nini_meteor_01";
-    if (ids.includes("pepsi") && ids.includes("meteor")) return "EVENT_shura_pepsi_meteor_01";
-    if (ids.includes("nini") && ids.includes("pepsi")) return "EVENT_shura_nini_pepsi_01";
-    if (ids.includes("jupiter") && ids.includes("mars")) return "EVENT_shura_jupiter_mars_01";
-  }
-  return null;
+export function pairShuraKey(a, b) {
+  return [a, b].filter(Boolean).sort().join("|");
 }
 
-export function pickForceFollowup(stageCharacters, targetId, flags = {}) {
-  const ids = stageCharacters || [];
-  const shura = shuraForStage(ids);
-  if (shura) return shura;
-  if (flags[`crisis_blocked_${targetId}`] === true) return HUB_EVENT_ID;
-  return CRISIS_BY_ID[targetId] || "EVENT_nini_lockbox_01";
+export function shuraIdsForPair(a, b) {
+  return SHURA_BY_PAIR[pairShuraKey(a, b)] || [];
+}
+
+export const INTERRUPT_LINES = {
+  nini: [
+    "可樂月月，地下室的晶晶不見了。妳現在過來一下。",
+    "可樂月月，我有話只想跟妳說。現在。立刻。",
+  ],
+  meteor: [
+    "可樂月月，那邊那條路……妳還記得嗎。現在跟我過來。",
+    "可樂月月，我有件事要問妳。不是當著她的面。",
+  ],
+  pepsi: [
+    "可樂月月。有件事只有妳會懂。跟我離開一下。",
+    "可樂月月，我剛才看見一個不該出現的東西。妳過來。",
+  ],
+  jupiter: [
+    "可樂月月，我有話想說。不是現在說的話，之後可能就沒機會了。",
+    "可樂月月，外面那杯飲料是妳的。我幫妳拿過來……妳跟我走一下。",
+  ],
+  mars: [
+    "可樂月月，妳過來一下。我有件很重要的事情想跟妳談。",
+    "可樂月月！妳看那邊，是不是有飛碟？",
+  ],
+};
+
+export function pickInterruptLine(characterId, rng = Math.random) {
+  const lines = INTERRUPT_LINES[characterId] || INTERRUPT_LINES.mars;
+  const index = Math.min(lines.length - 1, Math.max(0, Math.floor(rng() * lines.length)));
+  return lines[index];
 }
 
 export const INTERVENTIONS = [
@@ -66,10 +75,11 @@ export const INTERVENTIONS = [
     id: "intervene",
     name: "干涉命運",
     costKey: "intervene",
-    eventId: "IV_intervene_menu",
+    eventId: "IV_sabotage",
     needsTarget: true,
     host: true,
-    blurb: "改變正在發生的事件：挑起嫉妒，或破壞正在進行的獨處。",
+    requiresSolo: true,
+    blurb: "指定一個人出手，找理由把正在獨處的人支開，搶走下一個鏡頭。",
   },
   {
     id: "force",
@@ -78,7 +88,8 @@ export const INTERVENTIONS = [
     eventId: "IV_force",
     needsTarget: true,
     host: true,
-    blurb: "強制改變現場局勢，讓第三人入場或把指定角色推上危機。",
+    requiresSolo: true,
+    blurb: "指定一個人加入正在發生的獨處，直接把局面炸成修羅場。",
   },
   {
     id: "rewrite",
@@ -109,13 +120,13 @@ export const INTERVENTIONS = [
   },
   {
     id: "sabotage",
-    name: "破壞獨處",
+    name: "支開獨處",
     costKey: "sabotage",
     eventId: "IV_sabotage",
     needsTarget: true,
     host: false,
     requiresSolo: true,
-    blurb: "只能破壞正在發生的獨處。",
+    blurb: "指定一個人把正在獨處的人支開。",
   },
   {
     id: "forceEvent",
@@ -124,7 +135,8 @@ export const INTERVENTIONS = [
     eventId: "IV_force",
     needsTarget: true,
     host: false,
-    blurb: "強制改變現場局勢。",
+    requiresSolo: true,
+    blurb: "指定一個人加入獨處，強制進入兩人修羅場。",
   },
   {
     id: "rewriteFate",

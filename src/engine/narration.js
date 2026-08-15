@@ -90,6 +90,9 @@ export function buildIntervalCopy({
   statusNotes = [],
   characterId,
   name,
+  interruptingName,
+  originalSoloName,
+  joiningName,
 } = {}) {
   const who = name || characterName(characterId) || shortName(characterId);
   const nick = shortName(characterId) || who.replace(/^[^\u4e00-\u9fff]+/, "") || who;
@@ -101,20 +104,14 @@ export function buildIntervalCopy({
     return `🌙 **${who || "她"} 與可樂月月的兩人時間開始了。其他人暫時被留在場外。**`;
   }
   if (kind === "sabotage" || statusNotes.some((note) => note.kind === "broken" || note.kind === "solo-off")) {
-    return `原本正在進行的兩人時間……**被第三人的出現打斷了。**現場重新恢復多人狀態。`;
+    const actor = interruptingName || who;
+    return `原本正在進行的兩人時間……**被${actor || "第三人"}打斷了。**下一張鏡頭被她搶走。`;
   }
   if (kind === "force") {
-    const danger = (statChanges || [])
-      .flatMap((row) => (row.changes || []).map((change) => ({ ...change, name: row.name, id: row.id })))
-      .find((change) => change.key === "danger" && change.to > change.from);
-    if (statusNotes.some((note) => note.kind === "solo-off" || note.kind === "broken")) {
-      return `🌙 **獨處狀態解除。**現場被重新打亂，氣氛已經不像剛才那樣只屬於兩個人。`;
-    }
-    if (statusNotes.some((note) => note.kind === "crisis")) {
-      return `⚠️ **危機局勢被重新打亂。**有人被推到了燈光下面。`;
-    }
-    if (danger) {
-      return `🔥 **${danger.name || who || nick} 的存在感突然變得非常強。其他人也開始注意到她。**`;
+    const hostName = originalSoloName || who;
+    const joinName = joiningName || "";
+    if (hostName && joinName) {
+      return `**歡迎來到戀愛修羅場**\n\n此時，可樂月月、${hostName}、${joinName}，場面僵持。`;
     }
     return `✦ **主播介入了剛才的局勢。現場已經不是原本的樣子。**`;
   }

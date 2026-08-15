@@ -3,7 +3,7 @@ import { CHARACTER_BY_ID } from "../../data/characters.js";
 import { SEASONS } from "../../data/seasons/index.js";
 import { EVENTS } from "../../data/seasons/qixi-2026/events.js";
 import { extraChoiceEffects } from "../../data/seasons/qixi-2026/choice-extras.js";
-import { INTERVENTIONS, activeSoloId, pickForceFollowup, SOLO_FLAG_IDS, soloFlag } from "../../data/seasons/qixi-2026/interventions.js";
+import { INTERVENTIONS, activeSoloId, pickInterruptLine, SOLO_FLAG_IDS, soloFlag } from "../../data/seasons/qixi-2026/interventions.js";
 import { SEASON } from "../../data/seasons/qixi-2026/season.js";
 import { createMockDonationProvider, fateFromDonation } from "./donation.js";
 import {
@@ -41,6 +41,8 @@ import {
   nightPartnerFlag,
   nightScore,
   pickNightPartner,
+  pickPoolEventForCharacter,
+  pickShuraForPair,
   setEventRecord,
   settlementView,
   trackCharacterTouch,
@@ -182,11 +184,10 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
     if (eventId === "IV_sabotage") {
       const solo = activeSoloId(state);
       if (!solo) {
-        snapshotResult("干涉命運", ["目前沒有正在發生的獨處，破壞未執行。"]);
+        snapshotResult("干涉命運", ["目前沒有正在發生的獨處，無法支開。"]);
         startEvent(SEASON.hubEventId);
-        return { ok: false, error: "目前沒有正在發生的獨處，無法破壞。" };
+        return { ok: false, error: "目前沒有正在發生的獨處，無法支開。" };
       }
-      state.pendingTargetId = solo;
     }
     const event = getEvent(eventId);
     if (!event) return { ok: false, error: "找不到事件" };
@@ -338,24 +339,19 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
     }
     const action = INTERVENTIONS.find((item) => item.id === type);
     if (!action) return { ok: false, error: "未知干預" };
-    if (action.needsTarget && !CHARACTER_BY_ID[targetId] && !action.requiresSolo) {
-      return { ok: false, error: "請選擇標角色" };
+    if (action.needsTarget && !CHARACTER_BY_ID[targetId]) {
+      return { ok: false, error: "請選擇角色" };
     }
-    if (action.requiresSolo || action.eventId === "IV_sabotage") {
-      const solo = activeSoloId(state);
-      if (!solo) {
-        return { ok: false, error: "目前沒有正在發生的獨處，無法破壞。" };
-      }
-      targetId = solo;
-    }
-    const cost = GAME_CONFIG.interventionCosts[action.costKey];
-    const stage = getEvent(state.currentEventId);
     if (action.id === "rewrite" || action.id === "rewriteFate") {
       return applyRewriteFate(targetId);
     }
     if (action.id === "force" || action.id === "forceEvent" || action.eventId === "IV_force") {
-      return applyForceFate(targetId, stage);
+      return applyForceFate(targetId);
     }
+    if (action.id === "intervene" || action.id === "sabotage" || action.eventId === "IV_sabotage") {
+      return applyInterruptFate(targetId);
+    }
+    const cost = GAME_CONFIG.interventionCosts[action.costKey];
     state.pendingTargetId = targetId || null;
     const target = CHARACTER_BY_ID[targetId];
     trackCharacterTouch(state, targetId, "intervention", action.eventId);
@@ -368,30 +364,203 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
     return startEvent(action.eventId);
   }
 
-  function applyForceFate(targetId, stage) {
-    const followupId = pickForceFollowup(stage?.characters || [], targetId, state.flags);
-    const target = CHARACTER_BY_ID[targetId];
-    const cost = GAME_CONFIG.interventionCosts.force;
+  function rememberPair(originalSoloCharacter, joiningCharacter = null, interruptingCharacter = null) {
+    state.originalSoloCharacter = originalSoloCharacter;
+    state.joiningCharacter = joiningCharacter;
+    state.interruptingCharacter = interruptingCharacter;
+    if (!state.currentSession) ensureSession(state);
+    state.currentSession.originalSoloCharacter = originalSoloCharacter;
+    state.currentSession.joiningCharacter = joiningCharacter;
+    state.currentSession.interruptingCharacter = interruptingCharacter;
+  }
+
+  function paidStatEffects(id, { unique = 0, jealous = 0, affection = 0 } = {}) {
+    const def = CHARACTER_BY_ID[id];
+    const effects = [];
+    if (!def) return effects;
+    if (unique) effects.push({ type: "stat", path: `characters.${id}.${def.uniquePrimary}`, op: "add", value: unique });
+    if (jealous) effects.push({ type: "stat", path: `characters.${id}.jealousy`, op: "add", value: jealous });
+    if (affection) effects.push({ type: "stat", path: `characters.${id}.affection`, op: "add", value: affection });
+    return effects;
+  }
+
+  function attachPaidResult({ kind, logs, before, extra = {} }) {
+    const after = captureStatSnapshot(state);
+    const statChanges = extra.statChanges || diffStatSnapshots(before, after);
+    const statusNotes = extra.statusNotes || diffStatusNotes(before, after);
+    const intervalCopy = extra.intervalCopy || buildIntervalCopy({ kind, statChanges, statusNotes, ...extra });
+    const overlayTitle = extra.overlayTitle || overlayTitleForKind(kind);
+    snapshotResult(overlayTitle, logs, {
+      kind,
+      overlayTitle,
+      statChanges,
+      statusNotes,
+      intervalCopy,
+      ...extra,
+    });
+    const nextEvent = getEvent(state.currentEventId);
+    setFeedback({
+      showOverlay: true,
+      showInterval: !nextEvent?.hub && !nextEvent?.final,
+      intervalCopy,
+    });
+  }
+
+  function applyInterruptFate(interrupterId) {
+    const originalSolo = activeSoloId(state);
+    const actor = CHARACTER_BY_ID[interrupterId];
+    const broken = CHARACTER_BY_ID[originalSolo];
+    if (!originalSolo || !broken) {
+      return { ok: false, error: "目前沒有正在發生的獨處，無法支開。" };
+    }
+    if (!actor) return { ok: false, error: "請選擇把可樂月月支開的人。" };
+    if (interrupterId === originalSolo) {
+      return { ok: false, error: "請選另一個人把可樂月月支開。正在獨處的人不能支開自己。" };
+    }
+    const cost = GAME_CONFIG.interventionCosts.intervene;
     const before = captureStatSnapshot(state);
-    state.pendingTargetId = targetId || null;
-    state.pendingForceFollowup = null;
-    const forceCard = getEvent("IV_force");
-    if (forceCard?.onEnter) applyEffects(state, forceCard.onEnter);
+    const line = pickInterruptLine(interrupterId, rng);
+    rememberPair(originalSolo, null, interrupterId);
+    state.pendingTargetId = interrupterId;
+    const logs = applyEffects(state, [
+      ...paidStatEffects(originalSolo, { unique: 8, jealous: 6, affection: -8 }),
+      ...paidStatEffects(interrupterId, { unique: 10, jealous: 8 }),
+      { type: "flag", key: `date_broken_${originalSolo}`, value: true },
+      { type: "flag", key: `solo_active_${originalSolo}`, value: false },
+      { type: "flag", key: `forced_${interrupterId}`, value: true },
+      { type: "tension", pair: `${interrupterId}-${originalSolo}`, op: "add", value: 8 },
+    ]);
     clearSoloFlags();
-    trackCharacterTouch(state, targetId, "intervention", "IV_force");
+    const after = captureStatSnapshot(state);
+    const statChanges = diffStatSnapshots(before, after);
+    trackCharacterTouch(state, interrupterId, "intervention", "IV_sabotage");
     pushHistory(state, {
       kind: "intervention",
-      text: `主播執行「扭轉命運」（權限 ${cost}）→ ${target?.name || "現場"}。金流在遊戲外，此處不扣款。`,
-      targetId,
+      text: `主播執行「干涉命運」（權限 ${cost}）→ ${actor.name} 把 ${broken.name} 支開。金流在遊戲外，此處不扣款。`,
+      targetId: interrupterId,
+      interventionId: "intervene",
+    });
+    const followup = pickPoolEventForCharacter(state, interrupterId, rng);
+    const missingFollowup = !followup;
+    const started = startEvent(followup?.id || SEASON.hubEventId);
+    const statusNotes = [
+      { kind: "line", text: `「${line}」` },
+      { kind: "solo-off", text: `${broken.name} 與可樂月月的獨處被打斷。` },
+      { kind: "broken", text: `${actor.name} 把可樂月月帶走了。` },
+      ...diffStatusNotes(before, after).filter((note) => note.kind !== "solo-off" && note.kind !== "broken"),
+    ];
+    if (missingFollowup) {
+      statusNotes.push({ kind: "missing", text: `${actor.name} 目前沒有尚未出現的事件。沒有改抽其他角色。` });
+    }
+    const intervalCopy = missingFollowup
+      ? `原本正在進行的兩人時間……**被${actor.name}打斷了。**${actor.name} 目前沒有尚未出現的事件，鏡頭先回到現場。`
+      : `原本正在進行的兩人時間……**被${actor.name}打斷了。**下一張鏡頭被她搶走。`;
+    attachPaidResult({
+      kind: "sabotage",
+      logs: logs.length ? logs : [`${actor.name} 出手把可樂月月支開。`],
+      before,
+      extra: {
+        fateCost: 300,
+        overlayTitle: "特殊命運介入",
+        intervalCopy,
+        statusNotes,
+        statChanges,
+        interruptLine: line,
+        interruptingId: interrupterId,
+        interruptingName: actor.name,
+        originalSoloId: originalSolo,
+        originalSoloName: broken.name,
+        originalSoloCharacter: originalSolo,
+        characterId: interrupterId,
+        name: actor.name,
+        shortName: actor.shortName,
+        icon: actor.icon,
+        missingFollowup,
+      },
+    });
+    persistState();
+    return started?.ok === false ? started : { ok: true };
+  }
+
+  function applyForceFate(joiningId) {
+    const originalSolo = activeSoloId(state);
+    const joiner = CHARACTER_BY_ID[joiningId];
+    const host = CHARACTER_BY_ID[originalSolo];
+    if (!originalSolo || !host) {
+      return { ok: false, error: "目前沒有正在發生的獨處，無法把人叫進來。" };
+    }
+    if (!joiner) return { ok: false, error: "請選擇加入戰場的人。" };
+    if (joiningId === originalSolo) {
+      return { ok: false, error: "請選另一個人加入戰場。正在獨處的人已經在場內。" };
+    }
+    const cost = GAME_CONFIG.interventionCosts.force;
+    const before = captureStatSnapshot(state);
+    rememberPair(originalSolo, joiningId, null);
+    state.pendingTargetId = joiningId;
+    applyEffects(state, [
+      ...paidStatEffects(originalSolo, { unique: 16, jealous: 12 }),
+      ...paidStatEffects(joiningId, { unique: 16, jealous: 12 }),
+      { type: "flag", key: `date_broken_${originalSolo}`, value: true },
+      { type: "flag", key: `solo_active_${originalSolo}`, value: false },
+      { type: "flag", key: `forced_${originalSolo}`, value: true },
+      { type: "flag", key: `forced_${joiningId}`, value: true },
+      { type: "tension", pair: `${originalSolo}-${joiningId}`, op: "add", value: 10 },
+    ]);
+    clearSoloFlags();
+    const after = captureStatSnapshot(state);
+    const statChanges = diffStatSnapshots(before, after);
+    trackCharacterTouch(state, joiningId, "intervention", "IV_force");
+    pushHistory(state, {
+      kind: "intervention",
+      text: `主播執行「扭轉命運」（權限 ${cost}）→ ${joiner.name} 加入 ${host.name} 的獨處。金流在遊戲外，此處不扣款。`,
+      targetId: joiningId,
       interventionId: "force",
     });
-    setFeedback({ showOverlay: true, showInterval: true });
-    const started = startEvent(followupId);
-    attachChoiceResult({
-      event: forceCard,
-      logs: ["主播介入了剛才的局勢。"],
-      before,
+    const picked = pickShuraForPair(state, originalSolo, joiningId, rng);
+    const missingShura = !picked.eventId;
+    const started = startEvent(picked.eventId || SEASON.hubEventId);
+    const statusNotes = [
+      { kind: "join", text: `${joiner.name} 決定加入戰局。` },
+      { kind: "broken", text: `她直接打破了${host.name}與可樂月月原本的獨處時光。` },
+      ...diffStatusNotes(before, after).filter((note) => note.kind !== "solo-off" && note.kind !== "broken"),
+    ];
+    if (missingShura) {
+      statusNotes.push({
+        kind: "missing",
+        text:
+          picked.reason === "exhausted"
+            ? `${host.name} × ${joiner.name} 的修羅場已經用完。沒有改抽其他角色。`
+            : `${host.name} × ${joiner.name} 目前還沒有可用的修羅場事件。沒有改抽其他角色。`,
+      });
+    }
+    const intervalCopy = missingShura
+      ? `**歡迎來到戀愛修羅場**\n\n此時，可樂月月、${host.name}、${joiner.name}，場面僵持。\n這對組合目前沒有可用的修羅場卡。系統沒有改抽其他人。`
+      : `**歡迎來到戀愛修羅場**\n\n此時，可樂月月、${host.name}、${joiner.name}，場面僵持。`;
+    attachPaidResult({
       kind: "force",
+      logs: [`${joiner.name} 加入了戰局。`],
+      before,
+      extra: {
+        fateCost: 500,
+        overlayTitle: "局勢變化",
+        intervalCopy,
+        statusNotes,
+        statChanges,
+        originalSoloId: originalSolo,
+        originalSoloName: host.name,
+        originalSoloCharacter: originalSolo,
+        joiningId,
+        joiningName: joiner.name,
+        joiningCharacter: joiningId,
+        characterId: joiningId,
+        name: joiner.name,
+        shortName: joiner.shortName,
+        icon: joiner.icon,
+        missingShura,
+        missingReason: picked.reason,
+        dangerFrom: before.dangers?.[joiningId] ?? 0,
+        dangerTo: after.dangers?.[joiningId] ?? 0,
+      },
     });
     persistState();
     return started?.ok === false ? started : { ok: true };

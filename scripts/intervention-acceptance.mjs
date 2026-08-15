@@ -2,7 +2,7 @@ import { createGame } from "../src/engine/game.js";
 import { GAME_CONFIG } from "../src/config/game.config.js";
 import { CHARACTERS, CHARACTER_BY_ID } from "../data/characters.js";
 import { EVENTS } from "../data/seasons/qixi-2026/events.js";
-import { pickForceFollowup } from "../data/seasons/qixi-2026/interventions.js";
+import { shuraIdsForPair } from "../data/seasons/qixi-2026/interventions.js";
 
 const IDS = CHARACTERS.map((c) => c.id);
 const SOLO_BY_ID = Object.fromEntries(CHARACTERS.map((c) => [c.id, c.soloEventId]));
@@ -245,7 +245,7 @@ function peekSecret(targetId, choiceId) {
 }
 
 // ---------------------------------------------------------------------------
-// 300 干涉命運
+// 300 干涉命運：A 支開 B 的獨處，下一張抽 A 的事件
 // ---------------------------------------------------------------------------
 {
   const expectedSpark = {
@@ -267,13 +267,11 @@ function peekSecret(targetId, choiceId) {
     const game = fresh();
     const fate = game.getState().fate;
     const affection = game.getState().characters[id].affection;
-    must(game.intervene("intervene", id).ok, `intervene ${id}`);
-    must(game.getState().currentEvent.id === "IV_intervene_menu", "300 host button opens intervene menu");
-    must(game.choose("jealousy").ok, "jealousy branch");
+    must(game.intervene("jealousy", id).ok, `jealousy ${id}`);
     must(game.getState().currentEvent.id === "IV_jealousy", "jealousy event");
     must(game.getState().flags[`jealousy_triggered_${id}`], `jealousy_triggered_${id}`);
     must(game.choose("burn").ok, "burn");
-    must(game.getState().fate === fate, "300 does not deduct fate");
+    must(game.getState().fate === fate, "jealousy does not deduct fate");
     must(game.getState().currentEvent.id === expectedBurn[id], `${id} burn forceEvents ${expectedBurn[id]}`);
     must(game.getState().flags[`public_jealous_${id}`], `public_jealous_${id}`);
     must(game.getState().characters[id].affection === affection, `${id} burn is not an affection bump`);
@@ -281,8 +279,7 @@ function peekSecret(targetId, choiceId) {
 
   for (const id of IDS) {
     const spark = fresh();
-    spark.intervene("intervene", id);
-    spark.choose("jealousy");
+    spark.intervene("jealousy", id);
     const sparkAffection = spark.getState().characters[id].affection;
     spark.choose("spark");
     must(spark.getState().currentEvent.id === expectedSpark[id], `${id} spark forceEvents ${expectedSpark[id]}`);
@@ -290,112 +287,137 @@ function peekSecret(targetId, choiceId) {
     must(spark.getState().characters[id].affection === sparkAffection, `${id} spark is not affection +3`);
   }
 
-  const sabotageMap = {
-    nini: "EVENT_nini_lockbox_01",
-    meteor: "EVENT_meteor_never_broke_up_01",
-    pepsi: "EVENT_pepsi_identity_01",
-    jupiter: "EVENT_jupiter_packing_01",
-    mars: "EVENT_mars_too_close_01",
-  };
-  for (const [id, crisis] of Object.entries(sabotageMap)) {
+  const noSolo300 = fresh();
+  const denied300 = noSolo300.intervene("intervene", "mars");
+  must(denied300.ok === false, "300 refused without solo");
+  must(!noSolo300.getState().flags.date_broken_nini, "no fake date_broken without solo");
+
+  for (const soloId of IDS) {
+    const actorId = soloId === "mars" ? "jupiter" : "mars";
     const game = fresh();
-    game.intervene("encounter", id);
+    game.intervene("encounter", soloId);
     game.choose("stay");
-    must(game.getState().flags[`solo_active_${id}`], `${id} solo live`);
-    const smash = game.intervene("intervene", "mars");
-    must(smash.ok, "300 allowed during solo");
-    game.choose("sabotage");
-    must(game.getState().currentEvent.id === "IV_sabotage", "sabotage event");
-    must(game.getState().flags[`date_broken_${id}`], `date_broken_${id} written even if host clicked another name`);
-    must(game.getState().pendingTargetId === id || game.getState().flags[`date_broken_${id}`], "retargets to live solo");
-    game.choose("break");
-    must(game.getState().currentEvent.id === crisis, `${id} sabotage break forceEvents ${crisis}`);
-    must(game.getState().flags[`solo_active_${id}`] !== true, "solo_active cleared by sabotage");
+    must(game.getState().flags[`solo_active_${soloId}`], `${soloId} solo live`);
+    game.setStat(soloId, "affection", 42);
+    const smash = game.intervene("intervene", actorId);
+    must(smash.ok, `300 ${actorId} can interrupt ${soloId}`);
+    const result = game.getState().lastResult;
+    const next = game.getState().currentEvent;
+    must(result.kind === "sabotage", "300 uses the paid overlay");
+    must(result.interruptLine, "300 shows the reason A pulled 可樂月月 away");
+    must(result.originalSoloCharacter === soloId, "300 stores the interrupted solo as B");
+    must(result.interruptingId === actorId, "300 stores the actor as A");
+    must(game.getState().flags[`date_broken_${soloId}`], `date_broken_${soloId} written`);
+    must(game.getState().flags[`solo_active_${soloId}`] !== true, "solo_active cleared");
+    must(result.statChanges.some((row) => row.id === soloId), "300 popup includes B");
+    must(result.statChanges.some((row) => row.id === actorId), "300 popup includes A");
+    must(
+      result.statChanges.find((row) => row.id === soloId).changes.some((c) => c.key === "affection" && c.to < c.from),
+      "B affection can fall"
+    );
+    must(!String(next.id).includes("shura"), "300 next card is not a shura");
+    must(next.characters?.includes(actorId), `300 next card belongs to ${actorId}`);
+    must(!next.characters?.includes(soloId) || next.characters[0] === actorId, "300 does not stay on B's card");
+    must(next.id !== CHARACTER_BY_ID[soloId].crisisEventId, "300 no longer forceEvents B's crisis");
   }
 
-  const fake = fresh();
-  fake.intervene("intervene", "nini");
-  fake.choose("sabotage");
-  must(fake.getState().currentEvent.id === "EVENT_008_office_hub", "300 sabotage without solo returns to hub");
-  must(!fake.getState().flags.date_broken_nini, "no fake date_broken via 300 menu");
+  const self = fresh();
+  self.intervene("encounter", "jupiter");
+  self.choose("stay");
+  const selfDenied = self.intervene("intervene", "jupiter");
+  must(selfDenied.ok === false, "300 cannot interrupt your own solo");
 
   addRow({
     cost: 300,
     name: "干涉命運",
-    effect: "嫉妒 burn 進嫉妒／危機；破壞獨處需 solo_active，並 force 善後危機",
-    next: "是（spark→嫉妒，burn→危機，break→善後危機）",
-    later: "是（date_broken_*、public_jealous_* 被修羅場／危機讀取）",
-    fake: "無獨處時選破壞：回 Hub，不寫 date_broken",
+    effect: "指定 A 找理由支開正在獨處的 B，解除獨處，下一張抽 A 尚未出現的事件",
+    next: "是（強制 A 的單人事件，不隨機五人）",
+    later: "是（date_broken_* 仍可被修羅場／危機讀取）",
+    fake: "無獨處或選自己：拒絕，不寫 date_broken",
     invalid: "無",
     result: "通過",
   });
 }
 
 // ---------------------------------------------------------------------------
-// 500 扭轉命運
+// 500 扭轉命運：B 加入 A 的獨處，下一張強制 A × B 修羅場
 // ---------------------------------------------------------------------------
 {
-  must(pickForceFollowup(["nini", "meteor", "pepsi", "jupiter", "mars"], "nini") === "EVENT_nini_lockbox_01", "hub nini → lockbox");
-  must(pickForceFollowup(["nini", "meteor", "pepsi", "jupiter", "mars"], "meteor") === "EVENT_meteor_never_broke_up_01", "hub meteor → never_broke_up");
-  must(pickForceFollowup(["nini", "meteor", "pepsi", "jupiter", "mars"], "pepsi") === "EVENT_pepsi_identity_01", "hub pepsi → identity");
-  must(pickForceFollowup(["nini", "meteor", "pepsi", "jupiter", "mars"], "jupiter") === "EVENT_jupiter_packing_01", "hub jupiter → packing");
-  must(pickForceFollowup(["nini", "meteor", "pepsi", "jupiter", "mars"], "mars") === "EVENT_mars_too_close_01", "hub mars → too_close");
-  must(pickForceFollowup(["meteor"], "meteor") === "EVENT_shura_nini_meteor_01", "moon+meteor → nini×meteor shura");
-  must(pickForceFollowup(["pepsi"], "pepsi") === "EVENT_shura_pepsi_meteor_01", "moon+pepsi → pepsi×meteor shura");
-  must(pickForceFollowup(["jupiter"], "jupiter") === "EVENT_shura_jupiter_mars_01", "moon+jupiter → doorway shura");
-  must(pickForceFollowup(["mars"], "mars") === "EVENT_shura_jupiter_mars_01", "moon+mars → doorway shura");
-  must(pickForceFollowup(["nini"], "nini") === "EVENT_shura_nini_meteor_01", "nini alone → nini×meteor shura");
+  const hubDenied = fresh();
+  const hubForce = hubDenied.intervene("force", "mars");
+  must(hubForce.ok === false, "500 refused without solo");
+  must(hubDenied.getState().currentEvent.id === "EVENT_008_office_hub", "failed 500 stays on hub");
 
+  const jupiterMars = fresh();
+  jupiterMars.intervene("encounter", "jupiter");
+  jupiterMars.choose("stay");
+  must(jupiterMars.getState().soloActive === "jupiter", "A is 芬達木星");
+  const affection = jupiterMars.getState().characters.jupiter.affection;
+  must(jupiterMars.intervene("force", "mars").ok, "500 mars joins jupiter solo");
+  const joined = jupiterMars.getState();
+  must(joined.lastResult.kind === "force", "500 shows 局勢變化 immediately");
+  must(joined.lastResult.overlayTitle === "局勢變化", "500 overlay title is 局勢變化");
+  must(joined.lastResult.originalSoloCharacter === "jupiter", "500 stores A as original solo");
+  must(joined.lastResult.joiningCharacter === "mars", "500 stores B as the joiner");
+  must(joined.currentSession.originalSoloCharacter === "jupiter", "session keeps A");
+  must(joined.currentSession.joiningCharacter === "mars", "session keeps B");
+  must(joined.currentEvent.id === "EVENT_shura_jupiter_mars_01", "jupiter solo + mars join → 木星×火星修羅場");
+  must(joined.currentEvent.characters.includes("jupiter") && joined.currentEvent.characters.includes("mars"), "shura cast is A×B");
+  must(joined.characters.jupiter.affection === affection, "500 is not affection");
   must(
-    pickForceFollowup(["nini", "meteor", "pepsi", "jupiter", "mars"], "nini", { crisis_blocked_nini: true }) ===
-      "EVENT_008_office_hub",
-    "blocked nini crisis redirects 500 to hub"
+    joined.lastResult.statChanges.some((row) => row.id === "jupiter" && row.changes.some((c) => c.key === "danger" && c.to > c.from)),
+    "A danger rises"
   );
+  must(
+    joined.lastResult.statChanges.some((row) => row.id === "mars" && row.changes.some((c) => c.key === "danger" && c.to > c.from)),
+    "B danger rises"
+  );
+  must(/歡迎來到戀愛修羅場/.test(joined.lastResult.intervalCopy), "500 interval uses the shura welcome");
+  must(/芬達木星/.test(joined.lastResult.intervalCopy) && /西打火星/.test(joined.lastResult.intervalCopy), "500 interval names A and B");
+  must(!joined.lastResult.intervalCopy.includes("EVENT_"), "500 interval copy has no event id");
 
-  const hubForce = {};
-  for (const id of IDS) {
-    const game = fresh();
-    must(game.getState().currentEvent.id === "EVENT_008_office_hub", "start from hub");
-    const affection = game.getState().characters[id].affection;
-    const primary = CHARACTER_BY_ID[id].uniquePrimary;
-    const primaryBefore = game.getState().characters[id][primary];
-    const fate = game.getState().fate;
-    must(game.intervene("force", id).ok, `force ${id} from hub`);
-    must(game.getState().lastResult.kind === "force", "500 shows 局勢變化 immediately");
-    must(game.getState().lastResult.overlayTitle === "局勢變化", "500 overlay title is 局勢變化");
-    must(game.getState().flags[`forced_${id}`], `forced_${id}`);
-    must(game.getState().fate === fate, "500 does not deduct fate");
-    must(game.getState().currentEvent.id === CRISIS_BY_ID[id], `hub 500 ${id} → ${CRISIS_BY_ID[id]}`);
-    must(game.getState().currentEvent.id !== "EVENT_forced_spotlight", "spotlight leftover is not used");
-    must(game.getState().characters[id].affection === affection, "500 is not affection");
-    must(game.getState().characters[id][primary] === primaryBefore, "500 is not uniquePrimary bump");
-    hubForce[id] = game.getState().currentEvent.id;
-  }
+  const marsJoinsWrong = fresh();
+  marsJoinsWrong.intervene("encounter", "nini");
+  marsJoinsWrong.choose("stay");
+  marsJoinsWrong.intervene("force", "mars");
+  must(marsJoinsWrong.getState().lastResult.joiningCharacter === "mars", "selected joiner stays mars");
+  must(marsJoinsWrong.getState().lastResult.originalSoloCharacter === "nini", "solo host stays nini");
+  must(marsJoinsWrong.getState().currentEvent.id !== "EVENT_shura_jupiter_mars_01", "selecting 西打火星 does not spawn 芬達木星's default shura");
+  must(marsJoinsWrong.getState().lastResult.missingShura === true, "nini × mars missing shura is reported");
+  must(marsJoinsWrong.getState().currentEvent.id === "EVENT_008_office_hub", "missing pair returns to hub instead of swapping characters");
 
-  const stageCases = [
-    ["EVENT_meteor_solo_01", "meteor", "EVENT_shura_nini_meteor_01"],
-    ["EVENT_pepsi_solo_01", "pepsi", "EVENT_shura_pepsi_meteor_01"],
-    ["EVENT_jupiter_quiet_date", "jupiter", "EVENT_shura_jupiter_mars_01"],
-    ["EVENT_mars_solo_01", "mars", "EVENT_shura_jupiter_mars_01"],
-    ["EVENT_nini_solo_01", "nini", "EVENT_shura_nini_meteor_01"],
+  const pairCases = [
+    ["meteor", "nini", "EVENT_shura_nini_meteor_01"],
+    ["nini", "meteor", "EVENT_shura_nini_meteor_01"],
+    ["pepsi", "meteor", "EVENT_shura_pepsi_meteor_01"],
+    ["nini", "pepsi", "EVENT_shura_nini_pepsi_01"],
+    ["mars", "jupiter", "EVENT_shura_jupiter_mars_01"],
   ];
-  for (const [stage, target, expected] of stageCases) {
+  for (const [soloId, joinId, expected] of pairCases) {
     const game = fresh();
-    game.startEvent(stage, { force: true });
-    game.intervene("force", target);
-    must(game.getState().currentEvent.id === expected, `${stage} + 500 ${target} → ${expected}`);
-    must(game.getState().lastResult.kind === "force", `${stage} 500 has 局勢變化`);
+    game.intervene("encounter", soloId);
+    game.choose("stay");
+    game.intervene("force", joinId);
+    must(game.getState().currentEvent.id === expected, `${soloId} solo + 500 ${joinId} → ${expected}`);
+    must(shuraIdsForPair(soloId, joinId).includes(game.getState().currentEvent.id), "followup is an A×B shura id");
+    must(game.getState().lastResult.originalSoloCharacter === soloId, `${expected} keeps A`);
+    must(game.getState().lastResult.joiningCharacter === joinId, `${expected} keeps B`);
   }
+
+  const selfJoin = fresh();
+  selfJoin.intervene("encounter", "jupiter");
+  selfJoin.choose("stay");
+  must(selfJoin.intervene("force", "jupiter").ok === false, "500 cannot join your own solo");
 
   addRow({
     cost: 500,
     name: "扭轉命運",
-    effect: "依現場人數改局勢：Hub→該角色危機；單人現場→對應修羅場。不是 spotlight 加點",
-    next: "是",
-    later: "是（forced_* 被修羅場 02 讀取）",
-    fake: "無",
+    effect: "指定 B 加入 A 的獨處，A/B 危險度上升，下一張強制 A×B 修羅場。沒有對應卡就回報，不改抽",
+    next: "是（A×B 修羅場，不是單人或隨機五人）",
+    later: "是（date_broken_*、forced_* 被修羅場讀取）",
+    fake: "無獨處或選自己：拒絕",
     invalid: "無",
-    result: "通過（Hub／單人現場路由正確；封鎖後不進原危機）",
+    result: "通過",
   });
 }
 
@@ -430,9 +452,8 @@ function peekSecret(targetId, choiceId) {
   override.choose("wait");
   must(override.getState().flags.crisis_blocked_nini, "rewrite scene wait still can block crisis");
   must(!inPool(override, "EVENT_nini_lockbox_01"), "blocked lockbox not in pool");
-  override.intervene("force", "nini");
-  must(override.getState().currentEvent.id !== "EVENT_nini_lockbox_01", "500 cannot pierce crisis_blocked_nini");
-  must(override.getState().currentEvent.id === "EVENT_008_office_hub", "500 blocked crisis redirects to hub");
+  const blockedForce = override.intervene("force", "meteor");
+  must(blockedForce.ok === false, "500 without a live solo is refused even after rewrite");
 
   const jupiterStay = fresh();
   jupiterStay.startEvent("EVENT_rewrite_jupiter", { force: true });
@@ -496,7 +517,7 @@ function peekSecret(targetId, choiceId) {
   addRow({
     cost: "—",
     name: "階梯差異",
-    effect: "100 讀資訊、200 造獨處、300 改正在發生的事、500 改場上是誰、1000 只洗牌數值",
+    effect: "100 讀資訊、200 造獨處、300 支開並搶走鏡頭、500 拉人進修羅場、1000 只洗牌數值",
     next: "100–500 會改下一張；1000 回到現場",
     later: "有後續讀取",
     fake: "無",

@@ -1,6 +1,7 @@
 import { CHARACTERS, CHARACTER_BY_ID, STAT_LABELS } from "../../data/characters.js";
 import { pairKey } from "../../data/relationships.js";
 import { EVENT_BY_ID, EVENTS } from "../../data/seasons/qixi-2026/events.js";
+import { shuraIdsForPair } from "../../data/seasons/qixi-2026/interventions.js";
 import { GAME_CONFIG } from "../config/game.config.js";
 import { SEASONS } from "../../data/seasons/index.js";
 import { evalCondition } from "./conditions.js";
@@ -120,6 +121,53 @@ export function drawPoolEvent(state, rng = Math.random) {
     if (cursor <= 0) return getEvent(item.id);
   }
   return getEvent(pool[pool.length - 1].id);
+}
+
+function characterOwnsEvent(event, characterId) {
+  if (!event || !characterId) return false;
+  const tags = event.tags || [];
+  if (tags.includes("shura") || String(event.id).includes("shura")) return false;
+  if (tags.includes("solo") || tags.includes("date") || event.solo) return false;
+  const chars = event.characters || [];
+  if (!chars.includes(characterId) || chars.length >= 4) return false;
+  return chars.length === 1 || chars[0] === characterId;
+}
+
+function pickWeightedEvents(events, state, rng) {
+  if (!events.length) return null;
+  const weighted = events.map((event) => ({ event, weight: effectiveWeight(event, state) }));
+  const total = weighted.reduce((sum, item) => sum + Math.max(1, item.weight), 0);
+  let cursor = rng() * total;
+  for (const item of weighted) {
+    cursor -= Math.max(1, item.weight);
+    if (cursor <= 0) return item.event;
+  }
+  return weighted[weighted.length - 1].event;
+}
+
+export function pickPoolEventForCharacter(state, characterId, rng = Math.random) {
+  const available = listPoolCandidates(state)
+    .map((item) => getEvent(item.id))
+    .filter((event) => characterOwnsEvent(event, characterId));
+  const fromPool = pickWeightedEvents(available, state, rng);
+  if (fromPool) return fromPool;
+  const fallback = EVENTS.filter(
+    (event) => event.pool && !event.final && !hasOccurred(state, event.id) && characterOwnsEvent(event, characterId)
+  );
+  return pickWeightedEvents(fallback, state, rng);
+}
+
+export function pickShuraForPair(state, a, b, rng = Math.random) {
+  const ids = shuraIdsForPair(a, b);
+  if (!ids.length) {
+    return { eventId: null, reason: "missing-pair", ids: [] };
+  }
+  const unused = ids.filter((id) => getEvent(id) && !hasOccurred(state, id));
+  if (!unused.length) {
+    return { eventId: null, reason: "exhausted", ids };
+  }
+  const index = Math.min(unused.length - 1, Math.max(0, Math.floor(rng() * unused.length)));
+  return { eventId: unused[index], reason: null, ids };
 }
 
 export function trackCharacterTouch(state, characterId, kind, eventId) {

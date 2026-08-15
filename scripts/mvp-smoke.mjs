@@ -187,10 +187,14 @@ assert(niniEnc.getState().currentEvent.id === "EVENT_nini_solo_01", "nini encoun
 assert(niniEnc.getState().flags.solo_active_nini, "solo_active_nini set");
 const smashed = niniEnc.intervene("sabotage", "mars", { force: true });
 assert(smashed.ok, "sabotage allowed during nini solo");
-assert(niniEnc.getState().pendingTargetId === "nini" || niniEnc.getState().currentEvent.id === "IV_sabotage", "sabotage retargets to active solo");
-niniEnc.choose("break");
+assert(niniEnc.getState().lastResult.kind === "sabotage", "300 interrupt uses the paid overlay");
+assert(niniEnc.getState().lastResult.originalSoloCharacter === "nini", "300 keeps B as the interrupted solo");
+assert(niniEnc.getState().lastResult.interruptingId === "mars", "300 keeps A as 西打火星");
+assert(niniEnc.getState().lastResult.interruptLine, "300 shows the reason A pulled 可樂月月 away");
 assert(niniEnc.getState().flags.date_broken_nini, "date_broken_nini written");
-assert(niniEnc.getState().currentEvent.id === "EVENT_nini_lockbox_01", "nini sabotage forces lockbox crisis");
+assert(niniEnc.getState().currentEvent.characters.includes("mars"), "300 next card is a 西打火星 event");
+assert(!String(niniEnc.getState().currentEvent.id).includes("shura"), "300 does not jump to shura");
+assert(niniEnc.getState().currentEvent.id !== "EVENT_nini_lockbox_01", "300 no longer forceEvents nini lockbox");
 
 const letterGame = createGame({ persist: false, rng: () => 0 });
 playIntro(letterGame);
@@ -201,12 +205,19 @@ assert(letterGame.getState().currentEvent.id === "EVENT_letter_nini", "letter fo
 
 const forceGame = createGame({ persist: false, rng: () => 0 });
 playIntro(forceGame);
-forceGame.intervene("force", "nini", { force: true });
-assert(forceGame.getState().currentEvent.id === "EVENT_nini_lockbox_01", "force from hub sends target into crisis, not spotlight");
+const hubForce = forceGame.intervene("force", "nini", { force: true });
+assert(hubForce.ok === false, "500 from hub without solo is refused");
+forceGame.intervene("encounter", "jupiter", { force: true });
+forceGame.choose("stay");
+forceGame.intervene("force", "mars", { force: true });
+assert(forceGame.getState().currentEvent.id === "EVENT_shura_jupiter_mars_01", "500 mars joins jupiter solo → 木星×火星修羅場");
 assert(forceGame.getState().lastResult.kind === "force", "500 shows 局勢變化 result");
 assert(forceGame.getState().lastResult.overlayTitle === "局勢變化", "500 overlay is 局勢變化");
-assert(forceGame.getState().lastResult.name === "雪碧日日", "500 names the character in Chinese");
+assert(forceGame.getState().lastResult.originalSoloCharacter === "jupiter", "500 stores A as 芬達木星");
+assert(forceGame.getState().lastResult.joiningCharacter === "mars", "500 stores B as 西打火星");
+assert(forceGame.getState().lastResult.name === "西打火星", "500 names the joining character");
 assert(!JSON.stringify(forceGame.getState().lastResult.intervalCopy || "").includes("EVENT_"), "500 interval copy has no event id");
+assert(/歡迎來到戀愛修羅場/.test(forceGame.getState().lastResult.intervalCopy || ""), "500 interval welcomes the shura");
 
 const pepsiBurn = createGame({ persist: false, rng: () => 0 });
 playIntro(pepsiBurn);
@@ -519,9 +530,10 @@ assert(
   !doorIntrusion.getState().pool.some((item) => item.id === "EVENT_shura_jupiter_mars_01"),
   "jupiter solo itself does not open doorway shura"
 );
-doorIntrusion.intervene("sabotage", "jupiter", { force: true });
-doorIntrusion.choose("break");
-assert(doorIntrusion.getState().flags.date_broken_jupiter, "300 break writes date_broken_jupiter");
+doorIntrusion.intervene("sabotage", "mars", { force: true });
+assert(doorIntrusion.getState().flags.date_broken_jupiter, "300 interrupt writes date_broken_jupiter");
+assert(doorIntrusion.getState().lastResult.originalSoloCharacter === "jupiter", "300 interrupted 芬達木星");
+assert(doorIntrusion.getState().lastResult.interruptingId === "mars", "300 actor is 西打火星");
 assert(
   doorIntrusion.getState().pool.some((item) => item.id === "EVENT_shura_jupiter_mars_01"),
   "broken jupiter date opens doorway shura"
@@ -663,8 +675,7 @@ assert(
 
 const sparkVsBurn = createGame({ persist: false, rng: () => 0 });
 playIntro(sparkVsBurn);
-sparkVsBurn.intervene("intervene", "pepsi", { force: true });
-sparkVsBurn.choose("jealousy");
+sparkVsBurn.intervene("jealousy", "pepsi", { force: true });
 sparkVsBurn.choose("spark");
 assert(sparkVsBurn.getState().currentEvent.id === "EVENT_pepsi_jealousy_01", "300 spark is pepsi jealousy, not identity");
 assert(!/EVENT_|FLAG_|IV_/.test(JSON.stringify(sparkVsBurn.getState().lastResult?.logs || [])), "300 result logs hide internal ids");
@@ -907,9 +918,10 @@ const saboFx = createGame({ persist: false, rng: () => 0 });
 playIntro(saboFx);
 saboFx.intervene("encounter", "nini", { force: true });
 saboFx.choose("stay");
-saboFx.intervene("sabotage", "nini", { force: true });
-saboFx.choose("break");
-assert(saboFx.getState().lastResult.kind === "sabotage", "300 break uses the paid overlay");
+saboFx.setStat("nini", "affection", 42);
+saboFx.intervene("sabotage", "mars", { force: true });
+assert(saboFx.getState().lastResult.kind === "sabotage", "300 interrupt uses the paid overlay");
+assert(saboFx.getState().lastResult.interruptLine, "300 shows A's spoken reason");
 assert(
   /獨處|兩人時間|打斷/.test(
     JSON.stringify(saboFx.getState().lastResult.statusNotes || []) + (saboFx.getState().lastResult.intervalCopy || "")
@@ -918,8 +930,13 @@ assert(
 );
 assert(
   (saboFx.getState().lastResult.statChanges || []).some((row) => row.id === "nini" && row.changes.some((c) => c.key === "affection" && c.to < c.from)),
-  "300 break can lower affection"
+  "300 interrupt can lower 雪碧日日 affection"
 );
+assert(
+  (saboFx.getState().lastResult.statChanges || []).some((row) => row.id === "mars"),
+  "300 interrupt also shows 西打火星"
+);
+assert(saboFx.getState().currentEvent.characters.includes("mars"), "300 next event is 西打火星's");
 
 console.log("mvp smoke ok", {
   event: game.getState().currentEvent.id,
