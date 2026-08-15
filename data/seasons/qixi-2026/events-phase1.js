@@ -161,7 +161,7 @@ export const PHASE1_EVENTS = [
       ],
       [
         clearSolo("pepsi"),
-        { type: "stat", path: "characters.pepsi.understanding", op: "add", value: 2 },
+        { type: "stat", path: "characters.pepsi.similarity", op: "add", value: 2 },
         { type: "eventStatus", status: "unresolved" },
       ]
     ),
@@ -284,7 +284,7 @@ export const PHASE1_EVENTS = [
         id: "hide",
         label: "讓月月說那不是她的意思",
         effects: [
-          { type: "stat", path: "characters.pepsi.understanding", op: "add", value: 3 },
+          { type: "stat", path: "characters.pepsi.similarity", op: "add", value: 3 },
           { type: "eventStatus", status: "unresolved" },
         ],
       },
@@ -517,7 +517,7 @@ export const PHASE1_EVENTS = [
         label: "讓月月說：我太像妳了，所以不算",
         effects: [
           { type: "stat", path: "characters.pepsi.similarity", op: "add", value: 8 },
-          { type: "stat", path: "characters.pepsi.understanding", op: "add", value: 4 },
+          { type: "stat", path: "characters.pepsi.similarity", op: "add", value: 4 },
           { type: "eventStatus", status: "unresolved" },
         ],
       },

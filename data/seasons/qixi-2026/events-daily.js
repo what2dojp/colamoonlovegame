@@ -270,7 +270,7 @@ export const DAILY_EVENTS = [
       "讓月月故意改點，看她會不會跟上",
       [
         { type: "stat", path: "characters.pepsi.affection", op: "add", value: 4 },
-        { type: "stat", path: "characters.pepsi.understanding", op: "add", value: 3 },
+        { type: "stat", path: "characters.pepsi.similarity", op: "add", value: 3 },
       ]
     ),
   }),
@@ -295,7 +295,7 @@ export const DAILY_EVENTS = [
       "讓月月說：那就只留給我們兩個",
       [
         { type: "stat", path: "characters.pepsi.resonance", op: "add", value: 4 },
-        { type: "stat", path: "characters.pepsi.understanding", op: "add", value: 3 },
+        { type: "stat", path: "characters.pepsi.similarity", op: "add", value: 3 },
       ]
     ),
   }),
@@ -320,7 +320,7 @@ export const DAILY_EVENTS = [
       "correct",
       "讓月月自己把那句話說完",
       [
-        { type: "stat", path: "characters.pepsi.understanding", op: "add", value: 2 },
+        { type: "stat", path: "characters.pepsi.similarity", op: "add", value: 2 },
         { type: "flag", key: "foreshadow_pepsi_speak", value: true },
       ]
     ),

@@ -125,7 +125,7 @@ export const EVENTS = [
         label: "讓月月承認「被說中了」",
         effects: [
           { type: "stat", path: "characters.pepsi.resonance", op: "add", value: 5 },
-          { type: "stat", path: "characters.pepsi.understanding", op: "add", value: 4 },
+          { type: "stat", path: "characters.pepsi.similarity", op: "add", value: 4 },
           { type: "stat", path: "characters.pepsi.affection", op: "add", value: 4 },
           { type: "queueEvent", eventId: "EVENT_005_knock_jupiter" },
         ],
@@ -825,7 +825,7 @@ export const EVENTS = [
         {
           any: [
             { flag: "jealousy_triggered_pepsi" },
-            { path: "characters.pepsi.understanding", op: "gte", value: 16 },
+            { path: "characters.pepsi.similarity", op: "gte", value: 16 },
           ],
         },
       ],
@@ -1033,7 +1033,7 @@ export const EVENTS = [
         label: "讓月月讓這份理解停留",
         effects: [
           { type: "stat", path: "characters.pepsi.affection", op: "add", value: 6 },
-          { type: "stat", path: "characters.pepsi.understanding", op: "add", value: 4 },
+          { type: "stat", path: "characters.pepsi.similarity", op: "add", value: 4 },
         ],
       },
       {
@@ -1149,7 +1149,7 @@ export const EVENTS = [
       all: [
         { flag: "dynamic_pool_unlocked" },
         { not: { completed: "EVENT_pepsi_understanding_01" } },
-        { path: "characters.pepsi.understanding", op: "gte", value: 16 },
+        { path: "characters.pepsi.similarity", op: "gte", value: 16 },
       ],
     },
     choices: [
@@ -1165,7 +1165,7 @@ export const EVENTS = [
         id: "silence",
         label: "讓月月什麼都不解釋",
         effects: [
-          { type: "stat", path: "characters.pepsi.understanding", op: "add", value: 3 },
+          { type: "stat", path: "characters.pepsi.similarity", op: "add", value: 3 },
           { type: "stat", path: "characters.pepsi.similarity", op: "add", value: 4 },
         ],
       },

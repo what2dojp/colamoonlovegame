@@ -21,3 +21,16 @@ export const RELATIONSHIP_PAIRS = [
 export function pairKey(a, b) {
   return [a, b].sort().join("-");
 }
+
+export function partyName(id, charactersById = {}) {
+  if (id === MOON_ID || id === "moon") return "可樂月月";
+  return charactersById[id]?.name || id;
+}
+
+export function formatPairLabel(rel, charactersById = {}) {
+  const ids = [rel?.a, rel?.b].filter(Boolean);
+  const order = [MOON_ID, "nini", "meteor", "pepsi", "jupiter", "mars"];
+  ids.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+  if (ids.length !== 2) return "";
+  return `${partyName(ids[0], charactersById)} ↔ ${partyName(ids[1], charactersById)}`;
+}

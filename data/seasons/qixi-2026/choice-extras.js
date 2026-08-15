@@ -60,13 +60,13 @@ export const CHOICE_EXTRAS = {
   "EVENT_shura_pepsi_meteor_01:continue": [
     s("meteor", "destiny", 5),
     s("meteor", "pride", 4),
-    s("pepsi", "understanding", 4),
+    s("pepsi", "similarity", 4),
     s("pepsi", "resonance", 3),
   ],
   "EVENT_shura_pepsi_meteor_01:meteor_ownership": [
     s("meteor", "destiny", 8),
     s("meteor", "pride", 5),
-    s("pepsi", "understanding", -4),
+    s("pepsi", "similarity", -4),
     s("pepsi", "affection", -3),
   ],
   "EVENT_shura_pepsi_meteor_01:pepsi_sync": [
@@ -78,7 +78,7 @@ export const CHOICE_EXTRAS = {
   "EVENT_shura_pepsi_meteor_01:interrupt": [
     s("meteor", "pride", -5),
     s("meteor", "destiny", -2),
-    s("pepsi", "understanding", 3),
+    s("pepsi", "similarity", 3),
     s("pepsi", "resonance", -2),
   ],
 
@@ -86,7 +86,7 @@ export const CHOICE_EXTRAS = {
     s("meteor", "destiny", 6),
     s("pepsi", "destiny", 6),
     s("meteor", "jealousy", 4),
-    s("pepsi", "understanding", 3),
+    s("pepsi", "similarity", 3),
   ],
   "EVENT_shura_pepsi_meteor_02:admit_meteor": [
     s("meteor", "affection", 8),
@@ -103,18 +103,18 @@ export const CHOICE_EXTRAS = {
   "EVENT_shura_pepsi_meteor_02:refuse_define": [
     s("meteor", "pride", -4),
     s("meteor", "jealousy", 5),
-    s("pepsi", "understanding", 4),
+    s("pepsi", "similarity", 4),
     s("pepsi", "destiny", -3),
   ],
 
   "EVENT_shura_nini_pepsi_01:continue": [
     s("nini", "obsession", 7),
     s("nini", "trust", -6),
-    s("pepsi", "understanding", 3),
+    s("pepsi", "similarity", 3),
     s("pepsi", "resonance", -2),
   ],
   "EVENT_shura_nini_pepsi_01:stop_pepsi": [
-    s("pepsi", "understanding", -5),
+    s("pepsi", "similarity", -5),
     s("pepsi", "affection", -3),
     s("nini", "trust", 4),
     s("nini", "obsession", 3),
@@ -122,14 +122,14 @@ export const CHOICE_EXTRAS = {
   "EVENT_shura_nini_pepsi_01:hear_nini": [
     s("nini", "trust", 6),
     s("nini", "jealousy", -4),
-    s("pepsi", "understanding", 5),
+    s("pepsi", "similarity", 5),
     s("pepsi", "affection", 4),
   ],
   "EVENT_shura_nini_pepsi_01:do_nothing": [
     s("nini", "obsession", 5),
     s("nini", "jealousy", 4),
     s("pepsi", "resonance", -3),
-    s("pepsi", "understanding", 2),
+    s("pepsi", "similarity", 2),
   ],
 
   "EVENT_shura_nini_pepsi_02:continue": [
@@ -141,7 +141,7 @@ export const CHOICE_EXTRAS = {
   "EVENT_shura_nini_pepsi_02:crystal_back": [
     s("nini", "trust", 6),
     s("nini", "affection", 5),
-    s("pepsi", "understanding", 4),
+    s("pepsi", "similarity", 4),
     s("pepsi", "resonance", 3),
   ],
   "EVENT_shura_nini_pepsi_02:pepsi_back": [
@@ -152,7 +152,7 @@ export const CHOICE_EXTRAS = {
   "EVENT_shura_nini_pepsi_02:neither": [
     s("nini", "trust", -6),
     s("nini", "affection", -3),
-    s("pepsi", "understanding", -4),
+    s("pepsi", "similarity", -4),
     s("pepsi", "affection", -3),
   ],
 
@@ -306,7 +306,7 @@ export const CHOICE_EXTRAS = {
 
   "EVENT_shura_pepsi_jupiter_01:continue": [
     s("pepsi", "resonance", 5),
-    s("pepsi", "understanding", 4),
+    s("pepsi", "similarity", 4),
     s("jupiter", "devotion", 5),
     s("jupiter", "hope", -5),
   ],
@@ -319,12 +319,12 @@ export const CHOICE_EXTRAS = {
   "EVENT_shura_pepsi_jupiter_01:help_jupiter": [
     s("jupiter", "affection", 8),
     s("jupiter", "hope", 7),
-    s("pepsi", "understanding", -4),
+    s("pepsi", "similarity", -4),
     s("pepsi", "destiny", -3),
   ],
   "EVENT_shura_pepsi_jupiter_01:pull_moon": [
     s("pepsi", "resonance", -3),
-    s("pepsi", "understanding", 3),
+    s("pepsi", "similarity", 3),
     s("jupiter", "patience", -4),
     s("jupiter", "devotion", 3),
   ],
@@ -337,14 +337,14 @@ export const CHOICE_EXTRAS = {
   ],
   "EVENT_shura_pepsi_mars_01:help_pepsi": [
     s("pepsi", "affection", 8),
-    s("pepsi", "understanding", 5),
+    s("pepsi", "similarity", 5),
     s("mars", "pride", -5),
     s("mars", "provocation", -4),
   ],
   "EVENT_shura_pepsi_mars_01:help_mars": [
     s("mars", "affection", 6),
     s("mars", "chemistry", 6),
-    s("pepsi", "understanding", -5),
+    s("pepsi", "similarity", -5),
     s("pepsi", "destiny", -4),
   ],
   "EVENT_shura_pepsi_mars_01:pull_moon": [
@@ -387,7 +387,7 @@ export const CHOICE_EXTRAS = {
   "EVENT_pepsi_sweet_01:order": [s("pepsi", "similarity", -3)],
   "EVENT_pepsi_nature_01:private": [s("pepsi", "destiny", -2)],
   "EVENT_pepsi_overstep_01:correct": [s("pepsi", "resonance", -4), s("pepsi", "affection", 3)],
-  "EVENT_pepsi_foreshadow_01:laugh": [s("pepsi", "understanding", -3)],
+  "EVENT_pepsi_foreshadow_01:laugh": [s("pepsi", "similarity", -3)],
   "EVENT_jupiter_sweet_01:keep": [s("jupiter", "hope", -3)],
   "EVENT_jupiter_nature_01:see": [s("jupiter", "patience", -4)],
   "EVENT_jupiter_overstep_01:ask": [s("jupiter", "devotion", -3), s("jupiter", "hope", 2)],

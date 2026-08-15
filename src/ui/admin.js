@@ -1,4 +1,5 @@
-import { STAT_LABELS } from "../../data/characters.js";
+import { CONFLICT_STAT_KEYS, statMeta } from "../../data/characters.js";
+import { formatPairLabel } from "../../data/relationships.js";
 import { createGame } from "../engine/game.js";
 import { colaMoonText, FATE_COPY } from "./presentation.js";
 
@@ -81,42 +82,26 @@ function render(state) {
 
       <section class="box">
         <h2>角色數值</h2>
-        <p class="muted">Night Score 是今晚陪伴傾向，不是誰比較健康。親密度最高 ≠ 一定成為今晚陪伴者。核心是親密度 + unique primary；其餘官方心理數值仍可進 Night Score 與事件條件。</p>
-        <table>
-          <tr>
-            <th>角色</th>
-            <th>Night</th>
-            ${[...new Set(state.charactersView.flatMap((c) => c.stats))]
-              .map((key) => `<th>${STAT_LABELS[key] || key}</th>`)
-              .join("")}
-          </tr>
-          ${state.charactersView
-            .map((c) => {
-              const keys = [...new Set(state.charactersView.flatMap((x) => x.stats))];
-              return `<tr>
-                <td>${c.icon}${c.shortName}</td>
-                <td>${c.nightScore}</td>
-                ${keys
-                  .map((key) => {
-                    const val = c.values[key];
-                    if (val == null) return "<td></td>";
-                    return `<td><input class="num" data-stat="${c.id}.${key}" type="number" min="0" max="100" value="${val}"></td>`;
-                  })
-                  .join("")}
-              </tr>`;
-            })
-            .join("")}
-        </table>
+        <p class="muted">每個角色只顯示自己真正擁有的數值。核心進入 Night Score；輔助只給劇情使用。空白欄位代表「沒有這個屬性」的做法已經取消。</p>
+        <div class="stat-cards">
+          ${state.charactersView.map((c) => renderCharacterCard(c)).join("")}
+        </div>
       </section>
 
       <section class="box">
-        <h2>關係張力</h2>
-        <table>
+        <h2>角色關係張力</h2>
+        <p class="muted">這是兩人之間的關係資料，不是任何角色的個人 stat。</p>
+        <table class="rel-table">
+          <tr><th>關係</th><th>說明</th><th>張力</th></tr>
           ${Object.entries(state.relationships)
-            .map(
-              ([key, rel]) =>
-                `<tr><td>${key}</td><td>${rel.note || ""}</td><td><input class="num" data-ten="${key}" type="number" min="0" max="100" value="${rel.tension}"></td></tr>`
-            )
+            .map(([key, rel]) => {
+              const label = formatPairLabel(rel, Object.fromEntries(state.charactersView.map((c) => [c.id, c])));
+              return `<tr>
+                <td>${label || key}</td>
+                <td class="muted">${rel.note || ""}</td>
+                <td><input class="num" data-ten="${key}" type="number" min="0" max="100" value="${rel.tension}"></td>
+              </tr>`;
+            })
             .join("")}
         </table>
       </section>
@@ -148,6 +133,48 @@ function render(state) {
       </div>
     </div>
   `;
+}
+
+function renderStatRow(characterId, key, value, layer) {
+  const meta = statMeta(key);
+  const conflict = CONFLICT_STAT_KEYS.has(key) ? " is-conflict" : "";
+  return `
+    <label class="stat-row ${layer}${conflict}">
+      <span>${meta.icon ? `${meta.icon} ` : ""}${meta.label}</span>
+      <input class="num" data-stat="${characterId}.${key}" type="number" min="0" max="100" value="${value}">
+    </label>`;
+}
+
+function renderCharacterCard(c) {
+  const core = (c.coreStats || []).filter((key) => c.values[key] != null);
+  const aux = (c.auxiliaryStats || []).filter((key) => c.values[key] != null);
+  const moonRel =
+    c.id === "mars"
+      ? `<div class="stat-block">
+          <p class="stat-kicker">關係</p>
+          <label class="stat-row relationship">
+            <span>可樂月月 ↔ ${c.name}<small>關係張力</small></span>
+            <input class="num" data-ten="mars-moon" type="number" min="0" max="100" value="${c.moonTension ?? 0}">
+          </label>
+        </div>`
+      : "";
+  return `
+    <article class="stat-card" style="--accent:${c.accent}">
+      <h3>${c.icon} ${c.name}</h3>
+      <p class="night-line">Night Score：<b>${c.nightScore}</b></p>
+      <div class="stat-block">
+        ${core.map((key) => renderStatRow(c.id, key, c.values[key], "core")).join("")}
+      </div>
+      ${moonRel}
+      ${
+        aux.length
+          ? `<div class="stat-block aux">
+              <p class="stat-kicker">輔助</p>
+              ${aux.map((key) => renderStatRow(c.id, key, c.values[key], "aux")).join("")}
+            </div>`
+          : ""
+      }
+    </article>`;
 }
 
 function escapeHtml(text) {

@@ -2,7 +2,8 @@ import { createGame } from "../src/engine/game.js";
 import { GAME_CONFIG } from "../src/config/game.config.js";
 import { nightScore, pickNightPartner } from "../src/engine/session.js";
 import { inspectSave, migrateSave, pairKey } from "../src/engine/save.js";
-import { EVENT_BY_ID } from "../data/seasons/qixi-2026/events.js";
+import { EVENT_BY_ID, EVENTS } from "../data/seasons/qixi-2026/events.js";
+import { CHARACTERS, CHARACTER_BY_ID } from "../data/characters.js";
 import { audienceText, eventPresentation, fireMoodLabel } from "../src/ui/presentation.js";
 
 const assert = (cond, message) => {
@@ -77,17 +78,36 @@ assert(
   "no shura events in pool right after intro"
 );
 
-assert(afterIntro.characters.nini.dependence != null, "nini has dependence");
+assert(afterIntro.characters.nini.dependence != null, "nini keeps plot auxiliary dependence");
+assert(afterIntro.characters.nini.trust != null, "nini keeps plot auxiliary trust");
 assert(afterIntro.characters.meteor.destiny != null, "meteor destiny key");
 assert(afterIntro.characters.meteor.destinyBelief == null, "old destinyBelief removed");
 assert(afterIntro.characters.pepsi.resonance != null, "pepsi resonance key");
 assert(afterIntro.characters.pepsi.similarity != null, "pepsi similarity key");
 assert(afterIntro.characters.pepsi.jealousy == null, "pepsi has no jealousy");
+assert(afterIntro.characters.pepsi.understanding == null, "pepsi understanding is not a real stat");
 assert(afterIntro.characters.jupiter.patience != null, "jupiter patience key");
 assert(afterIntro.characters.jupiter.restraint == null, "old restraint removed");
 assert(afterIntro.characters.mars.chemistry != null, "mars chemistry");
 assert(afterIntro.characters.mars.jealousy == null, "mars has no personal jealousy");
+assert(afterIntro.characters.mars.tension == null, "mars has no personal tension");
 assert(afterIntro.relationships["mars-moon"] || afterIntro.relationships["moon-mars"], "moon-mars tension exists");
+assert(JSON.stringify(CHARACTER_BY_ID.nini.coreStats) === JSON.stringify(["affection", "obsession", "jealousy"]), "nini core stats");
+assert(JSON.stringify(CHARACTER_BY_ID.meteor.coreStats) === JSON.stringify(["affection", "destiny", "nostalgia", "jealousy"]), "meteor core stats");
+assert(JSON.stringify(CHARACTER_BY_ID.pepsi.coreStats) === JSON.stringify(["affection", "resonance", "similarity", "destiny"]), "pepsi core stats");
+assert(JSON.stringify(CHARACTER_BY_ID.jupiter.coreStats) === JSON.stringify(["affection", "devotion", "patience", "jealousy"]), "jupiter core stats");
+assert(JSON.stringify(CHARACTER_BY_ID.jupiter.auxiliaryStats) === JSON.stringify(["hope"]), "jupiter hope is auxiliary");
+assert(JSON.stringify(CHARACTER_BY_ID.mars.coreStats) === JSON.stringify(["affection", "chemistry", "provocation"]), "mars core stats");
+assert(!CHARACTER_BY_ID.pepsi.stats.includes("jealousy"), "pepsi schema excludes jealousy");
+assert(!CHARACTER_BY_ID.nini.coreStats.includes("trust"), "nini trust is not core");
+assert(!CHARACTER_BY_ID.nini.coreStats.includes("dependence"), "nini dependence is not core");
+assert(!CHARACTER_BY_ID.meteor.coreStats.includes("pride"), "meteor pride is not core");
+assert(!CHARACTER_BY_ID.mars.coreStats.includes("pride"), "mars pride is not core");
+assert(!CHARACTER_BY_ID.mars.stats.includes("tension"), "mars schema excludes personal tension");
+assert(JSON.stringify(afterIntro.charactersView.find((c) => c.id === "nini").audienceStats) === JSON.stringify(["affection", "obsession"]), "nini audience stats");
+assert(JSON.stringify(afterIntro.charactersView.find((c) => c.id === "pepsi").audienceStats) === JSON.stringify(["affection", "resonance"]), "pepsi audience stats");
+assert(Number.isInteger(afterIntro.nightScores.nini), "night score is an integer");
+assert(afterIntro.nightScores.nini >= 0 && afterIntro.nightScores.nini <= 100, "night score stays 0-100");
 assert(afterIntro.charactersView.find((c) => c.id === "nini").uniquePrimary === "obsession", "nini uniquePrimary");
 assert(afterIntro.charactersView.find((c) => c.id === "meteor").uniquePrimary === "destiny", "meteor uniquePrimary");
 assert(afterIntro.charactersView.find((c) => c.id === "pepsi").uniquePrimary === "resonance", "pepsi uniquePrimary");
@@ -151,6 +171,32 @@ for (const [id, weights] of Object.entries(GAME_CONFIG.nightScoreWeights)) {
   const sum = Object.values(weights).reduce((a, b) => a + b, 0);
   assert(Math.abs(sum - 1) < 1e-9, `${id} night weights must sum to 1`);
 }
+assert(!("trust" in GAME_CONFIG.nightScoreWeights.nini), "nini night score ignores trust");
+assert(!("dependence" in GAME_CONFIG.nightScoreWeights.nini), "nini night score ignores dependence");
+assert(!("pride" in GAME_CONFIG.nightScoreWeights.meteor), "meteor night score ignores pride");
+assert(!("understanding" in GAME_CONFIG.nightScoreWeights.pepsi), "pepsi night score has no understanding");
+assert(!("jealousy" in GAME_CONFIG.nightScoreWeights.pepsi), "pepsi night score has no jealousy");
+assert(!("hope" in GAME_CONFIG.nightScoreWeights.jupiter), "jupiter night score ignores hope");
+assert(!("pride" in GAME_CONFIG.nightScoreWeights.mars), "mars night score ignores pride");
+assert("relationshipTension" in GAME_CONFIG.nightScoreWeights.mars, "mars night score uses relationship tension");
+
+const dumpedEvents = JSON.stringify(EVENTS);
+assert(
+  !/characters\.[A-Za-z]+\.(destinyBelief|soulResonance|understanding|restraint)\b/.test(dumpedEvents),
+  "event effects no longer write legacy stat keys"
+);
+assert(!/characters\.[A-Za-z]+\.tension\b/.test(dumpedEvents), "events do not use personal tension stats");
+assert(!CHARACTERS.some((c) => c.stats.includes("destinyBelief") || c.stats.includes("understanding") || c.stats.includes("restraint") || c.stats.includes("soulResonance")), "character schema has no leftover keys");
+
+const trustScore = createGame({ persist: false, rng: () => 0 });
+playIntro(trustScore);
+trustScore.setStat("nini", "affection", 40);
+trustScore.setStat("nini", "obsession", 40);
+trustScore.setStat("nini", "jealousy", 20);
+const niniBeforeAux = nightScore(trustScore.getState(), "nini");
+trustScore.setStat("nini", "trust", 100);
+trustScore.setStat("nini", "dependence", 100);
+assert(nightScore(trustScore.getState(), "nini") === niniBeforeAux, "nini auxiliary stats do not change Night Score");
 
 const beforeFate = afterIntro.fate;
 const iv = game.intervene("encounter", "jupiter");
@@ -283,12 +329,13 @@ assert(jealous.getState().currentEvent.id === "EVENT_nini_lockbox_01", "forceEve
 
 const pepsiIv = createGame({ persist: false, rng: () => 0 });
 playIntro(pepsiIv);
-const pepsiUnderstanding = pepsiIv.getState().characters.pepsi.understanding;
+const pepsiResonance = pepsiIv.getState().characters.pepsi.resonance;
 pepsiIv.intervene("jealousy", "pepsi", { force: true });
 assert(pepsiIv.getState().characters.pepsi.jealousy == null, "pepsi jealousy still unofficial after IV");
+assert(pepsiIv.getState().characters.pepsi.understanding == null, "pepsi jealousy is not redirected into understanding");
 assert(
-  pepsiIv.getState().characters.pepsi.understanding > pepsiUnderstanding,
-  "pepsi jealousy IV redirects into understanding"
+  pepsiIv.getState().characters.pepsi.resonance > pepsiResonance,
+  "pepsi jealousy IV still raises her unique core"
 );
 assert(pepsiIv.getState().flags.jealousy_triggered_pepsi, "pepsi jealousy flag still unlocks her event");
 
@@ -372,7 +419,7 @@ const migrated = migrateSave({
     meteor: { affection: 50, destinyBelief: 77, nostalgia: 80, jealousy: 20, pride: 40 },
     pepsi: { affection: 40, soulResonance: 70, destinyBelief: 61, understanding: 90, jealousy: 33 },
     jupiter: { affection: 40, devotion: 70, restraint: 55, jealousy: 10, hope: 40 },
-    mars: { affection: 20, chemistry: 40, provocation: 70, pride: 80, jealousy: 99 },
+    mars: { affection: 20, chemistry: 40, provocation: 70, pride: 80, jealousy: 99, tension: 88 },
   },
   flags: { qixi_2026_night_partner: "jupiter" },
   archive: { "qixi-2026": { nightPartner: "jupiter", progressCard: { title: "七夕事件進度卡", status: "暫時休戰" } } },
@@ -382,10 +429,13 @@ assert(migrated.characters.meteor.destiny === 77, "destinyBelief migrated");
 assert(migrated.characters.meteor.destinyBelief == null, "old meteor key dropped");
 assert(migrated.characters.pepsi.resonance === 70, "soulResonance migrated");
 assert(migrated.characters.pepsi.destiny === 61, "pepsi destinyBelief migrated");
+assert(migrated.characters.pepsi.similarity === 90, "understanding migrated to similarity");
+assert(migrated.characters.pepsi.understanding == null, "old pepsi understanding dropped");
 assert(migrated.characters.pepsi.jealousy == null, "pepsi jealousy not official");
 assert(migrated.characters.jupiter.patience === 55, "restraint migrated to patience");
 assert(migrated.characters.nini.dependence != null, "nini dependence filled");
 assert(migrated.characters.mars.jealousy == null, "mars jealousy not official");
+assert(migrated.characters.mars.tension == null, "mars personal tension dropped");
 assert(migrated.relationships[pairKey("moon", "mars")], "moon-mars relationship filled");
 assert(migrated.archive["qixi-2026"].nightPartner === "jupiter", "archive survives migration");
 assert(migrated.currentSession.progressCard !== undefined || migrated.archive["qixi-2026"].progressCard, "progress card kept");
