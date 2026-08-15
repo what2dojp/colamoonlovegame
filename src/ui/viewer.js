@@ -247,6 +247,8 @@ function renderFateButtons(state) {
     !state.currentEvent?.final;
   const solo = state.soloActive;
   const soloName = state.charactersView.find((c) => c.id === solo)?.name;
+  const leadId = state.eventLeadId;
+  const leadName = state.charactersView.find((c) => c.id === leadId)?.name;
   return `
     <section class="fate-dock">
       <div class="fate-row">
@@ -254,14 +256,14 @@ function renderFateButtons(state) {
           .map((item) => {
             const copy = FATE_COPY[item.id] || {};
             const canBreak = item.id === "intervene" && solo;
-            const canJoin = item.id === "force" && solo;
+            const canJoin = item.id === "force" && leadId;
             return `
               <button class="fate-btn fate-${item.cost} ${canBreak || canJoin ? "has-solo" : ""}" data-iv="${item.id}" ${unlocked ? "" : "disabled"}>
                 <span class="fate-cost">${item.cost}</span>
                 <span class="fate-name">${copy.title || item.name}</span>
                 <small>${copy.tag || item.blurb}</small>
                 ${canBreak ? `<em>可支開獨處</em>` : ""}
-                ${canJoin ? `<em>可加入戰場</em>` : ""}
+                ${canJoin ? `<em>可拉人進來</em>` : ""}
               </button>`;
           })
           .join("")}
@@ -276,8 +278,10 @@ function renderFateButtons(state) {
                 ? `<p class="lock">今晚的命運已保存。場面停在這裡。</p>`
                 : `<p class="lock">先看完開場。特殊命運會在認識五個人之後解鎖。</p>`
           : solo
-            ? `<p class="lock">🌙 ${soloName} 正在與可樂月月獨處。300 可以支開她，500 可以把人叫進來。</p>`
-            : `<p class="lock">特殊命運是主播主動干涉。沒有確認，不會執行。</p>`
+            ? `<p class="lock">🌙 ${soloName} 正在與可樂月月獨處。300 可以支開她，500 可以把另一個人拉進來。</p>`
+            : leadName
+              ? `<p class="lock">目前是${leadName}的事件。500 可以把另一個人拉進這段時間。</p>`
+              : `<p class="lock">特殊命運是主播主動干涉。沒有確認，不會執行。</p>`
       }
     </section>`;
 }
@@ -286,15 +290,16 @@ function renderConfirm(state) {
   const action = fateAction(state, ui.actionId);
   const solo = state.soloActive;
   const soloName = state.charactersView.find((c) => c.id === solo)?.name;
+  const leadName = state.charactersView.find((c) => c.id === state.eventLeadId)?.name;
   const body =
     action.id === "intervene"
       ? soloName
         ? `指定一個人出手，把正在與可樂月月獨處的${soloName}支開。`
         : "目前沒有正在發生的獨處，無法支開。"
       : action.id === "force"
-        ? soloName
-          ? `指定一個人加入${soloName}與可樂月月的獨處，直接把局面炸成修羅場。`
-          : "目前沒有正在發生的獨處，無法把人叫進來。"
+        ? leadName
+          ? `指定一個人加入${leadName}與可樂月月正在發生的這段時間，直接把局面變成修羅場。`
+          : "目前這張不是角色事件，無法把人拉進來。"
         : "你即將改變目前的局勢。";
   return `
     <div class="modal" data-overlay="confirm">
@@ -318,7 +323,8 @@ function renderTarget(state) {
   const solo = state.soloActive;
   const pickingJoin = action.id === "force";
   const pickingInterrupt = action.id === "intervene";
-  const heading = pickingJoin ? "誰加入戰場？" : pickingInterrupt ? "誰把可樂月月支開？" : "選擇對象";
+  const blockedId = pickingJoin ? state.eventLeadId : pickingInterrupt ? solo : null;
+  const heading = pickingJoin ? "誰要加入？" : pickingInterrupt ? "誰把可樂月月支開？" : "選擇對象";
   return `
     <div class="modal" data-overlay="target">
       <div class="backdrop" data-cancel="1"></div>
@@ -329,9 +335,9 @@ function renderTarget(state) {
         <div class="target-grid">
           ${state.charactersView
             .map((c) => {
-              const isSolo = c.id === solo;
-              const blocked = (pickingJoin || pickingInterrupt) && isSolo;
-              return `<button class="target-btn ${isSolo ? "is-solo" : ""}" data-target="${c.id}" ${blocked ? "disabled" : ""}>${c.icon}<br>${c.name}${isSolo ? "<small>獨處中</small>" : ""}</button>`;
+              const isLead = c.id === blockedId;
+              const blocked = Boolean(blockedId) && isLead;
+              return `<button class="target-btn ${c.id === solo ? "is-solo" : ""}" data-target="${c.id}" ${blocked ? "disabled" : ""}>${c.icon}<br>${c.name}${isLead ? "<small>目前在場</small>" : c.id === solo ? "<small>獨處中</small>" : ""}</button>`;
             })
             .join("")}
         </div>
@@ -464,7 +470,7 @@ function renderPopup() {
 
   if (popup.kind === "force") {
     const joinName = audienceText(result.joiningName || name);
-    const hostName = audienceText(result.originalSoloName || "");
+    const hostName = audienceText(result.originalSoloName || result.originalCharacterName || "");
     const missing = result.missingShura
       ? `<p class="force-missing">${audienceText(
           result.missingReason === "exhausted"
@@ -474,10 +480,11 @@ function renderPopup() {
       : "";
     return popupShell(
       `
-        <p class="kicker">✦ 局勢發生變化</p>
+        <p class="kicker">✦ 局勢突然改變</p>
         <p class="fate-cost-tag">500</p>
-        <h3 class="force-join">${joinName}決定加入戰局。</h3>
-        <p class="force-line">${hostName ? audienceText(`她直接打破了${hostName}與可樂月月原本的獨處時光。`) : ""}</p>
+        <h3 class="force-join">${joinName}決定加入這段時間。</h3>
+        <p class="force-line">${hostName ? audienceText(`${hostName}原本正與可樂月月共度這段時間。`) : ""}</p>
+        <p class="force-line">${hostName ? audienceText(`${joinName}的出現，直接打破了原本的氣氛。`) : ""}</p>
         ${stats}
         ${notes}
         ${missing}

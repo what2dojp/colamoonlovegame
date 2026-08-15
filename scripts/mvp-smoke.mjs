@@ -62,6 +62,12 @@ const SHURA_IDS = [
   "EVENT_shura_nini_pepsi_02",
   "EVENT_shura_jupiter_mars_01",
   "EVENT_shura_jupiter_mars_02",
+  "EVENT_shura_nini_jupiter_01",
+  "EVENT_shura_nini_mars_01",
+  "EVENT_shura_meteor_jupiter_01",
+  "EVENT_shura_meteor_mars_01",
+  "EVENT_shura_pepsi_jupiter_01",
+  "EVENT_shura_pepsi_mars_01",
 ];
 for (const id of SHURA_IDS) {
   assert(EVENT_BY_ID[id], `${id} exists`);
@@ -206,18 +212,27 @@ assert(letterGame.getState().currentEvent.id === "EVENT_letter_nini", "letter fo
 const forceGame = createGame({ persist: false, rng: () => 0 });
 playIntro(forceGame);
 const hubForce = forceGame.intervene("force", "nini", { force: true });
-assert(hubForce.ok === false, "500 from hub without solo is refused");
+assert(hubForce.ok === false, "500 from hub without a lead character is refused");
 forceGame.intervene("encounter", "jupiter", { force: true });
 forceGame.choose("stay");
 forceGame.intervene("force", "mars", { force: true });
 assert(forceGame.getState().currentEvent.id === "EVENT_shura_jupiter_mars_01", "500 mars joins jupiter solo → 木星×火星修羅場");
 assert(forceGame.getState().lastResult.kind === "force", "500 shows 局勢變化 result");
-assert(forceGame.getState().lastResult.overlayTitle === "局勢變化", "500 overlay is 局勢變化");
+assert(forceGame.getState().lastResult.overlayTitle === "局勢突然改變", "500 overlay is 局勢突然改變");
 assert(forceGame.getState().lastResult.originalSoloCharacter === "jupiter", "500 stores A as 芬達木星");
 assert(forceGame.getState().lastResult.joiningCharacter === "mars", "500 stores B as 西打火星");
 assert(forceGame.getState().lastResult.name === "西打火星", "500 names the joining character");
 assert(!JSON.stringify(forceGame.getState().lastResult.intervalCopy || "").includes("EVENT_"), "500 interval copy has no event id");
 assert(/歡迎來到戀愛修羅場/.test(forceGame.getState().lastResult.intervalCopy || ""), "500 interval welcomes the shura");
+
+const sweetForce = createGame({ persist: false, rng: () => 0 });
+playIntro(sweetForce);
+sweetForce.startEvent("EVENT_jupiter_sweet_01", { force: true });
+assert(sweetForce.getState().eventLeadId === "jupiter", "sweet card lead is 芬達木星");
+assert(sweetForce.intervene("force", "mars", { force: true }).ok, "500 works on a sweet card without solo");
+assert(sweetForce.getState().currentEvent.id === "EVENT_shura_jupiter_mars_01", "jupiter sweet + mars join → 木星×火星修羅場");
+assert(sweetForce.getState().lastResult.originalCharacter === "jupiter", "500 A is the current card character");
+assert(sweetForce.getState().lastResult.joiningCharacter === "mars", "500 B is the selected joiner");
 
 const pepsiBurn = createGame({ persist: false, rng: () => 0 });
 playIntro(pepsiBurn);
