@@ -1,5 +1,6 @@
 import { createGame } from "../engine/game.js";
 import { audienceText, eventCastLabel, eventPresentation, FATE_COPY, fireCopy, fireMoodLabel } from "./presentation.js";
+import { characterPortraitFallback, characterPortraitSrc } from "./portraits.js";
 import { statMeta } from "../../data/characters.js";
 
 const game = createGame();
@@ -46,11 +47,14 @@ function intervalCopy(state) {
 function fateAction(state, id) {
   const item = state.interventions.find((entry) => entry.id === id);
   const copy = FATE_COPY[id] || {};
+  const cost = item?.cost || copy.cost || 0;
   return {
     id,
-    name: item?.name || copy.title || id,
-    cost: item?.cost || copy.cost || 0,
-    tag: copy.tag || item?.blurb || "",
+    name: copy.title || item?.name || id,
+    cost,
+    icon: copy.icon || "",
+    priceLabel: `${cost} 元`,
+    tag: copy.kicker || copy.tag || item?.blurb || "",
     available: item?.available !== false,
     needsTarget: item?.needsTarget !== false,
   };
@@ -216,15 +220,22 @@ function renderCastCard(c, soloId) {
       return `<p class="aff-line">${meta.icon} ${meta.audienceLabel} ${c.values[key]}</p>`;
     })
     .join("");
+  const portrait = characterPortraitSrc(c.id);
+  const fallback = characterPortraitFallback(c.id);
   return `
     <article class="char-card status-${status.key} ${live ? "is-solo" : ""}" style="--accent:${c.accent}" data-char="${c.id}">
-      <div class="portrait" aria-hidden="true">${c.icon}</div>
-      <h3>${c.name}</h3>
-      <p class="danger-line">危險度 <b>${c.danger}</b></p>
-      ${primary}
-      <p class="status-line">${status.label}</p>
-            ${live || status.hint ? `<p class="status-hint">${live ? "🌙 與可樂月月獨處中" : status.hint}</p>` : ""}
-      <div class="danger-bar"><i style="width:${c.danger}%"></i></div>
+      <div class="character-portrait" aria-hidden="true">
+        ${portrait ? `<img src="${portrait}" alt="" data-fallback="${fallback}" onerror="if(this.dataset.fallback&&this.src!==this.dataset.fallback){this.src=this.dataset.fallback}else{this.style.display='none'}">` : ""}
+      </div>
+      <div class="character-info">
+        <div class="portrait" aria-hidden="true">${c.icon}</div>
+        <h3>${c.name}</h3>
+        <p class="danger-line">危險度 <b>${c.danger}</b></p>
+        ${primary}
+        <p class="status-line">${status.label}</p>
+        ${live || status.hint ? `<p class="status-hint">${live ? "🌙 與可樂月月獨處中" : status.hint}</p>` : ""}
+        <div class="danger-bar"><i style="width:${c.danger}%"></i></div>
+      </div>
     </article>`;
 }
 
@@ -259,17 +270,19 @@ function renderFateButtons(state) {
   const leadName = state.charactersView.find((c) => c.id === leadId)?.name;
   return `
     <section class="fate-dock">
-      <div class="fate-row">
+      <p class="fate-kicker">💰／🌙／💥／🔥／🔮 特殊命運</p>
+      <div class="fate-grid">
         ${state.interventions
           .map((item) => {
             const copy = FATE_COPY[item.id] || {};
             const canBreak = item.id === "intervene" && solo;
             const canJoin = item.id === "force" && leadId;
+            const extra = item.id === "peek" ? copy.kicker : "";
             return `
               <button class="fate-btn fate-${item.cost} ${canBreak || canJoin ? "has-solo" : ""}" data-iv="${item.id}" ${unlocked ? "" : "disabled"}>
-                <span class="fate-cost">${item.cost}</span>
+                <span class="fate-cost">${copy.icon || ""} ${item.cost} 元</span>
                 <span class="fate-name">${copy.title || item.name}</span>
-                <small>${copy.tag || item.blurb}</small>
+                ${extra ? `<small>${extra}</small>` : ""}
                 ${canBreak ? `<em>可支開獨處</em>` : ""}
                 ${canJoin ? `<em>可拉人進來</em>` : ""}
               </button>`;
@@ -313,8 +326,8 @@ function renderConfirm(state) {
     <div class="modal" data-overlay="confirm">
       <div class="backdrop" data-cancel="1"></div>
       <div class="card confirm-card">
-        <p class="kicker">${action.cost}｜${action.name}</p>
-        <h3>${action.cost}｜${action.name}</h3>
+        <p class="kicker">${action.icon} ${action.priceLabel}｜${action.name}</p>
+        <h3>${action.icon} ${action.priceLabel}｜${action.name}</h3>
         <p class="sub">${action.tag}</p>
         <p>${body}</p>
         <p>確定要觸碰這條命運嗎？</p>
@@ -332,12 +345,23 @@ function renderTarget(state) {
   const pickingJoin = action.id === "force";
   const pickingInterrupt = action.id === "intervene";
   const blockedId = pickingJoin ? state.eventLeadId : pickingInterrupt ? solo : null;
-  const heading = pickingJoin ? "誰要加入？" : pickingInterrupt ? "誰把可樂月月支開？" : "選擇對象";
+  const heading =
+    pickingJoin
+      ? "誰要加入？"
+      : pickingInterrupt
+        ? "誰把可樂月月支開？"
+        : action.id === "rewrite"
+          ? "改寫誰的命運？"
+          : action.id === "encounter"
+            ? "與誰製造獨處？"
+            : action.id === "peek"
+              ? "深挖誰？"
+              : "選擇對象";
   return `
     <div class="modal" data-overlay="target">
       <div class="backdrop" data-cancel="1"></div>
       <div class="card">
-        <p class="kicker">${action.cost}｜${action.name}</p>
+        <p class="kicker">${action.icon} ${action.priceLabel}｜${action.name}</p>
         <h3>${heading}</h3>
         <p class="sub">${action.tag}</p>
         <div class="target-grid">
@@ -362,7 +386,7 @@ function renderDraw(state) {
       <div class="backdrop"></div>
       <div class="card draw-card phase-${phase}">
         ${phase <= 1 ? `<p class="draw-wait">命運抽取中……</p>` : ""}
-        ${phase >= 2 ? `<p class="draw-rank">✦ ${action.cost}｜${action.name} ✦</p>` : ""}
+        ${phase >= 2 ? `<p class="draw-rank">✦ ${action.icon} ${action.priceLabel}｜${action.name} ✦</p>` : ""}
         ${phase >= 3 ? `<h3 class="draw-title">${ui.drawTitle || "命運已落下"}</h3>` : ""}
         ${phase >= 3 ? `<button class="choice" data-draw-done="1">進入結果</button>` : ""}
       </div>
@@ -380,6 +404,20 @@ function formatStatDelta(from, to) {
         ? `<span class="delta-down">↓${Math.abs(delta)}</span>`
         : "";
   return `${start} → <i data-count-from="${start}" data-count-to="${end}">${start}</i>${arrow ? ` ${arrow}` : ""}`;
+}
+
+function formatRankDelta(from, to) {
+  const start = Number(from);
+  const end = Number(to);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return "";
+  const climbed = start - end;
+  const arrow =
+    climbed > 0
+      ? `<span class="delta-up">↑${climbed}</span>`
+      : climbed < 0
+        ? `<span class="delta-down">↓${Math.abs(climbed)}</span>`
+        : "";
+  return `${start} → <i>${end}</i>${arrow ? ` ${arrow}` : ""}`;
 }
 
 function renderStatRows(groups) {
@@ -477,17 +515,23 @@ function renderPopup() {
   if (popup.kind === "rewrite") {
     const danger = Boolean(result.rewriteDanger);
     const rank = result.rewriteRank || {};
+    const dangerRank = result.rewriteDangerRank || {};
     const rankHtml =
       Number.isFinite(Number(rank.from)) && Number.isFinite(Number(rank.to))
-        ? `<p class="rewrite-rank">親密排名 <b class="rank-from">${rank.from}</b> → <b class="rank-to">${rank.to}</b></p>`
+        ? `<p class="rewrite-rank">❤️ 親密排名 <b>${formatRankDelta(rank.from, rank.to)}</b></p>`
+        : "";
+    const dangerRankHtml =
+      Number.isFinite(Number(dangerRank.from)) && Number.isFinite(Number(dangerRank.to))
+        ? `<p class="rewrite-rank rewrite-danger-rank">⚠️ 危險排名 <b>${formatRankDelta(dangerRank.from, dangerRank.to)}</b></p>`
         : "";
     return popupShell(
       `
-        <p class="kicker">${danger ? "🔮 命運偏移……" : "🔮 命運改寫完成"}</p>
+        <p class="kicker">🔮 改寫命運</p>
         ${danger ? `<p class="rewrite-danger-banner">🔥 危險命運觸發！</p>` : ""}
-        <p class="fate-cost-tag">1000</p>
+        <p class="fate-cost-tag">1000 元</p>
         <h3>${result.icon || ""} ${name}</h3>
         ${rankHtml}
+        ${dangerRankHtml}
         ${stats}
         <p class="hold-saved">${richText(result.intervalCopy || `${name} 的狀態已經完全不同了。`)}</p>
         <button class="choice" data-popup-done="1">接受改寫</button>
@@ -506,7 +550,7 @@ function renderPopup() {
     return popupShell(
       `
         <p class="kicker">✦ 局勢突然改變</p>
-        <p class="fate-cost-tag">500</p>
+        <p class="fate-cost-tag">500 元</p>
         <h3 class="force-join">🔥 ${joinIcon} ${joinShort}決定加入戰局！</h3>
         <p class="force-line">${hostShort ? `原本獨處：${hostIcon} ${hostShort}` : ""}</p>
         <p class="force-line">${hostShort ? `${hostIcon} ${hostShort}的獨處時光被打斷` : ""}</p>
@@ -523,7 +567,7 @@ function renderPopup() {
     return popupShell(
       `
         <p class="kicker">🌙 獨處成立</p>
-        <p class="fate-cost-tag">200</p>
+        <p class="fate-cost-tag">200 元</p>
         <h3>${name} × 可樂月月</h3>
         <p class="encounter-line">其他人暫時被留在場外。</p>
         <p class="encounter-line">今晚的兩人時間開始了。</p>
@@ -542,7 +586,7 @@ function renderPopup() {
     return popupShell(
       `
         <p class="kicker">✦ 特殊命運介入</p>
-        <p class="fate-cost-tag">300</p>
+        <p class="fate-cost-tag">300 元</p>
         <h3 class="interrupt-lead">${actor}出手了</h3>
         ${quote ? `<p class="interrupt-quote">「${quote}」</p>` : ""}
         <p class="force-line">${broken ? audienceText(`${broken}與可樂月月的獨處被打斷。`) : ""}</p>
@@ -561,7 +605,7 @@ function renderPopup() {
     return popupShell(
       `
         <p class="kicker">✦ 特殊命運</p>
-        <p class="fate-cost-tag">100</p>
+        <p class="fate-cost-tag">100 元</p>
         <p class="peek-kind">【${kind}】</p>
         <h3>${name}</h3>
         <p class="peek-title">${audienceText(result.revealTitle || "")}</p>
@@ -615,12 +659,14 @@ function render(state) {
   app.innerHTML = `
     <div class="live-shell fire-${state.derived.fireLevel}">
       ${renderHeader(state)}
-      ${renderEvent(state)}
       <section class="cast-row" aria-label="角色狀態">
         ${state.charactersView.map((c) => renderCastCard(c, state.soloActive)).join("")}
         ${renderMoonCard(state)}
       </section>
-      ${renderFateButtons(state)}
+      <div class="play-row">
+        ${renderEvent(state)}
+        ${renderFateButtons(state)}
+      </div>
     </div>
   `;
   if (ui.step === "confirm") app.insertAdjacentHTML("beforeend", renderConfirm(state));

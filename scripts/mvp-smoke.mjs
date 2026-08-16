@@ -1125,7 +1125,9 @@ comeback.setStat("nini", "obsession", 18);
 comeback.intervene("rewrite", "nini", { force: true });
 assert(comeback.getState().lastResult.rewriteDanger === false, "comeback shuffle is not danger fate");
 assert(comeback.getState().lastResult.rewriteMode === "behind", "low nini is treated as behind");
-assert(comeback.getState().characters.nini.affection >= 70, "behind character is rewritten into a high zone");
+assert(comeback.getState().characters.nini.affection > 80, "behind character jumps above every other affection");
+assert(comeback.getState().lastResult.rewriteRank.to === 1, "behind rewrite becomes affection first");
+assert(comeback.getState().lastResult.rewriteRank.delta > 0, "affection rank climb is stored as a positive delta");
 
 const reverse = createGame({ persist: false, rng: seqRng([0.5, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05]) });
 playIntro(reverse);
@@ -1136,7 +1138,9 @@ reverse.setStat("pepsi", "destiny", 90);
 for (const id of ["nini", "meteor", "jupiter", "mars"]) reverse.setStat(id, "affection", 60);
 reverse.intervene("rewrite", "pepsi", { force: true });
 assert(reverse.getState().lastResult.rewriteMode === "leading", "top pepsi is treated as leading");
-assert(reverse.getState().characters.pepsi.affection <= 50, "leading character is reversed downward");
+assert(reverse.getState().characters.pepsi.affection < 60, "leading character is reversed below the field");
+assert(reverse.getState().lastResult.rewriteRank.to > 1, "leading rewrite is no longer affection first");
+assert(reverse.getState().lastResult.rewriteRank.delta < 0, "lost rank is stored as a negative delta");
 
 const dangerFate = createGame({ persist: false, rng: seqRng([0.05, 0.9, 0.9, 0.9, 0.9]) });
 playIntro(dangerFate);
@@ -1145,6 +1149,25 @@ dangerFate.intervene("rewrite", "nini", { force: true });
 assert(dangerFate.getState().lastResult.rewriteDanger === true, "sub-20% roll triggers danger fate");
 assert(dangerFate.getState().characters.nini.jealousy >= 80, "danger fate spikes nini jealousy");
 assert(dangerFate.getState().lastResult.overlayTitle === "命運偏移……", "danger fate uses the offset title");
+assert(
+  (dangerFate.getState().lastResult.statChanges?.[0]?.changes || []).some((row) => row.key === "danger"),
+  "danger fate popup includes derived 危險度"
+);
+
+const hottest = createGame({ persist: false, rng: seqRng([0.05, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9]) });
+playIntro(hottest);
+hottest.setStat("nini", "jealousy", 90);
+hottest.setStat("nini", "obsession", 80);
+const hottestDangerBefore = hottest.getState().derived.dangers.nini;
+const hottestJealousyBefore = hottest.getState().characters.nini.jealousy;
+hottest.intervene("rewrite", "nini", { force: true });
+assert(hottest.getState().lastResult.rewriteDanger === true, "already-highest danger still rolls 20% danger fate");
+assert(hottest.getState().characters.nini.jealousy >= hottestJealousyBefore, "hottest danger fate does not wash jealousy down");
+assert(hottest.getState().derived.dangers.nini > hottestDangerBefore, "already-highest danger is pushed higher");
+assert(
+  (hottest.getState().lastResult.statChanges?.[0]?.changes || []).some((row) => row.key === "danger" && row.delta > 0),
+  "hottest rewrite lists 危險度 with an increase"
+);
 
 const exhausted = createGame({ persist: false, rng: () => 0.3 });
 playIntro(exhausted);

@@ -30,8 +30,9 @@ import {
   peekRevealKind,
 } from "./narration.js";
 import {
+  affectionRank,
   applyFateRewrite,
-  intimacyRank,
+  dangerRank,
   rewriteCoreChanges,
 } from "./rewrite-fate.js";
 import {
@@ -651,11 +652,14 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
       return { ok: true };
     }
 
-    const rankFrom = intimacyRank(state, target.id);
+    const rankFrom = affectionRank(state, target.id);
+    const dangerRankFrom = dangerRank(state, target.id);
     const shuffle = shuffleCharacterCoreStats(target.id);
     const after = captureStatSnapshot(state);
     const statChanges = rewriteStatView(target, before, after);
     const danger = Boolean(shuffle?.danger);
+    const rankTo = affectionRank(state, target.id);
+    const dangerRankTo = dangerRank(state, target.id);
     const intervalCopy = danger
       ? "⚠️ 她現在已經開始偏離原本的軌道。"
       : event.intervalCopy ||
@@ -678,7 +682,8 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
       resultCopy: danger ? "🔥 危險命運觸發！" : event.resultCopy || "",
       rewriteDanger: danger,
       rewriteMode: shuffle?.stance || "mid",
-      rewriteRank: { from: rankFrom, to: intimacyRank(state, target.id) },
+      rewriteRank: { from: rankFrom, to: rankTo, delta: rankFrom - rankTo },
+      rewriteDangerRank: { from: dangerRankFrom, to: dangerRankTo, delta: dangerRankFrom - dangerRankTo },
     });
     setFeedback({ showOverlay: true, showInterval: true, intervalCopy });
     startEvent(SEASON.hubEventId);
@@ -692,7 +697,8 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
     const cost = GAME_CONFIG.interventionCosts.rewrite;
     state.pendingTargetId = targetId;
     const before = captureStatSnapshot(state);
-    const rankFrom = intimacyRank(state, targetId);
+    const rankFrom = affectionRank(state, targetId);
+    const dangerRankFrom = dangerRank(state, targetId);
     trackCharacterTouch(state, targetId, "intervention", "rewrite");
     pushHistory(state, {
       kind: "intervention",
@@ -704,6 +710,8 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
     const after = captureStatSnapshot(state);
     const statChanges = rewriteStatView(target, before, after);
     const danger = Boolean(shuffle.danger);
+    const rankTo = affectionRank(state, targetId);
+    const dangerRankTo = dangerRank(state, targetId);
     const intervalCopy = danger
       ? "⚠️ 她現在已經開始偏離原本的軌道。"
       : `${target.name} 的狀態已經完全不同了。`;
@@ -722,7 +730,8 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
         icon: target.icon,
         rewriteDanger: danger,
         rewriteMode: shuffle.stance,
-        rewriteRank: { from: rankFrom, to: intimacyRank(state, targetId) },
+        rewriteRank: { from: rankFrom, to: rankTo, delta: rankFrom - rankTo },
+        rewriteDangerRank: { from: dangerRankFrom, to: dangerRankTo, delta: dangerRankFrom - dangerRankTo },
         resultCopy: danger ? "🔥 危險命運觸發！" : "🔮 命運改寫完成",
       },
     });
