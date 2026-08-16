@@ -1,9 +1,10 @@
 import { createGame } from "../src/engine/game.js";
 import { GAME_CONFIG } from "../src/config/game.config.js";
-import { nightScore, pickNightPartner } from "../src/engine/session.js";
+import { nightScore, pickNightPartner, pickShuraForPair } from "../src/engine/session.js";
 import { inspectSave, migrateSave, pairKey } from "../src/engine/save.js";
 import { EVENT_BY_ID, EVENTS } from "../data/seasons/qixi-2026/events.js";
 import { CHARACTERS, CHARACTER_BY_ID, resolveCharacterStatKey } from "../data/characters.js";
+import { shuraIdsForPair } from "../data/seasons/qixi-2026/interventions.js";
 import { audienceText, eventPresentation, fireMoodLabel } from "../src/ui/presentation.js";
 
 const assert = (cond, message) => {
@@ -57,19 +58,34 @@ assert(
 const SHURA_IDS = [
   "SHURA_nini_meteor_01",
   "SHURA_nini_meteor_02",
+  "SHURA_nini_meteor_03",
   "SHURA_meteor_pepsi_01",
   "SHURA_meteor_pepsi_02",
+  "SHURA_meteor_pepsi_03",
   "SHURA_nini_pepsi_01",
   "SHURA_nini_pepsi_02",
+  "SHURA_nini_pepsi_03",
   "SHURA_jupiter_mars_01",
   "SHURA_jupiter_mars_02",
+  "SHURA_jupiter_mars_03",
   "SHURA_nini_jupiter_01",
+  "SHURA_nini_jupiter_02",
+  "SHURA_nini_jupiter_03",
   "SHURA_nini_mars_01",
+  "SHURA_nini_mars_02",
+  "SHURA_nini_mars_03",
   "SHURA_meteor_jupiter_01",
+  "SHURA_meteor_jupiter_02",
+  "SHURA_meteor_jupiter_03",
   "SHURA_meteor_mars_01",
+  "SHURA_meteor_mars_02",
+  "SHURA_meteor_mars_03",
   "SHURA_pepsi_jupiter_01",
   "SHURA_pepsi_jupiter_02",
+  "SHURA_pepsi_jupiter_03",
   "SHURA_pepsi_mars_01",
+  "SHURA_pepsi_mars_02",
+  "SHURA_pepsi_mars_03",
 ];
 for (const id of SHURA_IDS) {
   assert(EVENT_BY_ID[id], `${id} exists`);
@@ -263,7 +279,7 @@ assert(hubForce.ok === false, "500 from hub without a lead character is refused"
 forceGame.intervene("encounter", "jupiter", { force: true });
 forceGame.choose("stay");
 forceGame.intervene("force", "mars", { force: true });
-assert(forceGame.getState().currentEvent.id === "SPECIAL_500_JOIN_jupiter_01", "500 mars joins jupiter solo → 木星 500 拉人");
+assert(forceGame.getState().currentEvent.id === "SHURA_jupiter_mars_01", "500 mars joins jupiter solo → 木星×火星修羅場");
 assert(forceGame.getState().lastResult.kind === "force", "500 shows 局勢變化 result");
 assert(forceGame.getState().lastResult.overlayTitle === "局勢突然改變", "500 overlay is 局勢突然改變");
 assert(forceGame.getState().lastResult.originalSoloCharacter === "jupiter", "500 stores A as 芬達木星");
@@ -277,7 +293,7 @@ playIntro(sweetForce);
 sweetForce.startEvent("EVENT_jupiter_sweet_01", { force: true });
 assert(sweetForce.getState().eventLeadId === "jupiter", "sweet card lead is 芬達木星");
 assert(sweetForce.intervene("force", "mars", { force: true }).ok, "500 works on a sweet card without solo");
-assert(sweetForce.getState().currentEvent.id === "SPECIAL_500_JOIN_jupiter_01", "jupiter sweet + mars join → 木星 500 拉人");
+assert(sweetForce.getState().currentEvent.id === "SHURA_jupiter_mars_01", "jupiter sweet + mars join → 木星×火星修羅場");
 assert(sweetForce.getState().lastResult.originalCharacter === "jupiter", "500 A is the current card character");
 assert(sweetForce.getState().lastResult.joiningCharacter === "mars", "500 B is the selected joiner");
 
@@ -549,29 +565,25 @@ assert(letterMisread.getState().flags.letter_misread_by_meteor, "letter_misread_
 assert(letterMisread.getState().currentEvent.id === "SHURA_nini_meteor_01", "letter misread forces nini-meteor shura");
 assert(letterMisread.getState().flags.nini_meteor_both_lines_hardened, "unattended shura hardens both lines on enter");
 letterMisread.choose("d");
+assert(letterMisread.getState().lastResult.kind, "nini-meteor 01 still resolves a choice");
 assert(
-  letterMisread.getState().currentSession.unresolvedEventIds.includes("SHURA_nini_meteor_01"),
-  "keeping both leaves nini-meteor 01 unresolved"
+  !/沒有可用的修羅場/.test(JSON.stringify(letterMisread.getState().lastResult || {})),
+  "shura choice never shows missing-card copy"
 );
-assert(letterMisread.getState().currentEvent.id === "SHURA_nini_meteor_02", "unresolved nini-meteor 01 forceEvents 02");
 
 const helpNini = createGame({ persist: false, rng: () => 0 });
 playIntro(helpNini);
 helpNini.intervene("letter", "nini", { force: true });
 helpNini.choose("misread");
 helpNini.choose("a");
-assert(helpNini.getState().currentEvent.id === "CRISIS_nini_01", "helping nini forceEvents lockbox");
-assert(
-  !helpNini.getState().currentSession.unresolvedEventIds.includes("SHURA_nini_meteor_01"),
-  "helping nini resolves 01"
-);
-assert(helpNini.getState().currentSession.weightMods.CRISIS_nini_01 > 0, "helping nini raises lockbox weight");
+assert(helpNini.getState().lastResult.statChanges?.some((row) => row.id === "meteor"), "接過紙條 moves 流星");
+assert(helpNini.getState().lastResult.statChanges?.some((row) => row.id === "nini"), "接過紙條 also moves 日日");
 
 const skipShura = createGame({ persist: false, rng: () => 0 });
 playIntro(skipShura);
 skipShura.startEvent("SHURA_nini_meteor_01", { force: true });
 skipShura.skipEvent();
-assert(skipShura.getState().currentEvent.id === "CRISIS_nini_01", "skip uses the first choice and helps 日日");
+assert(skipShura.getState().currentEvent.id === "EVENT_008_office_hub", "skip uses the first choice then returns");
 
 const chemistryOnly = createGame({ persist: false, rng: () => 0 });
 playIntro(chemistryOnly);
@@ -604,12 +616,13 @@ const jupiterDoor = createGame({ persist: false, rng: () => 0 });
 playIntro(jupiterDoor);
 jupiterDoor.startEvent("SHURA_jupiter_mars_01", { force: true });
 jupiterDoor.choose("a");
-assert(jupiterDoor.getState().currentEvent.id === "CRISIS_jupiter_01", "helping jupiter forceEvents packing");
-assert(jupiterDoor.getState().flags.jupiter_packing_started, "packing onEnter marks packing started");
-jupiterDoor.choose("b");
 assert(
   jupiterDoor.getState().pool.some((item) => item.id === "SHURA_jupiter_mars_02"),
-  "packing started keeps blessing-vs-harm shura available"
+  "completing jupiter-mars 01 keeps 02 available"
+);
+assert(
+  jupiterDoor.getState().pool.some((item) => item.id === "SHURA_jupiter_mars_03"),
+  "jupiter-mars also has a third shura card"
 );
 
 const pepsiLetter = createGame({ persist: false, rng: () => 0 });
@@ -619,37 +632,29 @@ pepsiLetter.choose("misread");
 assert(pepsiLetter.getState().flags.letter_misread_by_meteor, "pepsi letter misread is read by pepsi-meteor shura");
 assert(pepsiLetter.getState().currentEvent.id === "SHURA_meteor_pepsi_01", "pepsi letter misread forces pepsi-meteor shura");
 pepsiLetter.choose("c");
-assert(
-  pepsiLetter.getState().currentSession.unresolvedEventIds.includes("SHURA_meteor_pepsi_01"),
-  "interrupting the comparison leaves pepsi-meteor 01 unresolved"
-);
+assert(pepsiLetter.getState().lastResult.statChanges?.some((row) => row.id === "meteor"), "pepsi-meteor 01 moves both sides");
+assert(pepsiLetter.getState().lastResult.statChanges?.some((row) => row.id === "pepsi"), "pepsi-meteor 01 moves 百事");
 
 const admitPepsi = createGame({ persist: false, rng: () => 0 });
 playIntro(admitPepsi);
 admitPepsi.startEvent("SHURA_meteor_pepsi_02", { force: true });
-admitPepsi.choose("admit_pepsi");
-assert(admitPepsi.getState().flags.destiny_denied_meteor, "denying meteor is not just affection");
-assert(admitPepsi.getState().currentEvent.id === "CRISIS_meteor_01", "denied meteor enters never-broke-up crisis");
+admitPepsi.choose("b");
+assert(admitPepsi.getState().characters.pepsi.resonance > 0, "saying 百事 understands deeper raises resonance");
+assert(admitPepsi.getState().characters.meteor.jealousy > 0, "that choice also raises 流星 jealousy");
 
 const niniPepsiDoNothing = createGame({ persist: false, rng: () => 0 });
 playIntro(niniPepsiDoNothing);
 niniPepsiDoNothing.startEvent("SHURA_nini_pepsi_01", { force: true });
 assert(niniPepsiDoNothing.getState().flags.pepsi_did_not_counter, "unattended nini-pepsi makes pepsi not counter");
 niniPepsiDoNothing.choose("d");
-assert(
-  niniPepsiDoNothing.getState().currentSession.unresolvedEventIds.includes("SHURA_nini_pepsi_01"),
-  "doing nothing leaves nini-pepsi unresolved"
-);
-assert(niniPepsiDoNothing.getState().currentEvent.id === "SHURA_nini_pepsi_02", "unresolved nini-pepsi 01 forceEvents 02");
-niniPepsiDoNothing.choose("pepsi_back");
-assert(niniPepsiDoNothing.getState().flags.pepsi_backed_off, "pepsi backing off cracks her line");
-assert(niniPepsiDoNothing.getState().currentEvent.id === "CRISIS_pepsi_01", "pepsi line crack forceEvents identity");
+assert(niniPepsiDoNothing.getState().characters.nini.trust > 0, "saying 我就是我 raises 日日 trust");
+assert(EVENT_BY_ID.SHURA_nini_pepsi_03, "nini-pepsi has a third shura card");
 
 const stopJupiterLeave = createGame({ persist: false, rng: () => 0 });
 playIntro(stopJupiterLeave);
 stopJupiterLeave.startEvent("SHURA_jupiter_mars_02", { force: true });
 stopJupiterLeave.choose("d");
-assert(stopJupiterLeave.getState().flags.jupiter_mars_both_stay, "dividing the drink keeps both on stage");
+assert(stopJupiterLeave.getState().characters.mars.pride < 0 || stopJupiterLeave.getState().characters.jupiter.patience > 0, "叫火星退開 still moves stats");
 
 const publicJealousShura = createGame({ persist: false, rng: () => 0 });
 playIntro(publicJealousShura);
@@ -800,31 +805,32 @@ const rewriteReset = createGame({ persist: false, rng: () => 0 });
 playIntro(rewriteReset);
 rewriteReset.setStat("nini", "obsession", 90);
 rewriteReset.setStat("meteor", "destiny", 90);
-rewriteReset.intervene("rewrite", "nini", { force: true });
-assert(rewriteReset.getState().currentEvent.id === "SPECIAL_1000_REWRITE_nini_01", "1000 opens the rewrite scene");
-assert(rewriteReset.getState().characters.nini.obsession === 90, "1000 does not shuffle until a rewrite choice");
 const niniTrustBefore = rewriteReset.getState().characters.nini.trust;
-rewriteReset.choose("a");
+rewriteReset.intervene("rewrite", "nini", { force: true });
 assert(rewriteReset.getState().currentEvent.id === "EVENT_008_office_hub", "1000 apply returns to hub");
 assert(rewriteReset.getState().lastResult.kind === "rewrite", "1000 shows rewrite popup data");
+assert(rewriteReset.getState().lastResult.overlayTitle === "命運偏移……" || rewriteReset.getState().lastResult.overlayTitle === "命運改寫完成", "1000 popup title is rewrite or danger");
 assert(rewriteReset.getState().characters.nini.obsession !== 90, "1000 reshuffles nini core");
 assert(rewriteReset.getState().characters.nini.trust === niniTrustBefore, "1000 does not shuffle nini auxiliary trust");
 assert(!rewriteReset.getState().flags.fate_rewritten_nini, "1000 does not write fate_rewritten");
 assert(!rewriteReset.getState().flags.crisis_blocked_nini, "1000 does not block a crisis");
 assert(!JSON.stringify(rewriteReset.getState().lastResult).includes("EVENT_rewrite"), "1000 popup has no rewrite event id");
+assert(
+  (rewriteReset.getState().lastResult.statChanges?.[0]?.changes || []).every((row) => Number.isFinite(row.delta)),
+  "1000 lists ↑/↓ deltas on every core row"
+);
 
 const meteorReset = createGame({ persist: false, rng: () => 0 });
 playIntro(meteorReset);
 meteorReset.setStat("meteor", "destiny", 99);
 meteorReset.intervene("rewrite", "meteor", { force: true });
-meteorReset.choose("a");
 assert(meteorReset.getState().characters.meteor.destiny !== 99, "1000 reshuffles meteor destiny");
 assert(meteorReset.getState().currentEvent.id === "EVENT_008_office_hub", "1000 meteor still returns to hub");
 
 const rewriteShura = createGame({ persist: false, rng: () => 0 });
 playIntro(rewriteShura);
 rewriteShura.intervene("rewrite", "pepsi", { force: true });
-assert(rewriteShura.getState().currentEvent.id === "SPECIAL_1000_REWRITE_pepsi_01", "1000 pepsi opens rewrite scene");
+assert(rewriteShura.getState().currentEvent.id === "EVENT_008_office_hub", "1000 pepsi shuffles immediately and returns to hub");
 assert(!rewriteShura.getState().flags.fate_rewritten_pepsi, "1000 does not write fate_rewritten_pepsi");
 assert(
   !rewriteShura.getState().pool.some((item) => item.id === "SHURA_meteor_pepsi_02"),
@@ -833,9 +839,11 @@ assert(
 
 const randomRewrite = createGame({ persist: false, rng: () => 0 });
 playIntro(randomRewrite);
-randomRewrite.intervene("rewrite", undefined, { force: true });
-assert(randomRewrite.getState().lastResult.characterId === "nini", "1000 without a target randomly picks a character");
-assert(randomRewrite.getState().currentEvent.id === "SPECIAL_1000_REWRITE_nini_01", "random 1000 opens that rewrite scene");
+const niniBeforeRandom = randomRewrite.getState().characters.nini;
+const randomDenied = randomRewrite.intervene("rewrite", undefined, { force: true });
+assert(randomDenied.ok === false, "1000 without a target requires a character");
+assert(randomDenied.error === "請選擇角色", "1000 asks the player to pick a character");
+assert(randomRewrite.getState().characters.nini.obsession === niniBeforeRandom.obsession, "refused 1000 does not shuffle anyone");
 
 assert(eventPresentation(EVENT_BY_ID.EVENT_nini_sweet_01).label.includes("甜蜜"), "sweet cards are labeled 甜蜜");
 assert(eventPresentation(EVENT_BY_ID.EVENT_nini_nature_01).label.includes("性格"), "nature cards are labeled 性格");
@@ -883,10 +891,10 @@ feedback.choose("c");
 assert(feedback.getState().lastResult, "shura choice always produces a result");
 assert(feedback.getState().lastResult.kind === "stats", "shura both-like uses the shared result flow");
 assert(
-  (feedback.getState().lastResult.statusNotes || []).some((note) => /開了門/.test(note.text)),
-  "shura both-like explains the door in human language"
+  (feedback.getState().lastResult.statChanges || []).some((row) => (row.changes || []).some((change) => change.delta !== 0)),
+  "shura choice shows numeric changes with ↑/↓"
 );
-assert(!JSON.stringify(feedback.getState().lastResult.statusNotes).includes("moon_opened_the_door"), "shura result hides flag keys");
+assert(!JSON.stringify(feedback.getState().lastResult.statusNotes || []).includes("moon_opened_the_door"), "shura result hides flag keys");
 assert(feedback.getState().lastResult.overlayTitle === "狀態變化", "shura popup is 狀態變化");
 assert(feedback.getState().currentEvent.id === "EVENT_008_office_hub", "unforced shura option returns to interval hub");
 
@@ -916,7 +924,6 @@ const rewriteFx = createGame({ persist: false, rng: () => 0 });
 playIntro(rewriteFx);
 rewriteFx.setStat("meteor", "destiny", 90);
 rewriteFx.intervene("rewrite", "meteor", { force: true });
-rewriteFx.choose("a");
 assert(rewriteFx.getState().lastResult.kind === "rewrite", "1000 still shuffles");
 assert(rewriteFx.getState().lastResult.name === "沙士流星", "1000 shows the full name");
 assert(
@@ -973,12 +980,13 @@ assert(
 const stopFx = createGame({ persist: false, rng: () => 0 });
 playIntro(stopFx);
 stopFx.setStat("mars", "provocation", 80);
+stopFx.setStat("mars", "pride", 40);
 stopFx.setStat("jupiter", "affection", 35);
 stopFx.startEvent("SHURA_jupiter_mars_02", { force: true });
-stopFx.choose("a");
+stopFx.choose("d");
 const stopRows = stopFx.getState().lastResult.statChanges || [];
-assert(stopRows.some((row) => row.id === "mars" && row.changes.some((c) => c.key === "pride" && c.to < c.from)), "讓木星拿走 lowers 西打火星 pride");
-assert(stopRows.some((row) => row.id === "jupiter" && row.changes.some((c) => c.key === "affection" && c.to > c.from)), "讓木星拿走 also raises 芬達木星");
+assert(stopRows.some((row) => row.id === "mars" && row.changes.some((c) => c.key === "pride" && c.to < c.from)), "叫火星退開 lowers 西打火星 pride");
+assert(stopRows.some((row) => row.id === "jupiter" && row.changes.some((c) => c.key === "patience" && c.to > c.from)), "叫火星退開 also raises 芬達木星 patience");
 assert(stopRows.length >= 2, "one shura option shows every involved character");
 
 const saboFx = createGame({ persist: false, rng: () => 0 });
@@ -1086,6 +1094,77 @@ const overstepFlag = createGame({ persist: false, rng: () => 0 });
 playIntro(overstepFlag);
 playForced(overstepFlag, "EVENT_nini_overstep_01", "c");
 assert(overstepFlag.getState().flags.foreshadow_nini_hair, "overstep_01 still writes foreshadow_nini_hair");
+
+assert(SHURA_IDS.length === 30, "ten pairs each have three shura cards");
+for (const [a, b] of [
+  ["nini", "meteor"],
+  ["nini", "pepsi"],
+  ["nini", "jupiter"],
+  ["nini", "mars"],
+  ["meteor", "pepsi"],
+  ["meteor", "jupiter"],
+  ["meteor", "mars"],
+  ["pepsi", "jupiter"],
+  ["pepsi", "mars"],
+  ["jupiter", "mars"],
+]) {
+  const ids = shuraIdsForPair(a, b);
+  assert(ids.length >= 3, `${a}×${b} has at least three shura cards`);
+}
+
+function seqRng(values) {
+  let i = 0;
+  return () => values[Math.min(i++, values.length - 1)];
+}
+
+const comeback = createGame({ persist: false, rng: seqRng([0.5, 0.95, 0.95, 0.95, 0.95, 0.95, 0.95, 0.95]) });
+playIntro(comeback);
+for (const id of ["meteor", "pepsi", "jupiter", "mars"]) comeback.setStat(id, "affection", 80);
+comeback.setStat("nini", "affection", 20);
+comeback.setStat("nini", "obsession", 18);
+comeback.intervene("rewrite", "nini", { force: true });
+assert(comeback.getState().lastResult.rewriteDanger === false, "comeback shuffle is not danger fate");
+assert(comeback.getState().lastResult.rewriteMode === "behind", "low nini is treated as behind");
+assert(comeback.getState().characters.nini.affection >= 70, "behind character is rewritten into a high zone");
+
+const reverse = createGame({ persist: false, rng: seqRng([0.5, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05]) });
+playIntro(reverse);
+reverse.setStat("pepsi", "affection", 92);
+reverse.setStat("pepsi", "resonance", 90);
+reverse.setStat("pepsi", "similarity", 88);
+reverse.setStat("pepsi", "destiny", 90);
+for (const id of ["nini", "meteor", "jupiter", "mars"]) reverse.setStat(id, "affection", 60);
+reverse.intervene("rewrite", "pepsi", { force: true });
+assert(reverse.getState().lastResult.rewriteMode === "leading", "top pepsi is treated as leading");
+assert(reverse.getState().characters.pepsi.affection <= 50, "leading character is reversed downward");
+
+const dangerFate = createGame({ persist: false, rng: seqRng([0.05, 0.9, 0.9, 0.9, 0.9]) });
+playIntro(dangerFate);
+dangerFate.setStat("nini", "jealousy", 20);
+dangerFate.intervene("rewrite", "nini", { force: true });
+assert(dangerFate.getState().lastResult.rewriteDanger === true, "sub-20% roll triggers danger fate");
+assert(dangerFate.getState().characters.nini.jealousy >= 80, "danger fate spikes nini jealousy");
+assert(dangerFate.getState().lastResult.overlayTitle === "命運偏移……", "danger fate uses the offset title");
+
+const exhausted = createGame({ persist: false, rng: () => 0.3 });
+playIntro(exhausted);
+for (const id of ["SHURA_jupiter_mars_01", "SHURA_jupiter_mars_02", "SHURA_jupiter_mars_03"]) {
+  exhausted.startEvent(id, { force: true });
+  exhausted.choose("a");
+}
+const pickedRepeat = pickShuraForPair(exhausted.getState(), "jupiter", "mars", () => 0);
+assert(String(pickedRepeat.eventId).startsWith("SHURA_jupiter_mars_"), "exhausted pair still returns a shura id");
+assert(pickedRepeat.reason === "repeat", "exhausted pair repeats instead of going empty");
+exhausted.startEvent("EVENT_jupiter_sweet_01", { force: true });
+exhausted.intervene("force", "mars", { force: true });
+assert(String(exhausted.getState().currentEvent.id).startsWith("SHURA_jupiter_mars_"), "500 still enters A×B shura after the trio is used");
+assert(!JSON.stringify(exhausted.getState().lastResult || {}).includes("沒有可用"), "500 never shows missing-shura copy");
+
+const deltaChoice = createGame({ persist: false, rng: () => 0 });
+playIntro(deltaChoice);
+playForced(deltaChoice, "EVENT_nini_sweet_01", "a");
+const deltaRows = (deltaChoice.getState().lastResult.statChanges || []).flatMap((row) => row.changes || []);
+assert(deltaRows.length > 0 && deltaRows.every((row) => Number.isFinite(row.delta) && row.delta !== 0), "ordinary popup changes include ↑/↓ deltas");
 
 console.log("mvp smoke ok", {
   event: game.getState().currentEvent.id,

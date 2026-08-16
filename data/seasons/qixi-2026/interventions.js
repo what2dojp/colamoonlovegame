@@ -47,16 +47,16 @@ export function eventLeadCharacter(event) {
 }
 
 export const SHURA_BY_PAIR = {
-  "meteor|nini": ["SHURA_nini_meteor_01", "SHURA_nini_meteor_02"],
-  "meteor|pepsi": ["SHURA_meteor_pepsi_01", "SHURA_meteor_pepsi_02"],
-  "nini|pepsi": ["SHURA_nini_pepsi_01", "SHURA_nini_pepsi_02"],
-  "jupiter|mars": ["SHURA_jupiter_mars_01", "SHURA_jupiter_mars_02"],
-  "jupiter|nini": ["SHURA_nini_jupiter_01"],
-  "mars|nini": ["SHURA_nini_mars_01"],
-  "jupiter|meteor": ["SHURA_meteor_jupiter_01"],
-  "mars|meteor": ["SHURA_meteor_mars_01"],
-  "jupiter|pepsi": ["SHURA_pepsi_jupiter_01", "SHURA_pepsi_jupiter_02"],
-  "mars|pepsi": ["SHURA_pepsi_mars_01"],
+  "meteor|nini": ["SHURA_nini_meteor_01", "SHURA_nini_meteor_02", "SHURA_nini_meteor_03"],
+  "meteor|pepsi": ["SHURA_meteor_pepsi_01", "SHURA_meteor_pepsi_02", "SHURA_meteor_pepsi_03"],
+  "nini|pepsi": ["SHURA_nini_pepsi_01", "SHURA_nini_pepsi_02", "SHURA_nini_pepsi_03"],
+  "jupiter|mars": ["SHURA_jupiter_mars_01", "SHURA_jupiter_mars_02", "SHURA_jupiter_mars_03"],
+  "jupiter|nini": ["SHURA_nini_jupiter_01", "SHURA_nini_jupiter_02", "SHURA_nini_jupiter_03"],
+  "mars|nini": ["SHURA_nini_mars_01", "SHURA_nini_mars_02", "SHURA_nini_mars_03"],
+  "jupiter|meteor": ["SHURA_meteor_jupiter_01", "SHURA_meteor_jupiter_02", "SHURA_meteor_jupiter_03"],
+  "mars|meteor": ["SHURA_meteor_mars_01", "SHURA_meteor_mars_02", "SHURA_meteor_mars_03"],
+  "jupiter|pepsi": ["SHURA_pepsi_jupiter_01", "SHURA_pepsi_jupiter_02", "SHURA_pepsi_jupiter_03"],
+  "mars|pepsi": ["SHURA_pepsi_mars_01", "SHURA_pepsi_mars_02", "SHURA_pepsi_mars_03"],
 };
 
 export function pairShuraKey(a, b) {
@@ -139,9 +139,9 @@ export const INTERVENTIONS = [
     name: "改寫命運",
     costKey: "rewrite",
     eventId: "IV_rewrite",
-    needsTarget: false,
+    needsTarget: true,
     host: true,
-    blurb: "隨機選定一人，重新洗牌她的核心數值。",
+    blurb: "指定一名角色，重新洗牌她的核心數值。不是單純加點。",
   },
   {
     id: "letter",

@@ -1,5 +1,5 @@
 import { GAME_CONFIG } from "../config/game.config.js";
-import { CHARACTER_BY_ID, characterCoreStats, resolveCharacterStatKey } from "../../data/characters.js";
+import { CHARACTER_BY_ID, resolveCharacterStatKey } from "../../data/characters.js";
 import { SEASONS } from "../../data/seasons/index.js";
 import { EVENTS } from "../../data/seasons/qixi-2026/events.js";
 import { extraChoiceEffects } from "../../data/seasons/qixi-2026/choice-extras.js";
@@ -13,7 +13,7 @@ import {
   getEvent,
   interpolateEvent,
 } from "./event-engine.js";
-import { audienceStatus, characterDanger, characterStatus, clampStat, computeDerived } from "./derived.js";
+import { audienceStatus, characterDanger, characterStatus, computeDerived } from "./derived.js";
 import { clearGameSave, cloneState, createInitialState, inspectSave, lifecycleStatus, loadSave, migrateSave, pairKey, writeSave } from "./save.js";
 import {
   buildTonightSettlement,
@@ -28,8 +28,12 @@ import {
   classifyResultKind,
   overlayTitleForKind,
   peekRevealKind,
-  rewriteLines,
 } from "./narration.js";
+import {
+  applyFateRewrite,
+  intimacyRank,
+  rewriteCoreChanges,
+} from "./rewrite-fate.js";
 import {
   buildProgressCard,
   createSession,
@@ -528,6 +532,7 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
       { type: "flag", key: pairFlag, value: true },
       { type: "flag", key: `forced_${originalId}`, value: true },
       { type: "flag", key: `forced_${joiningId}`, value: true },
+      { type: "flag", key: `date_broken_${originalId}`, value: true },
       { type: "tension", pair: `${originalId}-${joiningId}`, op: "add", value: 10 },
     ]);
     const after = captureStatSnapshot(state);
@@ -539,36 +544,16 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
       targetId: joiningId,
       interventionId: "force",
     });
-    const joinId = `SPECIAL_500_JOIN_${originalId}_01`;
-    const joinEvent = getEvent(joinId);
-    const joinMatches =
-      joinEvent &&
-      (joinEvent.characters || []).includes(originalId) &&
-      (joinEvent.characters || []).includes(joiningId) &&
-      !hasOccurred(state, joinId);
-    const picked = joinMatches
-      ? { eventId: joinId, reason: null }
-      : pickShuraForPair(state, originalId, joiningId, rng);
-    const missingShura = !picked.eventId;
-    const started = startEvent(picked.eventId || SEASON.hubEventId);
+    const picked = pickShuraForPair(state, originalId, joiningId, rng);
+    const started = startEvent(picked.eventId || SEASON.hubEventId, { force: true });
     const statusNotes = [
-      { kind: "join", text: `${joiner.name} 決定加入這段時間。` },
-      { kind: "host", text: `${host.name}原本正與可樂月月共度這段時間。` },
-      { kind: "broken", text: `${joiner.name}的出現，直接打破了原本的氣氛。` },
+      { kind: "join", text: `🔥 ${joiner.shortName}決定加入戰局！` },
+      { kind: "host", text: `原本獨處：${host.icon} ${host.shortName}` },
+      { kind: "broken", text: `${host.icon} ${host.shortName}的獨處時光被打斷` },
+      { kind: "danger", text: `${joiner.icon} ${joiner.shortName}危險度 ↑` },
       ...diffStatusNotes(before, after).filter((note) => note.kind !== "solo-off" && note.kind !== "broken"),
     ];
-    if (missingShura) {
-      statusNotes.push({
-        kind: "missing",
-        text:
-          picked.reason === "exhausted"
-            ? `${host.name} × ${joiner.name} 的修羅場已經用完。沒有改抽其他角色。`
-            : `${host.name} × ${joiner.name} 目前還沒有可用的修羅場事件。沒有改抽其他角色。`,
-      });
-    }
-    const intervalCopy = missingShura
-      ? `**歡迎來到戀愛修羅場**\n\n此時，可樂月月、${host.name}、${joiner.name}，場面僵持。\n這對組合目前沒有可用的修羅場卡。系統沒有改抽其他人。`
-      : `**歡迎來到戀愛修羅場**\n\n此時，可樂月月、${host.name}、${joiner.name}，場面僵持。`;
+    const intervalCopy = `**歡迎來到戀愛修羅場**\n\n此時，可樂月月、${host.name}、${joiner.name}，場面僵持。`;
     attachPaidResult({
       kind: "force",
       logs: [`${joiner.name} 加入了戰局。`],
@@ -581,6 +566,8 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
         statChanges,
         originalSoloId: originalId,
         originalSoloName: host.name,
+        originalSoloShortName: host.shortName,
+        originalSoloIcon: host.icon,
         originalSoloCharacter: originalId,
         originalCharacter: originalId,
         originalCharacterName: host.name,
@@ -591,8 +578,6 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
         name: joiner.name,
         shortName: joiner.shortName,
         icon: joiner.icon,
-        missingShura,
-        missingReason: picked.reason,
         dangerFrom: before.dangers?.[joiningId] ?? 0,
         dangerTo: after.dangers?.[joiningId] ?? 0,
       },
@@ -602,13 +587,7 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
   }
 
   function shuffleCharacterCoreStats(targetId) {
-    const target = CHARACTER_BY_ID[targetId];
-    for (const key of characterCoreStats(target)) {
-      const current = Number(state.characters[targetId][key]) || 0;
-      let next = clampStat(Math.round(8 + rng() * 84));
-      if (next === current) next = clampStat(current >= 50 ? current - 21 : current + 21);
-      state.characters[targetId][key] = next;
-    }
+    return applyFateRewrite(state, targetId, rng);
   }
 
   function rewriteStatView(target, beforeSnap, afterSnap) {
@@ -618,13 +597,7 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
         name: target.name,
         shortName: target.shortName,
         icon: target.icon,
-        changes: rewriteLines(
-          { ...target, stats: characterCoreStats(target) },
-          beforeSnap.characters[target.id],
-          afterSnap.characters[target.id],
-          beforeSnap.dangers[target.id],
-          afterSnap.dangers[target.id]
-        ),
+        changes: rewriteCoreChanges(target, beforeSnap.characters[target.id], afterSnap.characters[target.id]),
       },
     ];
   }
@@ -678,20 +651,23 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
       return { ok: true };
     }
 
-    shuffleCharacterCoreStats(target.id);
+    const rankFrom = intimacyRank(state, target.id);
+    const shuffle = shuffleCharacterCoreStats(target.id);
     const after = captureStatSnapshot(state);
     const statChanges = rewriteStatView(target, before, after);
-    const intervalCopy =
-      event.intervalCopy ||
-      buildIntervalCopy({
-        kind: "rewrite",
-        statChanges,
-        characterId: target.id,
-        name: target.name,
-      });
-    snapshotResult(event.resultCopy || "改寫命運", [event.resultCopy || "命運已重新洗牌。"], {
+    const danger = Boolean(shuffle?.danger);
+    const intervalCopy = danger
+      ? "⚠️ 她現在已經開始偏離原本的軌道。"
+      : event.intervalCopy ||
+        buildIntervalCopy({
+          kind: "rewrite",
+          statChanges,
+          characterId: target.id,
+          name: target.name,
+        });
+    snapshotResult(danger ? "命運偏移……" : event.resultCopy || "命運改寫完成", [danger ? "🔥 危險命運觸發！" : event.resultCopy || "命運已重新洗牌。"], {
       kind: "rewrite",
-      overlayTitle: "改寫命運",
+      overlayTitle: danger ? "命運偏移……" : "命運改寫完成",
       fateCost: 1000,
       characterId: target.id,
       name: target.name,
@@ -699,7 +675,10 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
       icon: target.icon,
       statChanges,
       intervalCopy,
-      resultCopy: event.resultCopy || "",
+      resultCopy: danger ? "🔥 危險命運觸發！" : event.resultCopy || "",
+      rewriteDanger: danger,
+      rewriteMode: shuffle?.stance || "mid",
+      rewriteRank: { from: rankFrom, to: intimacyRank(state, target.id) },
     });
     setFeedback({ showOverlay: true, showInterval: true, intervalCopy });
     startEvent(SEASON.hubEventId);
@@ -708,28 +687,48 @@ export function createGame({ persist = true, donationProvider, rng = Math.random
   }
 
   function applyRewriteFate(targetId) {
-    const ids = Object.keys(CHARACTER_BY_ID);
-    const pick = CHARACTER_BY_ID[targetId] ? targetId : ids[Math.floor(rng() * ids.length)] || ids[0];
-    const target = CHARACTER_BY_ID[pick];
-    state.pendingTargetId = pick;
-    trackCharacterTouch(state, pick, "intervention", "rewrite");
+    const target = CHARACTER_BY_ID[targetId];
+    if (!target) return { ok: false, error: "請選擇角色" };
+    const cost = GAME_CONFIG.interventionCosts.rewrite;
+    state.pendingTargetId = targetId;
+    const before = captureStatSnapshot(state);
+    const rankFrom = intimacyRank(state, targetId);
+    trackCharacterTouch(state, targetId, "intervention", "rewrite");
     pushHistory(state, {
       kind: "intervention",
-      text: `主播執行「改寫命運」→ 打開 ${target.name} 的命運改寫。`,
-      targetId: pick,
+      text: `主播執行「改寫命運」（權限 ${cost}）→ ${target.name}。金流在遊戲外，此處不扣款。`,
+      targetId,
       interventionId: "rewrite",
     });
-    snapshotResult("改寫命運", [`${target.name} 的命運準備被重新洗牌。`], {
+    const shuffle = applyFateRewrite(state, targetId, rng);
+    const after = captureStatSnapshot(state);
+    const statChanges = rewriteStatView(target, before, after);
+    const danger = Boolean(shuffle.danger);
+    const intervalCopy = danger
+      ? "⚠️ 她現在已經開始偏離原本的軌道。"
+      : `${target.name} 的狀態已經完全不同了。`;
+    attachPaidResult({
       kind: "rewrite",
-      overlayTitle: "改寫命運",
-      fateCost: 1000,
-      characterId: pick,
-      name: target.name,
-      shortName: target.shortName,
-      icon: target.icon,
+      logs: [danger ? "🔥 危險命運觸發！" : "🔮 命運改寫完成"],
+      before,
+      extra: {
+        fateCost: 1000,
+        overlayTitle: danger ? "命運偏移……" : "命運改寫完成",
+        intervalCopy,
+        statChanges,
+        characterId: target.id,
+        name: target.name,
+        shortName: target.shortName,
+        icon: target.icon,
+        rewriteDanger: danger,
+        rewriteMode: shuffle.stance,
+        rewriteRank: { from: rankFrom, to: intimacyRank(state, targetId) },
+        resultCopy: danger ? "🔥 危險命運觸發！" : "🔮 命運改寫完成",
+      },
     });
+    const started = startEvent(SEASON.hubEventId);
     persistState();
-    return startEvent(target.rewriteEventId, { force: true });
+    return started?.ok === false ? started : { ok: true };
   }
 
   function holdTonight() {

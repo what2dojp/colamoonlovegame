@@ -1,4 +1,4 @@
-import { CHARACTERS, STAT_LABELS } from "../../data/characters.js";
+import { CHARACTERS, STAT_LABELS, statMeta } from "../../data/characters.js";
 import { audienceStatus, characterDanger, computeDerived } from "./derived.js";
 import { diffVisibleFlags } from "./narration.js";
 
@@ -38,11 +38,14 @@ export function diffStatSnapshots(before, after) {
       const from = Number(prev[key]);
       const to = Number(next[key]);
       if (!Number.isFinite(from) || !Number.isFinite(to) || from === to) continue;
+      const meta = key === "danger" ? { icon: "⚠️", audienceLabel: "危險度" } : statMeta(key);
       changes.push({
         key,
-        label: key === "danger" ? "危險度" : STAT_LABELS[key] || key,
+        icon: meta.icon || "",
+        label: meta.audienceLabel || STAT_LABELS[key] || key,
         from,
         to,
+        delta: to - from,
       });
     }
     if (changes.length) {

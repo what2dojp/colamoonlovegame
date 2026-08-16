@@ -1,5 +1,6 @@
 import { CHARACTER_BY_ID, resolveCharacterStatKey } from "../../data/characters.js";
 import { EVENT_BY_ID, EVENTS } from "../../data/seasons/qixi-2026/events.js";
+import { activeSoloId, eventLeadCharacter } from "../../data/seasons/qixi-2026/interventions.js";
 import { evalCondition, interpolate, getByPath, setByPath } from "./conditions.js";
 import { clampStat } from "./derived.js";
 import { pairKey } from "./save.js";
@@ -31,6 +32,22 @@ export function eventContext(state) {
   const target = state.pendingTargetId ? CHARACTER_BY_ID[state.pendingTargetId] : null;
   const partnerId = state.currentSession?.nightPartner;
   const partner = partnerId ? CHARACTER_BY_ID[partnerId] : null;
+  const current = EVENT_BY_ID[state.currentEventId];
+  const hostId =
+    state.currentSession?.originalSoloCharacter ||
+    state.originalSoloCharacter ||
+    activeSoloId(state) ||
+    eventLeadCharacter(current) ||
+    null;
+  const host = hostId ? CHARACTER_BY_ID[hostId] : null;
+  const hostView = host
+    ? {
+        ...host,
+        ...state.characters[host.id],
+        name: host.shortName,
+        fullName: host.name,
+      }
+    : { name: "她", fullName: "她", icon: "", shortName: "她" };
   return {
     ...state,
     target: target
@@ -46,6 +63,9 @@ export function eventContext(state) {
           ...state.characters[partner.id],
         }
       : null,
+    host: hostView,
+    solo: hostView,
+    soloCharacterName: hostView.name,
   };
 }
 

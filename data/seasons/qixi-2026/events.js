@@ -1,7 +1,7 @@
 import { DAILY_EVENTS, MEMORY_EVENTS } from "./events-daily.js";
 import { PHASE1_EVENTS } from "./events-phase1.js";
 import { PHASE2_EVENTS } from "./events-phase2.js";
-import { EXTRA_SHURA_EVENTS } from "./events-shura-pairs.js";
+import { SHURA_PACK_EVENTS } from "./events-shura-pack.js";
 import { SPECIAL_EVENTS } from "./events-special.js";
 import { CRISIS_EVENTS } from "./events-crisis.js";
 
@@ -1262,8 +1262,8 @@ export const EVENTS = [
   ...SPECIAL_EVENTS,
   ...CRISIS_EVENTS,
   ...PHASE1_EVENTS,
-  ...PHASE2_EVENTS,
-  ...EXTRA_SHURA_EVENTS,
+  ...PHASE2_EVENTS.filter((event) => !String(event.id).startsWith("SHURA_")),
+  ...SHURA_PACK_EVENTS,
 ];
 
 export const EVENT_ID_ALIASES = {

@@ -369,6 +369,19 @@ function renderDraw(state) {
     </div>`;
 }
 
+function formatStatDelta(from, to) {
+  const start = Number(from) || 0;
+  const end = Number(to) || 0;
+  const delta = end - start;
+  const arrow =
+    delta > 0
+      ? `<span class="delta-up">↑${delta}</span>`
+      : delta < 0
+        ? `<span class="delta-down">↓${Math.abs(delta)}</span>`
+        : "";
+  return `${start} → <i data-count-from="${start}" data-count-to="${end}">${start}</i>${arrow ? ` ${arrow}` : ""}`;
+}
+
 function renderStatRows(groups) {
   return (groups || [])
     .map((row) => {
@@ -376,8 +389,8 @@ function renderStatRows(groups) {
         .map(
           (change) => `
             <div class="stat-change">
-              <span>${audienceText(change.label)}</span>
-              <b>${change.from} → <i data-count-from="${change.from}" data-count-to="${change.to}">${change.from}</i></b>
+              <span>${change.icon || ""} ${audienceText(change.label)}</span>
+              <b>${formatStatDelta(change.from, change.to)}</b>
             </div>`
         )
         .join("");
@@ -415,7 +428,7 @@ function renderHoldPopup(settlement) {
         <article class="hold-person">
           <h4>${c.icon || ""} ${audienceText(c.name || c.fullName || c.shortName)}</h4>
           <p class="hold-person-status">${audienceText(c.statusLabel || "平靜")}</p>
-          <p class="hold-person-num">${c.from} → <b><i data-count-from="${c.from}" data-count-to="${c.to}">${c.from}</i></b></p>
+          <p class="hold-person-num">${formatStatDelta(c.from, c.to)}</p>
         </article>`
     )
     .join("");
@@ -427,7 +440,7 @@ function renderHoldPopup(settlement) {
       <div class="hold-grid">${rows}</div>
       <p class="hold-fire">🔥 可樂月月失火指數</p>
       <p class="hold-fire-num">
-        ${s.fireFrom} → <b><i data-count-from="${s.fireFrom}" data-count-to="${s.fireTo}">${s.fireFrom}</i></b>
+        ${formatStatDelta(s.fireFrom, s.fireTo)}
       </p>
       <p class="hold-fire-mood">${fireMoodLabel(s.fireTo)}</p>
       <p class="hold-saved">今晚的命運已保存。</p>
@@ -462,40 +475,44 @@ function renderPopup() {
   }
 
   if (popup.kind === "rewrite") {
+    const danger = Boolean(result.rewriteDanger);
+    const rank = result.rewriteRank || {};
+    const rankHtml =
+      Number.isFinite(Number(rank.from)) && Number.isFinite(Number(rank.to))
+        ? `<p class="rewrite-rank">親密排名 <b class="rank-from">${rank.from}</b> → <b class="rank-to">${rank.to}</b></p>`
+        : "";
     return popupShell(
       `
-        <p class="kicker">✦✦✦ 改寫命運 ✦✦✦</p>
+        <p class="kicker">${danger ? "🔮 命運偏移……" : "🔮 命運改寫完成"}</p>
+        ${danger ? `<p class="rewrite-danger-banner">🔥 危險命運觸發！</p>` : ""}
         <p class="fate-cost-tag">1000</p>
-        <p class="rewrite-lead">神使開始重新洗牌今晚的命運……</p>
         <h3>${result.icon || ""} ${name}</h3>
+        ${rankHtml}
         ${stats}
         <p class="hold-saved">${richText(result.intervalCopy || `${name} 的狀態已經完全不同了。`)}</p>
         <button class="choice" data-popup-done="1">接受改寫</button>
       `,
-      "rewrite-card fate-strong"
+      danger ? "rewrite-card fate-strong rewrite-danger-card" : "rewrite-card fate-strong"
     );
   }
 
   if (popup.kind === "force") {
     const joinName = audienceText(result.joiningName || name);
+    const joinShort = audienceText(result.shortName || joinName);
     const hostName = audienceText(result.originalSoloName || result.originalCharacterName || "");
-    const missing = result.missingShura
-      ? `<p class="force-missing">${audienceText(
-          result.missingReason === "exhausted"
-            ? `${hostName} × ${joinName} 的修羅場已經用完。沒有改抽其他角色。`
-            : `${hostName} × ${joinName} 目前還沒有可用的修羅場事件。沒有改抽其他角色。`
-        )}</p>`
-      : "";
+    const hostShort = audienceText(result.originalSoloShortName || hostName);
+    const hostIcon = result.originalSoloIcon || "";
+    const joinIcon = result.icon || "";
     return popupShell(
       `
         <p class="kicker">✦ 局勢突然改變</p>
         <p class="fate-cost-tag">500</p>
-        <h3 class="force-join">${joinName}決定加入這段時間。</h3>
-        <p class="force-line">${hostName ? audienceText(`${hostName}原本正與可樂月月共度這段時間。`) : ""}</p>
-        <p class="force-line">${hostName ? audienceText(`${joinName}的出現，直接打破了原本的氣氛。`) : ""}</p>
+        <h3 class="force-join">🔥 ${joinIcon} ${joinShort}決定加入戰局！</h3>
+        <p class="force-line">${hostShort ? `原本獨處：${hostIcon} ${hostShort}` : ""}</p>
+        <p class="force-line">${hostShort ? `${hostIcon} ${hostShort}的獨處時光被打斷` : ""}</p>
+        <p class="force-line">${joinIcon} ${joinShort}危險度 ↑</p>
         ${stats}
         ${notes}
-        ${missing}
         <button class="choice" data-popup-done="1">進入修羅場</button>
       `,
       "force-card fate-strong fate-500"

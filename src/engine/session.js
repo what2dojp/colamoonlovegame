@@ -158,15 +158,17 @@ export function pickPoolEventForCharacter(state, characterId, rng = Math.random)
 }
 
 export function pickShuraForPair(state, a, b, rng = Math.random) {
-  const ids = shuraIdsForPair(a, b);
-  if (!ids.length) {
-    return { eventId: null, reason: "missing-pair", ids: [] };
+  const ids = shuraIdsForPair(a, b).filter((id) => getEvent(id));
+  const unused = ids.filter((id) => !hasOccurred(state, id));
+  if (unused.length) {
+    return { eventId: unused[0], reason: null, ids };
   }
-  const unused = ids.filter((id) => getEvent(id) && !hasOccurred(state, id));
-  if (!unused.length) {
-    return { eventId: null, reason: "exhausted", ids };
+  if (ids.length) {
+    return { eventId: ids[Math.floor(rng() * ids.length)] || ids[0], reason: "repeat", ids };
   }
-  return { eventId: unused[0], reason: null, ids };
+  const fallbackIds = EVENTS.filter((event) => String(event.id).startsWith("SHURA_")).map((event) => event.id);
+  const pick = fallbackIds[Math.floor(rng() * fallbackIds.length)] || fallbackIds[0] || null;
+  return { eventId: pick, reason: pick ? "fallback-any" : "missing-pair", ids: fallbackIds };
 }
 
 export function trackCharacterTouch(state, characterId, kind, eventId) {
