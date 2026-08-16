@@ -298,8 +298,14 @@ h1 { font-size: clamp(20px, 2.4vw, 28px); }
   width: auto;
   height: 168%;
   max-width: none;
-  transform: translateY(-50%);
+  transform: translate(42%, -50%);
   object-position: right center;
+}
+.char-card[data-char="nini"] .character-portrait img.is-wide {
+  transform: translate(40%, -50%);
+}
+.char-card[data-char="pepsi"] .character-portrait img.is-wide {
+  transform: translate(46%, -50%);
 }
 .char-card h3 { font-size: 14px; line-height: 1.3; margin: 4px 0 6px; }
 .portrait {
@@ -478,7 +484,7 @@ h1 { font-size: clamp(20px, 2.4vw, 28px); }
   height: 170%;
   max-width: none;
   margin-left: 0;
-  transform: translateY(-50%);
+  transform: translate(38%, -50%);
   object-position: right center;
 }
 .target-btn > :not(.target-portrait) {
