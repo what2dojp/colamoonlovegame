@@ -1,9 +1,9 @@
 export const FATE_COPY = {
-  peek: { cost: 100, title: "偷看命運", tag: "看見不該知道的事" },
-  encounter: { cost: 200, title: "碰觸命運", tag: "讓某人靠近可樂月月" },
-  intervene: { cost: 300, title: "干涉命運", tag: "把可樂月月支開，搶走鏡頭" },
-  force: { cost: 500, title: "扭轉命運", tag: "把人拉進現在的故事" },
-  rewrite: { cost: 1000, title: "改寫命運", tag: "重新洗牌一人的命運" },
+  peek: { cost: 100, icon: "💰", title: "深挖角色", tag: "100 元", kicker: "回憶／秘密／情書" },
+  encounter: { cost: 200, icon: "🌙", title: "製造獨處", tag: "200 元", kicker: "強制與指定角色獨處" },
+  intervene: { cost: 300, icon: "💥", title: "支開競爭者", tag: "300 元", kicker: "指定 A 支開 B，下一張是 A" },
+  force: { cost: 500, icon: "🔥", title: "拉人修羅場", tag: "500 元", kicker: "把人拉進現在的獨處" },
+  rewrite: { cost: 1000, icon: "🔮", title: "改寫命運", tag: "1000 元", kicker: "指定角色，重寫戰局位置" },
 };
 
 const FIRE_COPY = {

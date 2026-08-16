@@ -218,7 +218,7 @@ app.addEventListener("click", (event) => {
   const iv = event.target.dataset.iv;
   if (iv) {
     const copy = FATE_COPY[iv];
-    const label = copy ? `${copy.cost}｜${copy.title}` : iv;
+    const label = copy ? `${copy.cost} 元｜${copy.title}` : iv;
     if (!confirm(`${label}\n\n你即將改變目前的局勢。\n確定要觸碰這條命運嗎？`)) return;
     const target = document.getElementById("iv-target")?.value;
     const result = game.intervene(iv, target, { force: true });
