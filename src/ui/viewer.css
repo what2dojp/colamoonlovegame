@@ -423,6 +423,36 @@ h1 { font-size: clamp(20px, 2.4vw, 28px); }
   border-color: var(--gold);
   background: linear-gradient(180deg, rgba(80, 36, 12, 0.55), #2a1028);
 }
+.result-card.rewrite-danger-card {
+  border-color: #ff2a2a;
+  background: linear-gradient(180deg, rgba(92, 0, 8, 0.82), #140406);
+  animation: danger-flash 0.65s ease-in-out infinite;
+}
+@keyframes danger-flash {
+  0%, 100% { box-shadow: 0 0 16px rgba(255, 32, 32, 0.45); border-color: #ff3b3b; }
+  50% { box-shadow: 0 0 42px rgba(255, 70, 70, 0.95); border-color: #ffd0d0; }
+}
+.rewrite-danger-banner {
+  color: #ffb3b3;
+  font-size: 22px;
+  letter-spacing: 0.08em;
+  margin: 8px 0 4px;
+}
+.rewrite-rank {
+  font-size: 20px;
+  margin: 10px 0 14px;
+}
+.rewrite-rank .rank-from,
+.rewrite-rank .rank-to {
+  display: inline-block;
+  animation: rank-pop 0.85s ease;
+}
+@keyframes rank-pop {
+  0% { transform: translateY(10px) scale(0.86); opacity: 0.15; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+.delta-up { color: #7dffb0; margin-left: 4px; }
+.delta-down { color: #ff8aa0; margin-left: 4px; }
 .result-card.force-card { border-color: #ff8a5c; }
 .result-card.fate-500 {
   width: min(96vw, 720px);
