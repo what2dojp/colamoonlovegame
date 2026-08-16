@@ -1,6 +1,6 @@
 import { createGame } from "../engine/game.js";
 import { audienceText, eventCastLabel, eventPresentation, FATE_COPY, fireCopy, fireMoodLabel } from "./presentation.js";
-import { characterPortraitFallback, characterPortraitSrc } from "./portraits.js";
+import { characterPortraitLayout, characterPortraitSrc } from "./portraits.js";
 import { statMeta } from "../../data/characters.js";
 
 const game = createGame();
@@ -221,11 +221,11 @@ function renderCastCard(c, soloId) {
     })
     .join("");
   const portrait = characterPortraitSrc(c.id);
-  const fallback = characterPortraitFallback(c.id);
+  const layout = characterPortraitLayout(c.id);
   return `
     <article class="char-card status-${status.key} ${live ? "is-solo" : ""}" style="--accent:${c.accent}" data-char="${c.id}">
       <div class="character-portrait" aria-hidden="true">
-        ${portrait ? `<img src="${portrait}" alt="" data-fallback="${fallback}" onerror="if(this.dataset.fallback&&this.src!==this.dataset.fallback){this.src=this.dataset.fallback}else{this.style.display='none'}">` : ""}
+        ${portrait ? `<img class="is-${layout}" src="${portrait}" alt="" onerror="this.style.display='none'">` : ""}
       </div>
       <div class="character-info">
         <div class="portrait" aria-hidden="true">${c.icon}</div>
@@ -369,7 +369,11 @@ function renderTarget(state) {
             .map((c) => {
               const isLead = c.id === blockedId;
               const blocked = Boolean(blockedId) && isLead;
-              return `<button class="target-btn ${c.id === solo ? "is-solo" : ""}" data-target="${c.id}" ${blocked ? "disabled" : ""}>${c.icon}<br>${c.name}${isLead ? "<small>目前在場</small>" : c.id === solo ? "<small>獨處中</small>" : ""}</button>`;
+              const portrait = characterPortraitSrc(c.id);
+              return `<button class="target-btn ${c.id === solo ? "is-solo" : ""}" data-target="${c.id}" ${blocked ? "disabled" : ""}>
+                ${portrait ? `<span class="target-portrait" aria-hidden="true"><img class="is-${characterPortraitLayout(c.id)}" src="${portrait}" alt=""></span>` : ""}
+                ${c.icon}<br>${c.name}${isLead ? "<small>目前在場</small>" : c.id === solo ? "<small>獨處中</small>" : ""}
+              </button>`;
             })
             .join("")}
         </div>

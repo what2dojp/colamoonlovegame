@@ -1,25 +1,27 @@
 const PORTRAIT_DIR = new URL("../../assets/portraits/", import.meta.url);
+const PORTRAIT_REV = "20260816";
 
 export const CHARACTER_PORTRAITS = {
-  nini: new URL("nini.png", PORTRAIT_DIR).href,
-  meteor: new URL("meteor.png", PORTRAIT_DIR).href,
-  pepsi: new URL("pepsi.png", PORTRAIT_DIR).href,
-  jupiter: new URL("jupiter.png", PORTRAIT_DIR).href,
-  mars: new URL("mars.png", PORTRAIT_DIR).href,
+  nini: new URL(`nini.png?v=${PORTRAIT_REV}`, PORTRAIT_DIR).href,
+  meteor: new URL(`meteor.png?v=${PORTRAIT_REV}`, PORTRAIT_DIR).href,
+  pepsi: new URL(`pepsi.png?v=${PORTRAIT_REV}`, PORTRAIT_DIR).href,
+  jupiter: new URL(`jupiter.png?v=${PORTRAIT_REV}`, PORTRAIT_DIR).href,
+  mars: new URL(`mars.png?v=${PORTRAIT_REV}`, PORTRAIT_DIR).href,
 };
 
-export const CHARACTER_PORTRAIT_FALLBACKS = {
-  nini: new URL("nini.svg", PORTRAIT_DIR).href,
-  meteor: new URL("meteor.svg", PORTRAIT_DIR).href,
-  pepsi: new URL("pepsi.svg", PORTRAIT_DIR).href,
-  jupiter: new URL("jupiter.svg", PORTRAIT_DIR).href,
-  mars: new URL("mars.svg", PORTRAIT_DIR).href,
+/** nini / pepsi uploads are landscape; the others are tall cutouts. */
+export const CHARACTER_PORTRAIT_LAYOUT = {
+  nini: "wide",
+  meteor: "tall",
+  pepsi: "wide",
+  jupiter: "tall",
+  mars: "tall",
 };
 
 export function characterPortraitSrc(id) {
   return CHARACTER_PORTRAITS[id] || "";
 }
 
-export function characterPortraitFallback(id) {
-  return CHARACTER_PORTRAIT_FALLBACKS[id] || "";
+export function characterPortraitLayout(id) {
+  return CHARACTER_PORTRAIT_LAYOUT[id] || "tall";
 }
